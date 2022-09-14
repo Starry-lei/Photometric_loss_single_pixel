@@ -4,6 +4,10 @@
 // optimization
 // pyramid improvement
 
+//local header files
+#include <reprojection.h>
+
+
 //#include <algorithm>
 //#include <atomic>
 //#include <chrono>
@@ -36,8 +40,14 @@
 //using namespace visnav;
 using namespace cv;
 using namespace std;
+using namespace DSONL;
 
 bool checkImageBoundaries(Eigen::Vector2f &pixel, int width, int height);
+
+bool removeNegativeValue(Mat& src, Mat& dst){
+	dst = cv::max(src, 0);
+	return true;
+}
 
 bool project(int uj, int vj, float iDepth, const Eigen::Matrix<float, 3, 3> &KRKinv, const Eigen::Matrix<float, 3, 1> &Kt,
         Eigen::Vector2f &pt2d);
@@ -74,133 +84,96 @@ struct PhotometricBAOptions {
 };
 
 
-struct GetPixelGrayValue {
+//struct GetPixelGrayValue {
+//
+//	GetPixelGrayValue(const double pixel_gray_val_in[1],
+//	                  const Eigen::Vector2d &pixelCoor,
+//	                  const Eigen::Matrix3d & K,
+//	                  const int rows,
+//	                  const int cols,
+//	                  const std::vector<double> &vec_pixel_gray_values,
+//	                  const std::vector<double> &img_ref_depth_values,
+//	                  const std::vector<double> &img_ref_vec_values
+//					  ) {
+//		pixel_gray_val_in_[0] = pixel_gray_val_in[0];
+//		rows_ = rows;
+//		cols_ = cols;
+//		pixelCoor_ = pixelCoor;
+//		K_ = K;
+////		interp_depth = interpolated_depth;
+//
+//		grid2d_depth.reset(new ceres::Grid2D<double>(&img_ref_depth_values[0],0, rows_, 0, cols_));
+//		interp_depth.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_depth));
+//
+//
+//		grid2d_img_ref.reset(new ceres::Grid2D<double>(&img_ref_vec_values[0],0, rows_, 0, cols_));
+//		interp_img_ref.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_img_ref));
+//
+//
+//		grid2d.reset(new ceres::Grid2D<double>(
+//				&vec_pixel_gray_values[0], 0, rows_, 0, cols_));
+//		get_pixel_gray_val.reset(
+//				new ceres::BiCubicInterpolator<ceres::Grid2D<double> >(*grid2d));
+//	}
+//
+//	template<typename T>
+//	bool operator()(
+//			const T* const sT,
+////			const T* const  sd, //T const *const sd,
+//			T *residual) const {
+//
+//		Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
+//		// project and search for optimization variable depth
+//		// calculate transformed pixel coordinates
+//		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
+//
+//		Eigen::Matrix<double,3,1> p_3d_no_d;
+////		Eigen::Vector3d p_3d_no_d = K_.inverse() * Eigen::Matrix<double, 3, 1>(pixelCoor_(1), pixelCoor_(2), 1.0);
+//		p_3d_no_d<< (pixelCoor_(0)-cx)/fx, (pixelCoor_(1)-cy)/fy,1.0;
+//
+//
+////		Eigen::Map<Eigen::Matrix<T, 1, 1> const> const ?????????????????????????????? do I need to map p_3d_no_d
+//
+////		Eigen::Vector3d p_3d_wod, p_3d_new_proj; //((u-cx)/fx, (v-cy)/fy,1.0);
+////		p_3d_wod = K_.inverse() * Eigen::Matrix<double, 3, 1>(u, v, 1.0);
+//        T d, u_, v_, intensity_image_ref;
+//		u_=(T)pixelCoor_(1);
+//		v_=(T)pixelCoor_(0);
+//		interp_depth->Evaluate(u_,v_, &d);
+//
+//		interp_img_ref->Evaluate(u_,v_, &intensity_image_ref);
+////		Eigen::Map<Eigen::Matrix<T, 1, 1> const> const d(sd);
+////		Eigen::Map<Eigen::Matrix<T, 1, 1>> residuals(sResiduals);
+//        Eigen::Matrix<T, 3,1> p_w=d*p_3d_no_d;
+//		Eigen::Matrix<T, 3, 1> p1 = Tran * p_w ;
+//		Eigen::Matrix<T, 3, 1> pt = K_ * p1;
+//
+//		T x = (pt[0] / pt[2]); // col id
+//		T y = (pt[1] / pt[2]);// row id
+//
+////	    cout<<"\n Show current col id and row id:("<<x<<","<<y<<")"<<endl;
+//		T pixel_gray_val_out;
+//		get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out); //
+////	    cout<<"\n Show current pixel_gray_val_out:"<< pixel_gray_val_out<<endl;
+//	residual[0] = intensity_image_ref - pixel_gray_val_out;
+//
+//
+//		return true;
+//	}
+//
+//
+//	double pixel_gray_val_in_[1];
+//	int rows_, cols_;
+//	Eigen::Vector2d pixelCoor_;
+//	Eigen::Matrix3d K_;
+//	std::unique_ptr<ceres::Grid2D<double> > grid2d;
+//	std::unique_ptr<ceres::Grid2D<double> > grid2d_depth;
+//	std::unique_ptr<ceres::Grid2D<double> > grid2d_img_ref;
+//	std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double> > > get_pixel_gray_val;
+//	std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_depth;
+//	std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_img_ref;
+//};
 
-	GetPixelGrayValue(const double pixel_gray_val_in[1],
-	                  const Eigen::Vector2d &pixelCoor,
-	                  const Eigen::Matrix3d & K,
-	                  const int rows,
-	                  const int cols,
-	                  const std::vector<double> &vec_pixel_gray_values,
-	                  const std::vector<double> &img_ref_depth_values,
-	                  const std::vector<double> &img_ref_vec_values
-					  ) {
-		pixel_gray_val_in_[0] = pixel_gray_val_in[0];
-		rows_ = rows;
-		cols_ = cols;
-		pixelCoor_ = pixelCoor;
-		K_ = K;
-//		interp_depth = interpolated_depth;
-
-		grid2d_depth.reset(new ceres::Grid2D<double>(&img_ref_depth_values[0],0, rows_, 0, cols_));
-		interp_depth.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_depth));
-
-
-		grid2d_img_ref.reset(new ceres::Grid2D<double>(&img_ref_vec_values[0],0, rows_, 0, cols_));
-		interp_img_ref.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_img_ref));
-
-
-		grid2d.reset(new ceres::Grid2D<double>(
-				&vec_pixel_gray_values[0], 0, rows_, 0, cols_));
-		get_pixel_gray_val.reset(
-				new ceres::BiCubicInterpolator<ceres::Grid2D<double> >(*grid2d));
-	}
-
-	template<typename T>
-	bool operator()(
-			const T* const sT,
-//			const T* const  sd, //T const *const sd,
-			T *residual) const {
-
-		Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
-		// project and search for optimization variable depth
-		// calculate transformed pixel coordinates
-		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
-
-		Eigen::Matrix<double,3,1> p_3d_no_d;
-//		Eigen::Vector3d p_3d_no_d = K_.inverse() * Eigen::Matrix<double, 3, 1>(pixelCoor_(1), pixelCoor_(2), 1.0);
-		p_3d_no_d<< (pixelCoor_(0)-cx)/fx, (pixelCoor_(1)-cy)/fy,1.0;
-
-
-//		Eigen::Map<Eigen::Matrix<T, 1, 1> const> const ?????????????????????????????? do I need to map p_3d_no_d
-
-//		Eigen::Vector3d p_3d_wod, p_3d_new_proj; //((u-cx)/fx, (v-cy)/fy,1.0);
-//		p_3d_wod = K_.inverse() * Eigen::Matrix<double, 3, 1>(u, v, 1.0);
-        T d, u_, v_, intensity_image_ref;
-		u_=(T)pixelCoor_(0);
-		v_=(T)pixelCoor_(1);
-		interp_depth->Evaluate(u_,v_, &d);
-
-		interp_img_ref->Evaluate(u_,v_, &intensity_image_ref);
-//		Eigen::Map<Eigen::Matrix<T, 1, 1> const> const d(sd);
-//		Eigen::Map<Eigen::Matrix<T, 1, 1>> residuals(sResiduals);
-
-		Eigen::Matrix<T, 3, 1> p1 = Tran * p_3d_no_d *d;
-		Eigen::Matrix<T, 3, 1> pt = K_ * p1;
-
-		T x = (pt[0] / pt[2]); // col id
-		T y = (pt[1] / pt[2]);// row id
-
-//	    cout<<"\n Show current col id and row id:("<<x<<","<<y<<")"<<endl;
-		T pixel_gray_val_out;
-		get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out); //
-//	    cout<<"\n Show current pixel_gray_val_out:"<< pixel_gray_val_out<<endl;
-	residual[0] = intensity_image_ref - pixel_gray_val_out;
-		return true;
-	}
-
-
-	double pixel_gray_val_in_[1];
-	int rows_, cols_;
-	Eigen::Vector2d pixelCoor_;
-	Eigen::Matrix3d K_;
-	std::unique_ptr<ceres::Grid2D<double> > grid2d;
-	std::unique_ptr<ceres::Grid2D<double> > grid2d_depth;
-	std::unique_ptr<ceres::Grid2D<double> > grid2d_img_ref;
-	std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double> > > get_pixel_gray_val;
-	std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_depth;
-	std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_img_ref;
-};
-
-
-// struct PhotometricCostFunctor{
-//     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-//     PhotometricCostFunctor( const float& intensity_l, const Eigen::Vector3f& p_3f, const Eigen::Matrix3f& K, const Mat& image_left): intensity_l(intensity_l), p_3f(p_3f),K(K), image_left(image_left){}
-
-
-//     template <class T>
-//     bool operator()(T const* const sT, T const* const sd, T* sResiduals) const {
-
-//     // map inputs
-//     Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
-//     Eigen::Map<Eigen::Matrix<T, 1, 1> const> const d(sd);
-//     Eigen::Map<Eigen::Matrix<T, 1, 1>> residuals(sResiduals);
-
-//     // float* p_= const_cast<float*>(p.data());
-//     // Eigen::Map<Eigen::Matrix<T, 3, 1> const> const p_3f(p_);
-
-//     // p=p*d;
-//     // float* p_= const_cast<float*>(p.data());
-//     // //float* p_w = p.data();
-//     // Eigen::Map<Eigen::Matrix<T, 3, 1> const> const p_3f(* p_w );
-//     // Eigen::Map<Eigen::Matrix<T, 3, 1> const> const p_3f_w(sp_3f_w);
-//     Eigen::Matrix<float, 3, 1> p1= Tran*p_3f*d;
-//     Eigen::Matrix<float, 3, 1> pt= K*p1;
-//     const float x= (pt[0] /pt[2]);
-//     const float y=  (pt[0] /pt[2]) ;
-//     float intensity_right= bilinearInterpolation(image_left,x ,y);
-//     Eigen::Matrix<T, 1, 1>intensity_l= Eigen::Matrix<T, 1, 1>(intensity_l);
-//     Eigen::Matrix<T, 1, 1>intensity_r=  Eigen::Matrix<T, 1, 1>(intensity_right);
-//     residuals= T(intensity_l-intensity_r);
-//     return true;
-//     }
-
-
-//     Eigen::Vector3f p_3f;
-//     Eigen::Matrix3f K;
-//     Mat image_left;
-//     float intensity_l;
-// };
 
 
 void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
@@ -210,73 +183,124 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 int main(int argc, char **argv) {
 
 	// loaded images
-	string image_ref_path = "../data/rgb/1305031102.275326.png"; // matlab 1305031102.275326
+	string image_ref_path = "../data/rgb/1305031102.175304.png"; // data/rgb/1305031102.175304.png, data_test/rgb/1305031453.359684.png
+	string image_target_path = "../data/rgb/1305031102.275326.png";  // matlab 1305031102.175304
+	string depth_ref_path = "../data/depth/1305031102.160407.png";  //   matlab      1305031102.262886
+//	string image_ref_path = "../data_test/rgb/1305031117.243277.png"; //  , data_test/rgb/1305031453.359684                data_test/rgb/1305031453.359684.png
+//	string image_target_path = "../data_test/rgb/1305031117.843291.png";  // matlab 1305031102.175304
+//	string depth_ref_path = "../data_test/depth/1305031117.241340.png";  //   matlab      1305031102.262886
 
 
-	string image_target_path = "../data/rgb/1305031102.175304.png";  // matlab 1305031102.175304
-	string depth_ref_path = "../data/depth/1305031102.262886.png";  //   matlab      1305031102.262886
+
 	string depth_target_path = "../data/depth/1305031102.160407.png";
 	Mat grayImage_target, grayImage_ref;
-
 	// read target image
 	Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	// color space conversion
 	cvtColor(image_target, grayImage_target, COLOR_RGB2GRAY);
 	// precision improvement
 	grayImage_target.convertTo(grayImage_target, CV_64FC1, 1.0 / 255.0);
-
 	// read ref image
 	Mat image_ref = imread(image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	// color space conversion
 	cvtColor(image_ref, grayImage_ref, COLOR_RGB2GRAY);
 	// precision improvement
 	grayImage_ref.convertTo(grayImage_ref, CV_64FC1, 1.0 / 255.0);
-
-	// float min;
-	// float max;
-	// cv::minMaxIdx(grayImage_ref, &min, &max);
-	// cout << "show the grayImage value range"
-	//      << "min:" << min << "max:" << max << endl;
-
 	Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 	Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 
-
 	depth_ref.convertTo(depth_ref, CV_64FC1);
 	depth_ref = depth_ref / 5000.0; // matlab 5000
-//	double min, max;
+//	 double min, max;
 //	 cv::minMaxIdx(depth_ref, &min, &max);
 //	 cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
-//    depth_target.convertTo(depth_target, CV_64F);
-//    depth_target = depth_target / 5000.0;
+//   depth_target.convertTo(depth_target, CV_64F);
+//   depth_target = depth_target / 5000.0;
+
+//
+//	// left image
+//	Mat grayImage_left,grayImage_l ;
+//	Mat image_left = imread(image_l, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+//	cvtColor(image_left, grayImage_left, COLOR_RGB2GRAY);
+//	grayImage_left.convertTo(grayImage_l, CV_64FC1, 1.0 / 255.0);
+//
+//	// right image
+//	Mat grayImage_right,grayImage_r ;
+//	Mat image_right = imread(image_r, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+//	cvtColor(image_right, grayImage_right, COLOR_RGB2GRAY);
+//	grayImage_right.convertTo(grayImage_r, CV_64FC1, 1.0 / 255.0);
+//
+//	// left image depth
+//	double depth_scale = 1000.0;
+//	Mat depth_left = imread(depth_l, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+//	depth_left.convertTo(depth_left, CV_64FC1);
+//	depth_left = depth_left / depth_scale;
+
+//	imshow("Image_left", grayImage_ref);
+//	imshow("Image_right", grayImage_target);
+//	imshow("Image_left depth", depth_left);
+//	waitKey(0);
+//
+//	double min, max;
+//	 cv::minMaxIdx(grayImage_ref, &min, &max);
+//	 cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
+
+
+
+
 
 	// 相机内参
-	double cx = 325.5;
-	double cy = 253.5;
-	double fx = 518.0;
-	double fy = 519.0;
-	double depth_scale = 1000.0;
 	Eigen::Matrix3d K;
-//	K<<fx,0.0,cx,0.0,fy,cy,0.0,0.0,1.0;
-
-
 	K << 517.3, 0, 318.6,
 			0, 516.5, 255.3,
 			0, 0, 1;
 
+	double cx = 325.5;
+	double cy = 253.5;
+	double fx = 518.0;
+	double fy = 519.0;
+
+//	K<<fx,0,cx,0,fy,cy,0,0,1.0;
+
+
 	Sophus::SE3d xi;
-	Sophus::Vector6d groundTruth_pose;
-	groundTruth_pose << -0.0032, 0.0065, 0.0354, -0.0284, -0.0172, -0.0011;
-	Sophus::SE3d groundTruth_pose_xi = Sophus::SE3d::exp(groundTruth_pose);
+	Eigen::Matrix<double, 3,3> R;
+	Eigen::Matrix<double, 3,1> t;
 
-	cout << "\n Show initial pose:\n" << groundTruth_pose_xi.rotationMatrix() << "\n Show translation:\n" << groundTruth_pose_xi.translation()<<endl;
+//	R<< 0.9990,  0.0210 ,   0.0395,
+//	   -0.0219 ,   0.9995 ,  0.0237,
+//	    -0.0389,   -0.0246,  0.9989;
 
-//	xi = groundTruth_pose_xi; // initialize the pose value
-	Sophus::Vector6d log_xi_init = xi.log();
-	cout << "\n Show initial Lie algebra of pose:\n" << log_xi_init << endl;
+
+//	R = 0.7202, 0.2168, 0.6591,
+//	        -0.4602,  0.8601,  0.2200,
+//			-0.5192,  -0.4617, 0.7192;
+// GT
+	Eigen::Quaterniond q(0.9998,    0.0174 ,   0.0076 ,  -0.0003);
+	// disturbing rotation
+//	Eigen::Quaterniond q( 0.9998,    0.0174 ,   0.0076 ,  -0.0003);
+    //	0.9949 ,  -0.0103  ,  0.0206 ,  -0.0978 : 10 degree disturbing only in one axis. yes
+	// 0.9913    0.0811   -0.0597    0.0843  :10 degree disturbing only in each axis.
+	// 0.9986    0.0329   -0.0221    0.0351 : 5 degree in each axis,
+
+	R=q.normalized().toRotationMatrix();
+// GT
+	t<<   0.0028,
+	      -0.0053,
+	      -0.0362;
+	// disturbing translation
+//	t<<  0.0223,
+//	     0.1023,
+//		 -0.0246;
+
+//	xi.setRotationMatrix(R);
+//	xi.translation()=t;
+
+
+	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
 
 	int lvl_target, lvl_ref;
-	for (int lvl = 1; lvl >= 1; lvl--)// ???????????????????
+	for (int lvl = 1; lvl >= 1; lvl--)
 	{
 		cout << "\n Show the value of lvl:" << lvl << endl;
 		Mat IRef, DRef, I, D;
@@ -299,19 +323,13 @@ int main(int argc, char **argv) {
 //	    std::vector<double> img_gray_values= I.isContinuous()? flat : flat.clone();
 //	    printAll(&img_gray_values[0], img_gray_values.size());//~~~~~~~~~~~~~~~~~~
 
-
-
-//
-		double  test_depth=DRef.at<double>(363,376);
-		cout<<"test value: "<<test_depth<<endl;
 		PhotometricBAOptions options;
 		PhotometricBA(IRef, I, options, Klvl, xi, DRef);
-		cout<<"optimized test value: "<<DRef.at<double>(363,376)<<endl;
+//		cout<<"optimized test value: "<<DRef.at<double>(363,376)<<endl;
 		cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()
 		     << endl;
-		Sophus::Vector6d log_xi = xi.log();
-		cout << "\n Show Lie algebra of optimized pose:\n" << log_xi.transpose() << endl;
-
+		Eigen::Quaterniond q_opt( xi.rotationMatrix());
+		cout<<"\n Show the optimized rotation as quaternion:"<<q_opt.w()<<","<<q_opt.x()<<","<<q_opt.y()<<","<<q_opt.z()<< endl;
 
 	}
 
@@ -324,10 +342,14 @@ downscale(Mat &image, Mat &depth, Eigen::Matrix3d &K, int &level, Mat &image_d, 
 //	waitKey(0);
 	if (level <= 1) {
 		image_d = image;
+		// remove negative gray values
+		image_d=cv::max(image_d,0.0);
+
 		depth_d = depth;
 		// set all nan zero
 		Mat mask = Mat(depth_d != depth_d);
 		depth_d.setTo(0.0, mask);
+
 		K_d = K;
 		return;
 	}
@@ -339,7 +361,8 @@ downscale(Mat &image, Mat &depth, Eigen::Matrix3d &K, int &level, Mat &image_d, 
 			0, 0, 1;
 	pyrDown(image, image_d, Size(image.cols / 2, image.rows / 2));
 	pyrDown(depth, depth_d, Size(depth.cols / 2, depth.rows / 2));
-
+	// remove negative gray values
+	image_d=cv::max(image_d,0.0);
 	// set all nan zero
 	Mat mask = Mat(depth_d != depth_d);
 	depth_d.setTo(0.0, mask);
@@ -444,109 +467,60 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	std::vector<double> image_ref_vec = image.isContinuous() ? flat_ref : flat_ref.clone();
 
 
-
-
-//	ceres::Grid2D<double> depth_grid(&img_ref_depth_values[0], 0, image.rows, 0, image.cols);
-//	ceres::BiCubicInterpolator<ceres::Grid2D<double>> interp_depth(depth_grid);
-
 	problem.AddParameterBlock(pose.data(), Sophus::SE3d::num_parameters, new Sophus::test::LocalParameterizationSE3);
 
 	std::unordered_map<int, int> inliers_filter;
-	//position: keyboard_key_esc:
-	inliers_filter.emplace(363,376);
-	inliers_filter.emplace(364,379);
-	inliers_filter.emplace(361,378);
-	//position: USB_plug:
-	inliers_filter.emplace(242,442);
-	inliers_filter.emplace(242,440);
-	inliers_filter.emplace(239,441);
-	//Hole punch:
-//	inliers_filter.emplace(281,258);
-//	inliers_filter.emplace(283,256);
-//	inliers_filter.emplace(277,259);
+	//new image
+	inliers_filter.emplace(213,248); //yes
+	inliers_filter.emplace(280,411); //yes
+	inliers_filter.emplace(112,304); //yes
+	inliers_filter.emplace(121,231); //yes
+	inliers_filter.emplace(312,180); //yes
 
 
-
-
-
-
-
-
-
-
-//	for (double v = 0; v < image.cols; v++) //
-//	{
-//		for (double u = 0; u < image.rows; u++)
-//		{
-//			// use the inlier filter
-//			if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-//		if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-//			double depth_para;
-//			interp_depth.Evaluate(u, v, &depth_para);
-//			if (depth_para < 1e-3 ) { continue; }
-//			cout << "\n Check depth value of ceres Grid2D:\n" << depth_para<< endl;
-//			problem.AddParameterBlock(&depth_para, 1);
-//		}
-//	}
+//	inliers_filter.emplace(159,294); //yes
 //
-//	for (int v = 0; v < image.cols; v++) // ???????????????????????????????????????
-//	{
-//		if (v != 378) { continue; }
-//		for (int u = 0; u < image.rows; u++)
-//		{
-//			if (u != 361) { continue; }//
-//			double intensity_value[1]{};
-//			intensity_value[0] = image.at<double>(u,v);
-//			problem.AddParameterBlock(intensity_value, 1);
-//			problem.SetParameterBlockConstant(intensity_value);
-//		}
-//	}
+
+//	inliers_filter.emplace(256,67); //yes
+//	inliers_filter.emplace(255,69);//yes
+//	inliers_filter.emplace(252,76);//yes
+//
+//	//telephone_surface
+//	inliers_filter.emplace(254,191);//0.012 ,yes
+//	inliers_filter.emplace(243,190);//-0.0005.yes
+//	inliers_filter.emplace(241,191);//0.008 yes
+//
+//	inliers_filter.emplace(449,383);//yes
+//	inliers_filter.emplace(319,331);//yes
+//	inliers_filter.emplace(288,327);//yes
+//	inliers_filter.emplace(432,86);//yes
+//	inliers_filter.emplace(459,80);//yes
+//	inliers_filter.emplace(293,535);//yes
+//
+//    inliers_filter.emplace(310,540);//yes
+//	inliers_filter.emplace(308,555);//yes
+//	inliers_filter.emplace(307,548);//yes
+//	inliers_filter.emplace(324,376);//yes
+//	inliers_filter.emplace(324,231);//yes
+//	inliers_filter.emplace(121,93);//yes
+//	inliers_filter.emplace(131,104);//yes
 
 
 	double depth_para,intensity_l ,gray_values[1]{};
 	double *transformation = pose.data();
-
-//	double  depth_para_test=1.88888;
-//	double  testDirect= depth_para_test;
-
 	// use pixels and depth to optimize pose and depth itself
-	for (int v = 0; v < image.cols; v++) // colId, cols: 0 to 640
+	for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 640
 	{
-//		if (v != 378) { continue; }// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		for (int u = 0; u < image.rows; u++) // rowId,  rows: 0 to 480
+		for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 480
 		{
-
-
-
-//			// use the inlier filter
+			// use the inlier filter
 //		   if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 //		   if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 //		   cout<<" \n show the coordinates:"<<u<<","<<v<<"---> value:"<<image.at<double>(u,v)<<endl; // checked already// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-
 			if (img_ref_depth.at<double>(u,v) < 1e-3 ) { continue; } //&& p_3d_new_proj(2)< 1e-4
 			gray_values[0] =  image.at<double>(u, v);
-			Eigen::Vector2d pixelCoord((double)u,(double)v);//    !!!!!!!!!!!!!!!!   u is the row id , v is col id
-//			interp_depth.Evaluate(u,v, &testDirect); // depth_para---->depth_para_test
+			Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
 
-
-
-
-
-//			depth_para[0]*=1000;  test if we can change the value of grid2d
-//			double depth_para_modified[1]{};
-//			interp_depth.Evaluate(u,v, &depth_para_modified[0]);
-//			cout<<"show modified depth value at ( 361, 378):"<<depth_para_modified[0]<<endl;
-//	        cout<<"\n Show current intensity_l:"<< intensity_l<<endl;
-//			double p_depth_w = depth_map.at<double>(u, v);
-//			Eigen::Vector3d p_3d_wod, p_3d_new_proj;
-//			p_3d_wod = K.inverse() * Eigen::Matrix<double, 3, 1>(u, v, 1.0);
-//			p_3d_new_proj=(K*(pose*p_3d_wod*p_depth_w));
-//			double u_p= p_3d_new_proj(0)/p_3d_new_proj(2);
-//			double v_p= p_3d_new_proj(1)/p_3d_new_proj(2);
-//			depth_para_test[0]=1.414;
-//			double * testDepth= const_cast<double *>(dep.data());
-//			cout<<"show fake data:"<<depth_para_test<<": data"<<depth_para_test[0]<<endl;
-//			double xnwe[] = {1.414};
 					problem.AddResidualBlock(
 							new ceres::AutoDiffCostFunction<GetPixelGrayValue, 1, Sophus::SE3d::num_parameters>(
 									new GetPixelGrayValue(gray_values,
@@ -559,7 +533,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 									                      image_ref_vec
 									)
 							),
-							new ceres::HuberLoss(0.1*4.0/255.0), // matlab (4.0/255.0)
+							new ceres::HuberLoss(4.0/255.0), //   new ceres::HuberLoss(4.0/255.0),      // matlab (4.0/255.0)
 							transformation
 //							&testDirect
 							);
@@ -569,12 +543,10 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	// Solve
 	std::cout << "\n Solving ceres directBA ... " << endl;
 	ceres::Solver::Options ceres_options;
-	ceres_options.sparse_linear_algebra_library_type=ceres::SUITE_SPARSE;
-    ceres_options.max_num_iterations = 50;
-	ceres_options.use_explicit_schur_complement= true;
+    ceres_options.max_num_iterations = 10000;
+//	ceres_options.gradient_check_numeric_derivative_relative_step_size=1e-4;
+
 	ceres_options.linear_solver_type =ceres::SPARSE_SCHUR; // ceres::SPARSE_SCHUR;  DENSE_NORMAL_CHOLESKY;
-//	ceres_options.linear_solver_type = ceres::ITERATIVE_SCHUR;
-//	ceres_options.preconditioner_type = ceres::SCHUR_JACOBI;
 	ceres_options.num_threads = std::thread::hardware_concurrency();
 	ceres_options.minimizer_progress_to_stdout = true;
 	ceres::Solver::Summary summary;

@@ -1,0 +1,225 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(photometricLoss)
+
+# FindEigen3 (for opengv / Pangolin) and FindTBB
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/" ${CMAKE_MODULE_PATH})
+
+# find eigen with our adapted "config module", that uses our eigen source tree
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/eigen3" ${CMAKE_PREFIX_PATH})
+
+set(EIGEN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eigen")
+set(CERES_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/build-ceres-solver")
+set(PANGOLIN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/build-Pangolin/src")
+set(OPENGV_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/build-opengv")
+set(g2o_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/lib/cmake/g2o")
+
+# Set default build type if not specified otherwise.
+# See https://cmake.org/pipermail/cmake/2012-May/050243.html
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build." FORCE)
+  message(STATUS "Setting build type to '${CMAKE_BUILD_TYPE}' as none was specified.")
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif()
+
+# Configure CCache if available
+if (NOT CMAKE_C_COMPILER_LAUNCHER AND NOT CMAKE_CXX_COMPILER_LAUNCHER)
+  find_program(CCACHE_PROGRAM ccache)
+  if(CCACHE_PROGRAM)
+    message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+    set(CMAKE_C_COMPILER_LAUNCHER   ${CCACHE_PROGRAM})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+  else()
+    message(STATUS "Dind't find ccache")
+  endif()
+else()
+  message(STATUS "Compiler launcher already set. Not configuring ccache.")
+  message(STATUS "CMAKE_C_COMPILER_LAUNCHER: ${CMAKE_C_COMPILER_LAUNCHER}")
+  message(STATUS "CMAKE_CXX_COMPILER_LAUNCHER: ${CMAKE_CXX_COMPILER_LAUNCHER}")
+endif()
+
+# See comment in ./build_submodules.sh on the relation of arch=native
+# and Eigen's alignment. TLDR: Passing arch=native for all build types
+# is currently the only viable option to avoid subtle bugs with Eigen.
+SET(CXX_MARCH native)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# for some reason clang doesn't include them in Wall whereas gcc does, so include them explicitly.
+SET(EXTRA_WARNING_FLAGS "-Wsign-compare")
+
+# clang-specific compile flags to avoid warnings from thirdpary includes
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+  set(EXTRA_WARNING_FLAGS "${EXTRA_WARNING_FLAGS} -Wno-exceptions")
+endif()
+
+set(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -DEIGEN_INITIALIZE_MATRICES_BY_NAN")                   # cmake default: "-g"
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -DNDEBUG -g -DEIGEN_INITIALIZE_MATRICES_BY_NAN")  # cmake default: "-O2 -g -DNDEBUG"
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")                                               # cmake default: "-O3 -DNDEBUG"
+SET(CMAKE_CXX_FLAGS " -ftemplate-backtrace-limit=0 -Wall -Wextra ${EXTRA_WARNING_FLAGS} -march=${CXX_MARCH} ${CMAKE_CXX_FLAGS}")
+
+
+set(EIGEN3_INCLUDE_DIR_HINTS ${EIGEN_ROOT})  # for opengv / pangolin
+find_package(Eigen3 3.3.8 EXACT REQUIRED CONFIG) # find eigen with our adapted "config module", that uses our eigen source tree
+set(EIGEN_INCLUDE_DIR ${EIGEN3_INCLUDE_DIR})  # for opengv / pangolin
+include_directories(${EIGEN3_INCLUDE_DIR})
+message(STATUS "Found Eigen headers in: ${EIGEN3_INCLUDE_DIR}")
+
+include_directories(thirdparty/Sophus)
+include_directories(thirdparty/cereal/include)
+include_directories(thirdparty/CLI11/include)
+include_directories(thirdparty/g2o/include)
+include_directories(include)
+
+# to use link to target "ceres"
+# Note: always link to ceres first, as otherwise a system-wide install might
+# be found before our custom build. For example on macOS a both pangolin and
+# TBB have /usr/local/include as part of their include directories.
+find_package(Ceres 2.0 REQUIRED CONFIG HINTS "${CERES_ROOT}" NO_DEFAULT_PATH)
+
+# to use link to target "pangolin"
+set(Pangolin_DIR ${PANGOLIN_ROOT})
+find_package(Pangolin REQUIRED CONFIG NO_DEFAULT_PATH)
+message(STATUS "Found Pangolin headers in: ${Pangolin_INCLUDE_DIR}")
+
+# to use link to target "opengv"
+find_package(opengv REQUIRED CONFIG HINTS ${OPENGV_ROOT} NO_DEFAULT_PATH)
+message(STATUS "Found OpenGV headers in: ${opengv_DIR}")
+
+# to use link to target "TBB"
+find_package(TBB REQUIRED)
+message(STATUS "Found TBB ${TBB_VERSION_MAJOR}.${TBB_VERSION_MINOR} (interface version ${TBB_INTERFACE_VERSION}) headers in: ${TBB_INCLUDE_DIRS}")
+
+
+# to use link to target "OpenCV"
+# NOTE: not specifying version, since 2, 3 or 4 is fine
+find_package(OpenCV REQUIRED COMPONENTS core features2d)
+message(STATUS "Found OpenCV ${OpenCV_VERSION} headers in: ${OpenCV_INCLUDE_DIRS}")
+add_library(OpenCV INTERFACE IMPORTED src/cal_relativePose.cpp include/reprojection.h)
+set_property(TARGET OpenCV PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OpenCV_INCLUDE_DIRS})
+set_property(TARGET OpenCV PROPERTY INTERFACE_LINK_LIBRARIES ${OpenCV_LIBS})
+if(OpenCV_VERSION VERSION_LESS 3)
+  set_property(TARGET OpenCV PROPERTY INTERFACE_COMPILE_DEFINITIONS DBATK_OPENCV2)
+endif()
+
+#add PCL library, remained to be installed as third party library
+if(NOT DEFINED CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
+    set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "No dev warnings")
+endif()
+
+
+#find_package(PCL REQUIRED)
+#include_directories(${PCL_INCLUDE_DIRS})
+#link_directories(${PCL_LIBRARY_DIRS})
+#add_definitions(${PCL_DEFINITIONS})
+#
+#list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/cmake)
+#
+#find_package(g2o REQUIRED "${g2o_DIR}")
+#IF(G2O_FOUND)
+#    include_directories(${G2O_INCLUDE_DIR})
+#    message("G2O lib is found:${G2O_INCLUDE_DIR}")
+#ENDIF(G2O_FOUND)
+
+
+
+#some output:
+
+message(STATUS "show IT: ${CMAKE_CURRENT_SOURCE_DIR}")
+#message(STATUS "Found g2o headers in: ${g2o_DIR}")
+#message(STATUS "show {G2O_INCLUDE_DIRS} in: ${G2O_INCLUDE_DIRS}")
+# SET(G2O_LIBS 
+# g2o_cli
+# g2o_ext_freeglut_minimal 
+# g2o_simulator 
+# g2o_solver_slam2d_linear 
+# g2o_types_icp 
+# g2o_types_slam2d 
+# g2o_core 
+# g2o_interface 
+# g2o_solver_csparse 
+# g2o_solver_structure_only 
+# g2o_types_sba 
+# g2o_types_slam3d 
+# g2o_csparse_extension 
+# g2o_opengl_helper 
+# g2o_solver_dense 
+# g2o_stuff 
+# g2o_types_sclam2d 
+# g2o_parser 
+# g2o_solver_pcg 
+# g2o_types_data 
+# g2o_types_sim3 
+# cxsparse )
+
+
+
+#set(G2O_LIBS
+#"${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_types_icp.so"
+#"${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_types_slam3d.so"
+#"${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_core.so"
+#"${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_solver_dense.so"
+#"${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_stuff.so"
+#"${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_types_sba.so"
+#"${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_opengl_helper.so"
+## "${CMAKE_CURRENT_SOURCE_DIR}/thiredparty/g2o/lib/libg2o_csparse_extension.so"
+#
+#)
+
+# set(G2O_LIBS
+# ${G2O_CORE_LIBRARY}
+# ${G2O_STUFF_LIBRARY}
+# ${G2O_CLI_LIBRARY}
+# ${G2O_SOLVER_CHOLMOD}
+# ${G2O_SOLVER_CSPARSE}
+# ${G2O_SOLVER_CSPARSE_EXTENSION}
+# ${G2O_SOLVER_DENSE}
+# ${G2O_SOLVER_PCG}
+# ${G2O_SOLVER_SLAM2D_LINEAR}
+# ${G2O_SOLVER_STRUCTURE_ONLY}
+# ${G2O_SOLVER_EIGEN}
+# ${G2O_TYPES_DATA}
+# ${G2O_TYPES_ICP}
+# ${G2O_TYPES_SBA}
+# ${G2O_TYPES_SCLAM2D}
+# ${G2O_TYPES_SIM3}
+# ${G2O_TYPES_SLAM2D}
+# ${G2O_TYPES_SLAM3D}
+# )
+
+#message(STATUS "show where is  g2o lib installed{G2O_TYPES_ICP} :${G2O_LIBS}")
+
+
+# add_executable(test_ceres_se3 src/test_ceres_se3.cpp)
+# target_link_libraries(test_ceres_se3 Ceres::ceres)
+
+# add_executable(calibration src/calibration.cpp)
+# target_link_libraries(calibration Ceres::ceres pangolin TBB::tbb)
+
+# add_executable(sfm src/sfm.cpp)
+# target_link_libraries(sfm Ceres::ceres pangolin TBB::tbb OpenCV opengv ${PCL_LIBRARIES})
+
+add_executable(photometricLoss src/photometricLoss.cpp )
+target_link_libraries(photometricLoss Ceres::ceres 
+pangolin 
+TBB::tbb 
+OpenCV 
+opengv 
+
+#${PCL_LIBRARIES}
+#g2o_types_sba
+#${G2O_LIBS}
+ )
+
+
+
+
+
+
+
+# enable_testing()
+# add_subdirectory(test)
