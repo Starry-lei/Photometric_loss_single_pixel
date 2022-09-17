@@ -10,7 +10,7 @@
 #include <ceres/cubic_interpolation.h>
 #include <ceres/loss_function.h>
 #include <visnav/local_parameterization_se3.hpp>
-
+#include <ultils.h>
 namespace DSONL{
 
 	struct PhotometricBAOptions {
@@ -39,7 +39,8 @@ namespace DSONL{
 		                  const std::vector<double> &vec_pixel_gray_values,
 		                  const std::vector<double> &img_ref_depth_values,
 		                  const std::vector<double> &img_ref_vec_values,
-						  const Eigen::Vector3d & light_source
+						  const Eigen::Vector3d & light_source,
+						  const Mat& depth_map
 		) {
 			pixel_gray_val_in_[0] = pixel_gray_val_in[0];
 			rows_ = rows;
@@ -47,6 +48,7 @@ namespace DSONL{
 			pixelCoor_ = pixelCoor;
 			K_ = K;
 			light_source_=light_source;
+			depth_map_=depth_map;
 
 			grid2d_depth.reset(new ceres::Grid2D<double>(&img_ref_depth_values[0],0, rows_, 0, cols_));
 			interp_depth.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_depth));
@@ -71,18 +73,38 @@ namespace DSONL{
 			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
 			// project and search for optimization variable depth
 			// calculate transformed pixel coordinates
-			double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
-
+			double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2), f=30.0;
+			// focal length: 30
 			Eigen::Matrix<double,3,1> p_3d_no_d;
 			p_3d_no_d<< (pixelCoor_(0)-cx)/fx, (pixelCoor_(1)-cy)/fy,1.0;
 
-			T d, u_, v_, intensity_image_ref;
+			T d, d_x1,d_y1, u_, v_, intensity_image_ref;
 			u_=(T)pixelCoor_(1);
 			v_=(T)pixelCoor_(0);
 			interp_depth->Evaluate(u_,v_, &d);
+			interp_depth->Evaluate(u_,(v_+(T)1), &d_x1);
+			interp_depth->Evaluate((u_+(T)1),v_, &d_y1);
 
 			interp_img_ref->Evaluate(u_,v_, &intensity_image_ref);
 			Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
+//			Eigen::Matrix<T, 3,1> p_c1= T(1.0) *backProjection<double>(pixelCoor_,K_, depth_map_);
+
+            // calculate normal for each point
+			Eigen::Matrix<T, 3,1> normal, v_x, v_y;
+			v_x << (d+ (d_x1-d) *(v_-(T)cx))/f, (d_x1-d)*(u_-(T)cy)/f, (d_x1-d);
+			v_y << (d_y1-d)*(v_-(T)cx)/f,(d+ (d_y1-d)*(u_-(T)cy))/f, (d_y1-d);
+			normal=v_x.template cross(v_y);
+			normal=normal.normalized();
+			// check the normal value
+			T checkx0=normal.x();
+			T checky0=normal.y();
+			T checkz0=normal.z();
+
+
+
+
+
+
 			// calculate alpha_1
 			Eigen::Matrix<T, 3,1> alpha_1;
 			alpha_1= light_source_-p_c1;
@@ -133,5 +155,11 @@ namespace DSONL{
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_depth;
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_img_ref;
 		Eigen::Vector3d light_source_;
+		Mat depth_map_;
 	};
+
+
+
+
+
 }

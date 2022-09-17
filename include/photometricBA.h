@@ -103,7 +103,8 @@ namespace DSONL{
 								                      img_gray_values,
 								                      img_ref_depth_values,
 								                      image_ref_vec,
-								                      light_source
+								                      light_source,
+													  img_ref_depth
 								)
 						),
 						new ceres::HuberLoss(4.0/255.0), //   new ceres::HuberLoss(4.0/255.0),      // matlab (4.0/255.0)

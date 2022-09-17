@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
 	depth_ref=channel[0];
 	depth_ref.convertTo(depth_ref, CV_64FC1);
 	depth_ref= depth_ref *(60.0-0.01)/255.0 + 0.01;
-	getNormals(depth_ref);
+
 //   double min, max;
 //   cv::minMaxIdx(depth_ref, &min, &max);
 //   cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
@@ -116,16 +116,24 @@ int main(int argc, char **argv) {
 
 	// 相机内参
 	Eigen::Matrix3d K;
-	K << 517.3, 0, 318.6,
-			0, 516.5, 255.3,
-			0, 0, 1;
-
-	double cx = 325.5;
-	double cy = 253.5;
-	double fx = 518.0;
-	double fy = 519.0;
+//	K << 517.3, 0, 318.6,
+//			0, 516.5, 255.3,
+//			0, 0, 1;
+//	double cx = 325.5;
+//	double cy = 253.5;
+//	double fx = 518.0;
+//	double fy = 519.0;
 
 //	K<<fx,0,cx,0,fy,cy,0,0,1.0;
+
+ K<< 800.0, 0, 0,
+     0, 800.0, 0,
+	 0,   0,  1;
+// TODO: test the current pose and compare it with the one using function
+	getNormals(K,depth_ref);
+
+
+
 
 
 	Sophus::SE3d xi;

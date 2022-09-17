@@ -14,6 +14,11 @@
 #include <Eigen/Geometry>
 
 
+#include <ceres/ceres.h>
+#include <ceres/cubic_interpolation.h>
+#include <ceres/loss_function.h>
+
+
 #include <iostream>
 #include <vector>
 
@@ -22,6 +27,31 @@ namespace DSONL{
 
 	using namespace cv;
 	using namespace std;
+
+	template<typename T> Eigen::Matrix<T,3,1> backProjection(const Eigen::Matrix<T,2,1> &pixelCoord, const Eigen::Matrix<T,3,3> & K, const Mat& depthMap ){
+        // convert depth map into grid2D table
+		cv::Mat flat_depth_map = depthMap.reshape(1, depthMap.total() * depthMap.channels());
+		std::vector<T> img_depth_values=depthMap.isContinuous() ? flat_depth_map : flat_depth_map.clone();
+		std::unique_ptr<ceres::Grid2D<T> > grid2d_depth;
+		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<T>> >BiCubicInterpolator_depth;
+
+		grid2d_depth.reset(new ceres::Grid2D<double>(&img_depth_values[0],0, depthMap.rows, 0, depthMap.cols));
+		BiCubicInterpolator_depth.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<T>>(*grid2d_depth));
+
+		// get depth value at pixelCoord(col, row)
+		T u, v , d;
+		u= (T) pixelCoord(1);
+		v= (T) pixelCoord(0);
+		BiCubicInterpolator_depth->Evaluate(u,v,&d);
+		T fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2);
+		// back projection
+		Eigen::Matrix<T,3,1> p_3d_no_d;
+		p_3d_no_d<< (v-cx)/fx, (u-cy)/fy,1.0;
+		Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
+		return  p_c1;
+
+	}
+
 
 	void downscale(Mat &image, Mat &depth, Eigen::Matrix3d &K, int &level, Mat &image_d, Mat &depth_d, Eigen::Matrix3d &K_d) {
 		//	imshow("depth", depth);
@@ -57,36 +87,38 @@ namespace DSONL{
 		downscale(image_d, depth_d, K_d, level, image_d, depth_d, K_d);
 	}
 
-	void getNormals(Mat& depth){
+	void getNormals(const Eigen::Matrix<double,3,3> & K_, const Mat& depth){
 
-
-		if(depth.type() != CV_32FC1)
-			depth.convertTo(depth, CV_32FC1);
-
-//		imshow("depth_float", depth);
-//		waitKey(0);
-
-		Mat normals(depth.size(), CV_32FC3);
+		Mat normalsMap(depth.rows, depth.cols, CV_32FC3, Scalar(0,0,0)); // B,G,R
+		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2), f=30.0;
+		// focal length: 30
 		for(int x = 0; x < depth.rows; ++x)
 		{
 			for(int y = 0; y < depth.cols; ++y)
 			{
-				// use float instead of double otherwise you will not get the correct result
-				// check my updates in the original post. I have not figure out yet why this
-				// is happening.
-				float dzdx = (depth.at<float>(x+1, y) - depth.at<float>(x-1, y)) / 2.0;
+				double d= depth.at<double>(x,y);
+				Eigen::Matrix<double,3,1> p_3d_no_d;
+				p_3d_no_d<< (y-cx)/fx, (x-cy)/fy,1.0;
+				Eigen::Matrix<double, 3,1> p_c1=d*p_3d_no_d;
 
-				float dzdy = (depth.at<float>(x, y+1) - depth.at<float>(x, y-1)) / 2.0;
+				double d_x1= depth.at<double>(x,y+1);
+				double  d_y1= depth.at<double>(x+1, y);
 
-				Vec3f d(-dzdx, -dzdy, 1.0f);
 
-				Vec3f n = normalize(d);
-				normals.at<Vec3f>(x, y) = n;
+				// calculate normal for each point
+				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
+				v_x << (d+ (d_x1-d) *(y-cx))/f, (d_x1-d)*(x-cy)/f, (d_x1-d);
+				v_y << (d_y1-d)*(y-cx)/f,(d+ (d_y1-d)*(x-cy))/f, (d_y1-d);
+				normal=v_x.cross(v_y);
+				normal=normal.normalized();
+				Vec3f d_n((normal.z()+1)/2, normal.y(), (normal.x()+1)/2);
+				Vec3f n = normalize(d_n);
+				normalsMap.at<Vec3f>(x, y) = n;
 			}
 		}
 
 
-		imshow("normals", normals);
+		imshow("normals", normalsMap);
 		waitKey(0);
 
 	}
