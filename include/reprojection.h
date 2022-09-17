@@ -5,6 +5,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
+#include <Eigen/Geometry>
 #include <ceres/ceres.h>
 #include <ceres/cubic_interpolation.h>
 #include <ceres/loss_function.h>
@@ -12,9 +13,24 @@
 
 namespace DSONL{
 
+	struct PhotometricBAOptions {
+		/// 0: silent, 1: ceres brief report (one line), 2: ceres full report
+		int verbosity_level = 1;
 
+		/// update intrinsics or keep fixed
+		bool optimize_intrinsics = false;
+
+		/// use huber robust norm or squared norm
+		bool use_huber = true;
+
+		/// parameter for huber loss (in pixel)
+		float huber_parameter = 1.0;
+
+		/// maximum number of solver iterations
+		int max_num_iterations = 20;
+	};
 	struct GetPixelGrayValue {
-
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 		GetPixelGrayValue(const double pixel_gray_val_in[1],
 		                  const Eigen::Vector2d &pixelCoor,
 		                  const Eigen::Matrix3d & K,
@@ -22,14 +38,15 @@ namespace DSONL{
 		                  const int cols,
 		                  const std::vector<double> &vec_pixel_gray_values,
 		                  const std::vector<double> &img_ref_depth_values,
-		                  const std::vector<double> &img_ref_vec_values
+		                  const std::vector<double> &img_ref_vec_values,
+						  const Eigen::Vector3d & light_source
 		) {
 			pixel_gray_val_in_[0] = pixel_gray_val_in[0];
 			rows_ = rows;
 			cols_ = cols;
 			pixelCoor_ = pixelCoor;
 			K_ = K;
-//		interp_depth = interpolated_depth;
+			light_source_=light_source;
 
 			grid2d_depth.reset(new ceres::Grid2D<double>(&img_ref_depth_values[0],0, rows_, 0, cols_));
 			interp_depth.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_depth));
@@ -57,20 +74,38 @@ namespace DSONL{
 			double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
 
 			Eigen::Matrix<double,3,1> p_3d_no_d;
-//		Eigen::Vector3d p_3d_no_d = K_.inverse() * Eigen::Matrix<double, 3, 1>(pixelCoor_(1), pixelCoor_(2), 1.0);
 			p_3d_no_d<< (pixelCoor_(0)-cx)/fx, (pixelCoor_(1)-cy)/fy,1.0;
-//		Eigen::Vector3d p_3d_wod, p_3d_new_proj; //((u-cx)/fx, (v-cy)/fy,1.0);
-//		p_3d_wod = K_.inverse() * Eigen::Matrix<double, 3, 1>(u, v, 1.0);
+
 			T d, u_, v_, intensity_image_ref;
 			u_=(T)pixelCoor_(1);
 			v_=(T)pixelCoor_(0);
 			interp_depth->Evaluate(u_,v_, &d);
 
 			interp_img_ref->Evaluate(u_,v_, &intensity_image_ref);
-//		Eigen::Map<Eigen::Matrix<T, 1, 1> const> const d(sd);
-//		Eigen::Map<Eigen::Matrix<T, 1, 1>> residuals(sResiduals);
-			Eigen::Matrix<T, 3,1> p_w=d*p_3d_no_d;
-			Eigen::Matrix<T, 3, 1> p1 = Tran * p_w ;
+			Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
+			// calculate alpha_1
+			Eigen::Matrix<T, 3,1> alpha_1;
+			alpha_1= light_source_-p_c1;
+			// calculate beta and beta_prime;
+			Eigen::Matrix<T,3,1> beta,beta_prime;
+			beta=-p_c1;
+			Eigen::Quaternion<T> q(*(sT+3),*(sT),*(sT+1),*(sT+2));
+			Eigen::Matrix<T, 3,1> translation(*(sT+4),*(sT+5),*(sT+6));
+			Eigen::Matrix<T,3,3>R;
+			R=q.normalized().toRotationMatrix();
+			beta_prime=-R.transpose()*translation-p_c1;
+
+
+
+
+
+
+
+
+//			beta_prime=;
+
+
+			Eigen::Matrix<T, 3, 1> p1 = Tran * p_c1 ;
 			Eigen::Matrix<T, 3, 1> pt = K_ * p1;
 
 			T x = (pt[0] / pt[2]); // col id
@@ -97,30 +132,6 @@ namespace DSONL{
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double> > > get_pixel_gray_val;
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_depth;
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_img_ref;
+		Eigen::Vector3d light_source_;
 	};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
