@@ -69,9 +69,9 @@ int main(int argc, char **argv) {
 //	string image_target_path = "../data/rgb/1305031102.275326.png";  // matlab 1305031102.175304
 //	string depth_ref_path = "../data/depth/1305031102.160407.png";  //   matlab      1305031102.262886
 //
-	string image_ref_path = "../data/rgb/viewpoint1_diffuse.png"; // data/rgb/1305031102.175304.png, data_test/rgb/1305031453.359684.png
-	string image_target_path = "../data/rgb/viewpoint2_diffuse.png";  // matlab 1305031102.175304
-	string depth_ref_path = "../data/depth/viewpoint1_depth.png";  //   matlab      1305031102.262886
+	string image_ref_path = "../data/rgb/viewpoint1_diffuse.png";
+	string image_target_path = "../data/rgb/viewpoint2_diffuse.png";
+	string depth_ref_path = "../data/depth/viewpoint1_depth.png";
 
 
 

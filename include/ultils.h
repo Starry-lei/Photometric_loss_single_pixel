@@ -3,6 +3,21 @@
 //
 #pragma once
 
+
+#include <opencv2/core/mat.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/StdVector>
+#include <Eigen/Geometry>
+
+
+#include <iostream>
+#include <vector>
+
+
 namespace DSONL{
 
 	using namespace cv;

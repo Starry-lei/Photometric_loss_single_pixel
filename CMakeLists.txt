@@ -99,7 +99,7 @@ message(STATUS "Found TBB ${TBB_VERSION_MAJOR}.${TBB_VERSION_MINOR} (interface v
 # NOTE: not specifying version, since 2, 3 or 4 is fine
 find_package(OpenCV REQUIRED COMPONENTS core features2d)
 message(STATUS "Found OpenCV ${OpenCV_VERSION} headers in: ${OpenCV_INCLUDE_DIRS}")
-add_library(OpenCV INTERFACE IMPORTED src/cal_relativePose.cpp include/reprojection.h)
+add_library(OpenCV INTERFACE IMPORTED src/cal_relativePose.cpp include/reprojection.h include/photometricBA.h include/ultils.h)
 set_property(TARGET OpenCV PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OpenCV_INCLUDE_DIRS})
 set_property(TARGET OpenCV PROPERTY INTERFACE_LINK_LIBRARIES ${OpenCV_LIBS})
 if(OpenCV_VERSION VERSION_LESS 3)
