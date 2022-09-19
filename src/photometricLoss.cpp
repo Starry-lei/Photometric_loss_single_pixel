@@ -68,10 +68,42 @@ int main(int argc, char **argv) {
 //	string image_ref_path = "../data/rgb/1305031102.175304.png"; // data/rgb/1305031102.175304.png, data_test/rgb/1305031453.359684.png
 //	string image_target_path = "../data/rgb/1305031102.275326.png";  // matlab 1305031102.175304
 //	string depth_ref_path = "../data/depth/1305031102.160407.png";  //   matlab      1305031102.262886
-//
-	string image_ref_path = "../data/rgb/viewpoint1_diffuse.png";
-	string image_target_path = "../data/rgb/viewpoint2_diffuse.png";
-	string depth_ref_path = "../data/depth/viewpoint1_depth.png";
+	string image_ref_path = "../data/rgb/viewpoint1_rgb.png";
+	string image_target_path = "../data/rgb/viewpoint2_rgb.png";
+	string depth_ref_path = "../data/depth/viewpoint1_depth.exr";
+
+	// read metallic adn roughness data// read metallic adn roughness data
+	string image_ref_MR_path = "../data/rgb/viewpoint1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
+	string image_target_MR_path = "../data/rgb/viewpoint2_mr.png";
+	//  create a metallic and roughness table, (map R G values into [0 ,1] for two images)
+	// create a metallic and roughness table for reference image
+	Mat image_ref_MR= imread(image_ref_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+    Mat ref_mr_table[3];
+	split(image_ref_MR,ref_mr_table);// 0: red, 1: green, 2: blue
+	Mat image_ref_metallic= ref_mr_table[2];
+	Mat image_ref_roughness= ref_mr_table[1];
+	image_ref_metallic.convertTo(image_ref_metallic, CV_64FC1,1.0 / 255.0);
+	image_ref_roughness.convertTo(image_ref_roughness, CV_64FC1,1.0 / 255.0);
+    //  create a metallic and roughness table for target image
+	Mat image_target_MR= imread(image_target_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+	Mat taget_mr_table[3];
+	split(image_target_MR,taget_mr_table);// 0: red, 1: green, 2: blue
+	Mat image_target_metallic= taget_mr_table[2];
+	Mat image_target_roughness= taget_mr_table[1];
+	image_target_metallic.convertTo(image_target_metallic, CV_64FC1,1.0 / 255.0);
+	image_target_roughness.convertTo(image_target_roughness, CV_64FC1,1.0 / 255.0);
+
+
+
+
+
+
+	// read base color data TODO: check if we need to map the value of baseColor
+	string image_ref_baseColor = "../data/rgb/viewpoint1_texture.png";
+	string image_target_baseColor = "../data/rgb/viewpoint2_texture.png";
+
+
+
 
 
 
@@ -99,8 +131,8 @@ int main(int argc, char **argv) {
 	Mat channel[3];
 	split(depth_ref,channel);
 	depth_ref=channel[0];
+	depth_ref= depth_ref *(60.0-0.01) + 0.01; // /255.0
 	depth_ref.convertTo(depth_ref, CV_64FC1);
-	depth_ref= depth_ref *(60.0-0.01)/255.0 + 0.01;
 
 //   double min, max;
 //   cv::minMaxIdx(depth_ref, &min, &max);
