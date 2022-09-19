@@ -77,8 +77,8 @@ int main(int argc, char **argv) {
 
 
 	//	string image_ref_path = "../data_test/rgb/1305031117.243277.png"; //  , data_test/rgb/1305031453.359684                data_test/rgb/1305031453.359684.png
-//	string image_target_path = "../data_test/rgb/1305031117.843291.png";  // matlab 1305031102.175304
-//	string depth_ref_path = "../data_test/depth/1305031117.241340.png";  //   matlab      1305031102.262886
+	//	string image_target_path = "../data_test/rgb/1305031117.843291.png";  // matlab 1305031102.175304
+	//	string depth_ref_path = "../data_test/depth/1305031117.241340.png";  //   matlab      1305031102.262886
 
 	string depth_target_path = "../data/depth/1305031102.160407.png";
 	Mat grayImage_target, grayImage_ref;

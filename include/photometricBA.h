@@ -17,6 +17,7 @@
 #include <thread>
 
 #include <ultils.h>
+#include <brdfMicrofacet.h>
 
 namespace DSONL{
 

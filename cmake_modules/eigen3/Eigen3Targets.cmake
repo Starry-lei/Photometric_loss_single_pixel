@@ -52,7 +52,7 @@ unset(_expectedTargets)
 set(_IMPORT_PREFIX "${PACKAGE_PREFIX_DIR}")
 
 # Create imported target Eigen3::Eigen
-add_library(Eigen3::Eigen INTERFACE IMPORTED ../../src/cal_relativePose.cpp ../../include/reprojection.h)
+add_library(Eigen3::Eigen INTERFACE IMPORTED ../../src/cal_relativePose.cpp ../../include/reprojection.h ../../include/brdfMicrofacet.h)
 
 set_target_properties(Eigen3::Eigen PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}"

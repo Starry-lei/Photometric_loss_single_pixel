@@ -89,13 +89,25 @@ namespace DSONL{
 
 	void getNormals(const Eigen::Matrix<double,3,3> & K_, const Mat& depth){
 
-		Mat normalsMap(depth.rows, depth.cols, CV_32FC3, Scalar(0,0,0)); // B,G,R
+		Mat normalsMap(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
 		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2), f=30.0;
 		// focal length: 30
+		cout <<"fx:"<<fx <<"fy:"<<fy<<endl;
+		std::unordered_map<int, int> inliers_filter;
+
+
+		inliers_filter.emplace(229, 335); //yes
+		inliers_filter.emplace(232, 333); //yes
+		inliers_filter.emplace(234, 335); //yes
+
+
 		for(int x = 0; x < depth.rows; ++x)
 		{
 			for(int y = 0; y < depth.cols; ++y)
 			{
+//				if(inliers_filter.count(x)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//		        if(inliers_filter[x]!=y ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//				cout<<" \n show the coordinates:"<<x<<","<<y<<"---> value:"<<depth.at<double>(x,y)<<endl;
 				double d= depth.at<double>(x,y);
 				Eigen::Matrix<double,3,1> p_3d_no_d;
 				p_3d_no_d<< (y-cx)/fx, (x-cy)/fy,1.0;
@@ -107,13 +119,22 @@ namespace DSONL{
 
 				// calculate normal for each point
 				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
-				v_x << (d+ (d_x1-d) *(y-cx))/f, (d_x1-d)*(x-cy)/f, (d_x1-d);
-				v_y << (d_y1-d)*(y-cx)/f,(d+ (d_y1-d)*(x-cy))/f, (d_y1-d);
+//				v_x << d/fx+ (d_x1-d) *(y-cx)/fx, (d_x1-d)*(x-cy)/fy, (d_x1-d);
+//				v_y << (d_y1-d)*(y-cx)/fx,(d+ (d_y1-d)*(x-cy))/fy, (d_y1-d);
+				v_x <<  ((d_x1-d)*(y-cx)+d_x1)/fx, (d_x1-d)*(x-cy)/fy , (d_x1-d);
+				v_y << (d_y1-d)*(y-cx)/fx,(d_y1+ (d_y1-d)*(x-cy))/fy, (d_y1-d);
+
+				v_x=v_x.normalized();
+				v_y=v_y.normalized();
+
 				normal=v_x.cross(v_y);
+//				normal=v_x.cross(v_y);
 				normal=normal.normalized();
-				Vec3f d_n((normal.z()+1)/2, normal.y(), (normal.x()+1)/2);
-				Vec3f n = normalize(d_n);
-				normalsMap.at<Vec3f>(x, y) = n;
+				Vec3d d_n(normal.z()*0.5+0.5, normal.y()*0.5+0.5, normal.x()*0.5+0.5);
+
+//				d_n.val[0];
+//				Vec3f n = normalize(d_n);
+				normalsMap.at<Vec3d>(x, y) = d_n;
 			}
 		}
 
