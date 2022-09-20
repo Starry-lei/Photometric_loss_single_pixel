@@ -161,57 +161,49 @@ namespace DSONL{
 
 	}
 
-	void normalMapFilter(Mat& normalMap){
+
+	Mat singleNormalFiltering(Mat& normalMap, int k_w, int k_h ){
 
 		Mat newNormalsMap(normalMap.rows, normalMap.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
-		Mat NormalsMap_notNormalised(normalMap.rows, normalMap.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
 
-        vector<Mat> channels_new, channels_result;
+		vector<Mat> channels_new, channels_result;
 		Mat normal_z, normal_y,normal_x, normal_z_new, normal_y_new, normal_x_new;
 		Mat channels[3];
 		split(normalMap,channels);
 		normal_z= channels[0];
 		normal_y= channels[1];
 		normal_x= channels[2];
-		int k_w=5,k_h=5;
-
-		 normalMapFiltering normalFilter;
-
-	     normalFilter.convolve(normal_z,normal_z_new, k_w, k_h, "zero", "box"); // zero ,mirror ,  replicate ;   gaussian, box
-	     normalFilter.convolve(normal_y,normal_y_new, k_w, k_h, "zero", "box");
-	     normalFilter.convolve(normal_x,normal_x_new, k_w, k_h, "zero", "box");
 
 
-	     channels_new.push_back(normal_z_new);
-	     channels_new.push_back(normal_y_new);
-	     channels_new.push_back(normal_x_new);
-		 merge(channels_new,NormalsMap_notNormalised);
+		normalMapFiltering normalFilter;
 
+		normalFilter.convolve(normal_z,normal_z_new, k_w, k_h, "zero", "box"); // zero ,mirror ,  replicate ;   gaussian, box
+		normalFilter.convolve(normal_y,normal_y_new, k_w, k_h, "zero", "box");
+		normalFilter.convolve(normal_x,normal_x_new, k_w, k_h, "zero", "box");
 
-
-
-
-
-		// normalize the normal map
 		Mat norm_mat;
 		sqrt((normal_z_new.mul(normal_z_new)+ normal_y_new.mul(normal_y_new) + normal_x_new.mul(normal_x_new)), norm_mat);
-//		norm_mat.convertTo(norm_mat, CV_32FC1);
+
 		channels_result.push_back(normal_z_new/norm_mat);
 		channels_result.push_back(normal_y_new/norm_mat);
 		channels_result.push_back(normal_x_new/norm_mat);
 		merge(channels_result,newNormalsMap);
 
+		return  newNormalsMap;
 
+	}
 
+	Mat normalMapFilter(Mat& normalMap){
 
-		imshow("normals", normalMap);
-		imshow("newNormalsMap_not normalized", NormalsMap_notNormalised);
-		imshow("normalMap_filtered", newNormalsMap);
-		waitKey(0);
+		Mat newNormalsMap(normalMap.rows, normalMap.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
+		newNormalsMap= singleNormalFiltering(normalMap, 5,5);
+//		Mat normalFilter2 = singleNormalFiltering(newNormalsMap, 7, 7);
+//		imshow("normals", normalMap);
+//		imshow("first filter 5*5", newNormalsMap);
+//		imshow(" second filter 7*7", normalFilter2);
+//		waitKey(0);
 
-
-
-
+		return newNormalsMap;
 
 	}
 

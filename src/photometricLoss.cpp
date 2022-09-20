@@ -8,6 +8,7 @@
 #include <reprojection.h>
 #include <photometricBA.h>
 #include <ultils.h>
+#include <brdfMicrofacet.h>
 
 //#include <algorithm>
 //#include <atomic>
@@ -70,7 +71,7 @@ int main(int argc, char **argv) {
 //	string depth_ref_path = "../data/depth/1305031102.160407.png";  //   matlab      1305031102.262886
 	string image_ref_path = "../data/rgb/viewpoint1_rgb.png";
 	string image_target_path = "../data/rgb/viewpoint2_rgb.png";
-	string depth_ref_path = "../data/depth/viewpoint1_depth.exr";
+	string depth_ref_path = "../data/depth/viewpoint2.exr";
 
 	// read metallic adn roughness data// read metallic adn roughness data
 	string image_ref_MR_path = "../data/rgb/viewpoint1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
@@ -101,6 +102,8 @@ int main(int argc, char **argv) {
 	// read base color data TODO: check if we need to map the value of baseColor
 	string image_ref_baseColor = "../data/rgb/viewpoint1_texture.png";
 	string image_target_baseColor = "../data/rgb/viewpoint2_texture.png";
+
+
 
 
 
@@ -163,10 +166,6 @@ int main(int argc, char **argv) {
 	 0,   0,  1;
 // TODO: test the current pose and compare it with the one using function
 	getNormals(K,depth_ref);
-
-
-
-
 
 	Sophus::SE3d xi;
 	Eigen::Matrix<double, 3,3> R;
