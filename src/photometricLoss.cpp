@@ -8,7 +8,7 @@
 #include <reprojection.h>
 #include <photometricBA.h>
 #include <ultils.h>
-#include <brdfMicrofacet.h>
+
 
 //#include <algorithm>
 //#include <atomic>
@@ -19,6 +19,7 @@
 //#include <tbb/concurrent_unordered_map.h>
 #include <unordered_map>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 #include <opencv2/core/core.hpp>
@@ -37,12 +38,35 @@ using namespace cv;
 using namespace std;
 using namespace DSONL;
 
-Eigen::Matrix<double,3,1> light_source(-32.4, 27 ,31.8); // 3.8 16.5 26.1
-Eigen::Matrix<double,3,1> Camera1(3.8, 16.5 ,26.1);
-
-
+const double DEG_TO_ARC = 0.0174532925199433;
 
 int main(int argc, char **argv) {
+
+	Eigen::Matrix<double,3,1> light_source(-32.4, -27 ,31.8);
+	Eigen::Matrix<double,3,1> Camera1(3.8, -16.5 ,26.1);
+	Eigen::Matrix<double,3,1> Camera2(0.3 ,-16.9, 27.7);
+
+
+
+	double roll_arc_c1 = -178.917* DEG_TO_ARC;      // 绕X轴
+	double pitch_arc_c1 = 0* DEG_TO_ARC;     // 绕Y轴
+	double yaw_arc_c1 = -3.793* DEG_TO_ARC;     // 绕Z轴
+
+	double roll_arc_c2 = -179.988* DEG_TO_ARC;      // 绕X轴
+	double pitch_arc_c2 = 0.263* DEG_TO_ARC;     // 绕Y轴
+	double yaw_arc_c2 = -3.972* DEG_TO_ARC;     // 绕Z轴
+	Eigen::Vector3d euler_angle1(roll_arc_c1, pitch_arc_c1, yaw_arc_c1);
+	Eigen::Vector3d euler_angle2(roll_arc_c2, pitch_arc_c2, yaw_arc_c2);
+	Eigen::Matrix3d rotation_matrix1, rotation_matrix2;
+	rotation_matrix1 = Eigen::AngleAxisd(euler_angle1[2], Eigen::Vector3d::UnitZ()) *
+	                   Eigen::AngleAxisd(euler_angle1[1], Eigen::Vector3d::UnitY()) *
+	                   Eigen::AngleAxisd(euler_angle1[0], Eigen::Vector3d::UnitX());
+	rotation_matrix2 = Eigen::AngleAxisd(euler_angle2[2], Eigen::Vector3d::UnitZ()) *
+	                   Eigen::AngleAxisd(euler_angle2[1], Eigen::Vector3d::UnitY()) *
+	                   Eigen::AngleAxisd(euler_angle2[0], Eigen::Vector3d::UnitX());
+
+
+
 
 
 //	Eigen::Matrix3d R1;
@@ -60,6 +84,11 @@ int main(int argc, char **argv) {
 //	R_new=q_new.normalized().toRotationMatrix();
 //	cout<<"\n show rotation matrix:"<< R_new<<endl;
 //	cout<<"\n show translation"<<translation<<endl;
+
+
+
+
+
 
 	Eigen::Vector3d light_source_c1;
 	light_source_c1= light_source-Camera1; //TODO: remains to be subtracted by p_3d and normalised;
@@ -165,7 +194,7 @@ int main(int argc, char **argv) {
      0, 800.0, 0,
 	 0,   0,  1;
 // TODO: test the current pose and compare it with the one using function
-	getNormals(K,depth_ref);
+	Mat normalMap=getNormals(K,depth_ref);
 
 	Sophus::SE3d xi;
 	Eigen::Matrix<double, 3,3> R;

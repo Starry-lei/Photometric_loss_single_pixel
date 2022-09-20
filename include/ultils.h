@@ -241,9 +241,10 @@ namespace DSONL{
 		downscale(image_d, depth_d, K_d, level, image_d, depth_d, K_d);
 	}
 
-	void getNormals(const Eigen::Matrix<double,3,3> & K_, const Mat& depth){
+	Mat getNormals(const Eigen::Matrix<double,3,3> & K_, const Mat& depth){
 
 		Mat normalsMap(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
+		Mat normalsMap_bgr(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
 		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2), f=30.0;
 		// focal length: 30
 		cout <<"fx:"<<fx <<"fy:"<<fy<<endl;
@@ -273,8 +274,6 @@ namespace DSONL{
 
 				// calculate normal for each point
 				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
-//				v_x << d/fx+ (d_x1-d) *(y-cx)/fx, (d_x1-d)*(x-cy)/fy, (d_x1-d);
-//				v_y << (d_y1-d)*(y-cx)/fx,(d+ (d_y1-d)*(x-cy))/fy, (d_y1-d);
 				v_x <<  ((d_x1-d)*(y-cx)+d_x1)/fx, (d_x1-d)*(x-cy)/fy , (d_x1-d);
 				v_y << (d_y1-d)*(y-cx)/fx,(d_y1+ (d_y1-d)*(x-cy))/fy, (d_y1-d);
 
@@ -286,14 +285,18 @@ namespace DSONL{
 				normal=normal.normalized();
 
 
-				Vec3d d_n(normal.z()*0.5+0.5, normal.y()*0.5+0.5, normal.x()*0.5+0.5);
+				Vec3d d_n_rgb(normal.z()*0.5+0.5, normal.y()*0.5+0.5, normal.x()*0.5+0.5);
+				Vec3d d_n(normal.z(), normal.y(), normal.x());
+				normalsMap_bgr.at<Vec3d>(x, y) = d_n_rgb;
 				normalsMap.at<Vec3d>(x, y) = d_n;
 			}
 		}
 
 		// normal map filtering
 
-		normalMapFilter(normalsMap);
+		return normalMapFilter(normalsMap);
+
+
 //		imshow("normals", normalsMap);
 //		waitKey(0);
 

@@ -89,16 +89,8 @@ namespace DSONL{
 			Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
 //			Eigen::Matrix<T, 3,1> p_c1= T(1.0) *backProjection<double>(pixelCoor_,K_, depth_map_);
 
-            // calculate normal for each point
-			Eigen::Matrix<T, 3,1> normal, v_x, v_y;
-			v_x << (d+ (d_x1-d) *(v_-(T)cx))/f, (d_x1-d)*(u_-(T)cy)/f, (d_x1-d);
-			v_y << (d_y1-d)*(v_-(T)cx)/f,(d+ (d_y1-d)*(u_-(T)cy))/f, (d_y1-d);
-			normal=v_x.template cross(v_y);
-			normal=normal.normalized();
-			// check the normal value
-			T checkx0=normal.x();
-			T checky0=normal.y();
-			T checkz0=normal.z();
+            // look up normal for each point
+
 
 
 
