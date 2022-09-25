@@ -241,6 +241,24 @@ namespace DSONL{
 		downscale(image_d, depth_d, K_d, level, image_d, depth_d, K_d);
 	}
 
+	Eigen::Vector3d backprojection_renderDepth(double& depth, int& p_x, int& p_y, Eigen::Matrix<double,4,4>& M){
+
+
+
+	}
+
+	Eigen::Vector3d backprojection_realDepth(double& depth, int& p_row, int& p_col, Eigen::Matrix<double,3,3>& K_){
+
+		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2), f=30.0;
+		Eigen::Matrix<double,3,1> p_3d_no_d;
+		p_3d_no_d<< (p_col-cx)/fx, (p_row-cy)/fy,1.0;
+		Eigen::Matrix<double, 3,1> p_c1=depth*p_3d_no_d;
+
+		return  p_c1;
+
+	}
+
+
 	Mat getNormals(const Eigen::Matrix<double,3,3> & K_, const Mat& depth){
 
 		Mat normalsMap(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
@@ -251,9 +269,9 @@ namespace DSONL{
 		std::unordered_map<int, int> inliers_filter;
 
 
-		inliers_filter.emplace(229, 335); //yes
-		inliers_filter.emplace(232, 333); //yes
-		inliers_filter.emplace(234, 335); //yes
+//		inliers_filter.emplace(229, 335); //yes
+//		inliers_filter.emplace(232, 333); //yes
+//		inliers_filter.emplace(234, 335); //yes
 
 
 		for(int x = 0; x < depth.rows; ++x)
@@ -267,40 +285,141 @@ namespace DSONL{
 				Eigen::Matrix<double,3,1> p_3d_no_d;
 				p_3d_no_d<< (y-cx)/fx, (x-cy)/fy,1.0;
 				Eigen::Matrix<double, 3,1> p_c1=d*p_3d_no_d;
-
 				double d_x1= depth.at<double>(x,y+1);
 				double  d_y1= depth.at<double>(x+1, y);
-
-
 				// calculate normal for each point
 				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
 				v_x <<  ((d_x1-d)*(y-cx)+d_x1)/fx, (d_x1-d)*(x-cy)/fy , (d_x1-d);
 				v_y << (d_y1-d)*(y-cx)/fx,(d_y1+ (d_y1-d)*(x-cy))/fy, (d_y1-d);
-
 				v_x=v_x.normalized();
 				v_y=v_y.normalized();
-
 				normal=v_x.cross(v_y);
 //				normal=v_x.cross(v_y);
 				normal=normal.normalized();
 
-
+//				Vec3d d_n_rgb(normal.x(),normal.y(),normal.z());
 				Vec3d d_n_rgb(normal.z()*0.5+0.5, normal.y()*0.5+0.5, normal.x()*0.5+0.5);
-				Vec3d d_n(normal.z(), normal.y(), normal.x());
+//				Vec3d d_n(normal.z(), normal.y(), normal.x());
 				normalsMap_bgr.at<Vec3d>(x, y) = d_n_rgb;
-				normalsMap.at<Vec3d>(x, y) = d_n;
+//				normalsMap.at<Vec3d>(x, y) = d_n;
 			}
 		}
 
 		// normal map filtering
 
+//	    Mat normalMapafterfilter= normalMapFilter(normalsMap);// when checking result, uncommit it
+
+//		Mat normalMapafterfilter_channel[3];
+//		vector<Mat> channels_result;
+//
+//		split(normalMapafterfilter, normalMapafterfilter_channel);
+//
+//		Mat normal_zafterfilter= normalMapafterfilter_channel[0]*0.5+0.5;
+//		Mat normal_yafterfilter= normalMapafterfilter_channel[1]*0.5+0.5;
+//		Mat normal_xafterfilter= normalMapafterfilter_channel[2]*0.5+0.5;
+//
+//		channels_result.push_back(normal_zafterfilter);
+//		channels_result.push_back(normal_yafterfilter);
+//		channels_result.push_back(normal_xafterfilter);
+//
+//
+//		Mat normalMapafterfilter_result;
+//		merge(channels_result, normalMapafterfilter_result);
+//
+//
+		imshow("normalsMap_1", normalsMap_bgr);
+		waitKey(0);
 		return normalMapFilter(normalsMap);
 
 
-//		imshow("normals", normalsMap);
-//		waitKey(0);
+	}
+
+
+	Mat getNormals_renderedDepth(const Eigen::Matrix<double,4,4> & M, const Mat& depth){
+
+		Mat normalsMap(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
+		Mat normalsMap_bgr(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
+		double fov_y= 33.398;
+		double near= 0.01;
+		double far= 60.0;
+		double aspect= 1.333;
+		double coeA= 2*far*near/(near-far);
+		double coeB= (far+near)/(near-far);
+		double f= 1.0/(tan(0.5*fov_y)*aspect);
+
+
+		for(int x = 0; x < depth.rows; ++x)
+		{
+			for(int y = 0; y < depth.cols; ++y)
+			{
+
+				double d_mapped= 2.0 *depth.at<double>(x,y)-1.0;
+				double x_mapped= 2.0* x/ 480.0 -1.0;
+				double y_mapped= 2.0* y/ 640.0 -1.0;
+
+//				Eigen::Vector4d p_h(y_mapped,x_mapped,d_mapped,1.0);
+//				Eigen::Vector4d projPointInCam= M.inverse()*p_h;
+//				Eigen::Matrix<double,3,1> p_3d;
+//				p_3d<< projPointInCam.x()/projPointInCam.w(),  projPointInCam.y()/projPointInCam.w(), projPointInCam.z()/projPointInCam.w();
+
+				Eigen::Matrix<double,3,1> p_3d;
+				p_3d.z()=-coeA/(d_mapped+coeB);
+				p_3d.x()=y_mapped*aspect*(-p_3d.z())/f;
+				p_3d.y()=x_mapped*(-p_3d.z())/f;
+
+				double d_x1= 2.0 *depth.at<double>(x,y+1)-1.0;
+				double y_1mapped= 2.0* (y+1)/ 640.0 -1.0;
+//				Eigen::Vector4d p_h_1(y_1mapped, x_mapped,d_x1,1.0);
+//				Eigen::Vector4d projPointInCam1= M.inverse()*p_h_1;
+				Eigen::Matrix<double,3,1> p_3d1;
+//				p_3d1<< projPointInCam1.x()/projPointInCam1.w(),  projPointInCam1.y()/projPointInCam1.w(), projPointInCam1.z()/projPointInCam1.w();
+				p_3d1.z()=-coeA/(d_x1+coeB);
+				p_3d1.x()=y_1mapped*aspect*(-p_3d1.z())/f;
+				p_3d1.y()=x_mapped*(-p_3d1.z())/f;
+
+
+
+
+				double  d_y1=  2.0 *depth.at<double>(x+1, y)-1.0;
+				double x_1mapped= 2.0* (x+1)/ 480.0 -1.0;
+
+//				Eigen::Vector4d p_h_2(y_mapped, x_1mapped,d_y1,1.0);
+//				Eigen::Vector4d projPointInCam2= M.inverse()*p_h_1;
+				Eigen::Matrix<double,3,1> p_3d2;
+//				p_3d2<< projPointInCam2.x()/projPointInCam2.w(),  projPointInCam2.y()/projPointInCam2.w(), projPointInCam2.z()/projPointInCam2.w();
+
+				p_3d2.z()=-coeA/(d_y1+coeB);
+				p_3d2.x()=y_mapped*aspect*(-p_3d2.z())/f;
+				p_3d2.y()=x_1mapped*(-p_3d2.z())/f;
+
+				Eigen::Vector3d v_x(p_3d1-p_3d);
+				Eigen::Vector3d v_y(p_3d2-p_3d);
+
+
+				Eigen::Vector3d normal;
+				v_x=v_x.normalized();
+				v_y=v_y.normalized();
+				normal=v_x.cross(v_y);
+				normal=normal.normalized();
+
+
+				Vec3d d_n_rgb(normal.z()*0.5+0.5, normal.y()*0.5+0.5, normal.x()*0.5+0.5);
+//				Vec3d d_n(normal.z(), normal.y(), normal.x());
+				normalsMap_bgr.at<Vec3d>(x, y) = d_n_rgb;
+//				normalsMap.at<Vec3d>(x, y) = d_n;
+			}
+		}
+
+		imshow("normalsMap2", normalsMap_bgr);
+		waitKey(0);
+		return normalMapFilter(normalsMap_bgr);
+
 
 	}
+
+
+
+
 
 
 	float bilinearInterpolation(const Mat &image, const float &x, const float &y) {

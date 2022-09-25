@@ -26,6 +26,7 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core/eigen.hpp>
 //#include "opencv2/features2d.hpp"
 
 
@@ -46,7 +47,7 @@ int main(int argc, char **argv) {
 	Eigen::Matrix<double,3,1> Camera1(3.8, -16.5 ,26.1);
 	Eigen::Matrix<double,3,1> Camera2(0.3 ,-16.9, 27.7);
 
-
+    Eigen::Matrix<double,3,1> L2C1= light_source-Camera1;
 
 	double roll_arc_c1 = -178.917* DEG_TO_ARC;      // 绕X轴
 	double pitch_arc_c1 = 0* DEG_TO_ARC;     // 绕Y轴
@@ -89,20 +90,20 @@ int main(int argc, char **argv) {
 
 
 
+//
+//	Eigen::Vector3d light_source_c1;
+//	light_source_c1= light_source-Camera1; //TODO: remains to be subtracted by p_3d and normalised;
 
-	Eigen::Vector3d light_source_c1;
-	light_source_c1= light_source-Camera1; //TODO: remains to be subtracted by p_3d and normalised;
 
-
-//	// loaded images
+//	loaded images
 //	string image_ref_path = "../data/rgb/1305031102.175304.png"; // data/rgb/1305031102.175304.png, data_test/rgb/1305031453.359684.png
 //	string image_target_path = "../data/rgb/1305031102.275326.png";  // matlab 1305031102.175304
 //	string depth_ref_path = "../data/depth/1305031102.160407.png";  //   matlab      1305031102.262886
 	string image_ref_path = "../data/rgb/viewpoint1_rgb.png";
 	string image_target_path = "../data/rgb/viewpoint2_rgb.png";
-	string depth_ref_path = "../data/depth/viewpoint2.exr";
+	string depth_ref_path = "../data/depth/viewpoint1_depth.exr";
 
-	// read metallic adn roughness data// read metallic adn roughness data
+	// read metallic adn roughness data, read metallic adn roughness data
 	string image_ref_MR_path = "../data/rgb/viewpoint1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
 	string image_target_MR_path = "../data/rgb/viewpoint2_mr.png";
 	//  create a metallic and roughness table, (map R G values into [0 ,1] for two images)
@@ -110,7 +111,7 @@ int main(int argc, char **argv) {
 	Mat image_ref_MR= imread(image_ref_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
     Mat ref_mr_table[3];
 	split(image_ref_MR,ref_mr_table);// 0: red, 1: green, 2: blue
-	Mat image_ref_metallic= ref_mr_table[2];
+	Mat image_ref_metallic=  ref_mr_table[2];
 	Mat image_ref_roughness= ref_mr_table[1];
 	image_ref_metallic.convertTo(image_ref_metallic, CV_64FC1,1.0 / 255.0);
 	image_ref_roughness.convertTo(image_ref_roughness, CV_64FC1,1.0 / 255.0);
@@ -118,7 +119,7 @@ int main(int argc, char **argv) {
 	Mat image_target_MR= imread(image_target_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 	Mat taget_mr_table[3];
 	split(image_target_MR,taget_mr_table);// 0: red, 1: green, 2: blue
-	Mat image_target_metallic= taget_mr_table[2];
+	Mat image_target_metallic=  taget_mr_table[2];
 	Mat image_target_roughness= taget_mr_table[1];
 	image_target_metallic.convertTo(image_target_metallic, CV_64FC1,1.0 / 255.0);
 	image_target_roughness.convertTo(image_target_roughness, CV_64FC1,1.0 / 255.0);
@@ -129,8 +130,10 @@ int main(int argc, char **argv) {
 
 
 	// read base color data TODO: check if we need to map the value of baseColor
-	string image_ref_baseColor = "../data/rgb/viewpoint1_texture.png";
+	string image_ref_baseColor_path = "../data/rgb/viewpoint1_texture.png";
 	string image_target_baseColor = "../data/rgb/viewpoint2_texture.png";
+	Mat image_ref_baseColor= imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+    //	image_ref_baseColor.convertTo(image_ref_baseColor, CV_32FC3);
 
 
 
@@ -159,16 +162,22 @@ int main(int argc, char **argv) {
 	// precision improvement
 	grayImage_ref.convertTo(grayImage_ref, CV_64FC1, 1.0 / 255.0);
 	Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+	cout<<"show the depth() of image:\n "<<depth_ref.depth()<<"and channels:"<<depth_ref.channels()<<endl;
 	Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-	Mat channel[3];
+	Mat channel[3],depth_ref_render;
 	split(depth_ref,channel);
 	depth_ref=channel[0];
-	depth_ref= depth_ref *(60.0-0.01) + 0.01; // /255.0
+
+
+	depth_ref.convertTo(depth_ref_render, CV_64FC1);
+
+	depth_ref= depth_ref *(60.0-0.01) + 0.01;
 	depth_ref.convertTo(depth_ref, CV_64FC1);
 
-//   double min, max;
-//   cv::minMaxIdx(depth_ref, &min, &max);
-//   cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
+   double min, max;
+   cv::minMaxIdx(depth_ref, &min, &max);
+   cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
+
 
 //   depth_target.convertTo(depth_target, CV_64F);
 //   depth_target = depth_target / 5000.0;
@@ -180,6 +189,15 @@ int main(int argc, char **argv) {
 
 	// 相机内参
 	Eigen::Matrix3d K;
+	Eigen::Matrix4d M;
+
+
+	double fov_y= 33.398;
+	double near= 0.01;
+	double far= 60.0;
+	double aspect= 1.333;
+
+
 //	K << 517.3, 0, 318.6,
 //			0, 516.5, 255.3,
 //			0, 0, 1;
@@ -193,8 +211,23 @@ int main(int argc, char **argv) {
  K<< 800.0, 0, 0,
      0, 800.0, 0,
 	 0,   0,  1;
+
+
+ M << 1.0/(tan(0.5*fov_y)*aspect), 0, 0, 0,
+      0,  atan(0.5*fov_y), 0   ,  0,
+	  0,0, (far+near)/(near-far), 2*far*near/(near-far),
+	  0,  0,   -1,    0;
+
+
+
 // TODO: test the current pose and compare it with the one using function
 	Mat normalMap=getNormals(K,depth_ref);
+	Mat normalMap2= getNormals_renderedDepth(M, depth_ref_render);
+
+//	Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynamic> eigenMat;
+//	cv2eigen(normalMap,eigenMat);
+
+//	cout<<"show Eigenmat image properties:"<< eigenMat.size()<<endl;
 
 	Sophus::SE3d xi;
 	Eigen::Matrix<double, 3,3> R;
@@ -255,7 +288,10 @@ int main(int argc, char **argv) {
 //	    printAll(&img_gray_values[0], img_gray_values.size());//~~~~~~~~~~~~~~~~~~
 
 		PhotometricBAOptions options;
-		PhotometricBA(IRef, I, options, Klvl, xi, DRef, light_source_c1);
+		PhotometricBA(IRef, I, options, Klvl, xi, DRef, L2C1,
+					  image_ref_metallic,
+					  image_target_roughness,
+					  image_ref_baseColor);
 //		cout<<"optimized test value: "<<DRef.at<double>(363,376)<<endl;
 		cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()
 		     << endl;
@@ -266,7 +302,3 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
-
-
-
-

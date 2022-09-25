@@ -68,7 +68,7 @@ namespace DSONL {
 		BrdfMicrofacet(const Vec3f&  L_, const Vec3f&  N_, const Vec3f& view_beta,
 					   const float& roughnessValue_,
 					   const float & metallicValue_,
-					   const Vec3f& baseColor_
+					   const Vec3f& baseColor_ // BGR order
 					   ){
 			L=L_;
 			V=view_beta; float shiftAmount = N_.dot(view_beta);
@@ -144,7 +144,7 @@ namespace DSONL {
 		return baseColor * (1.0 - _Metallic)*RECIPROCAL_PI;
 	}
 
-	Vec3f BrdfMicrofacet::  brdfMicrofacet (  Vec3f baseColor ,float _Metallic, Vec3f specularity, float  NdotL){
+	Vec3f BrdfMicrofacet:: brdfMicrofacet (  Vec3f baseColor ,float _Metallic, Vec3f specularity, float  NdotL){
 
 		Vec3f diffuseColor_=diffuseColor( baseColor ,_Metallic);
 
@@ -154,6 +154,12 @@ namespace DSONL {
 
 		return lightingModel;
 	}
+
+
+
+
+
+
 
 
 

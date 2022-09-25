@@ -25,14 +25,26 @@ namespace DSONL{
 	using namespace std;
 
 	void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
-	                   Sophus::SE3d &pose, Mat &img_ref_depth, Eigen::Vector3d &light_source
-
-
-
+	                   Sophus::SE3d &pose,
+					   Mat &img_ref_depth,
+					   Eigen::Vector3d &l2c1,
+					   Mat & metallic,
+					   Mat & roughness,
+					   Mat & image_baseColor
+					   //Mat & normalMap
 					   ) {
 		ceres::Problem problem;
 		// Setup optimization problem
 		// convert rigth image into double type vector
+
+		//cv::Mat flat_3d = normalMap.reshape(1, normalMap.total() * normalMap.channels());
+		//std::vector<Vec3f> normalMap_Vec3 = normalMap.isContinuous() ? flat_3d : flat_3d.clone();
+		cv::Mat flat_metallic = metallic.reshape(1, metallic.total() * metallic.channels());
+		std::vector<double> img_metallic = metallic.isContinuous() ? flat_metallic : flat_metallic.clone();
+
+
+		cv::Mat flat_roughness = roughness.reshape(1, roughness.total() * roughness.channels());
+		std::vector<double> img_roughness = roughness.isContinuous() ? flat_roughness : flat_roughness.clone();
 
 		cv::Mat flat = image_right.reshape(1, image_right.total() * image_right.channels());
 		std::vector<double> img_gray_values = image_right.isContinuous() ? flat : flat.clone();
@@ -53,62 +65,46 @@ namespace DSONL{
 		inliers_filter.emplace(112,304); //yes
 		inliers_filter.emplace(121,231); //yes
 		inliers_filter.emplace(312,180); //yes
-
-
-	//	inliers_filter.emplace(159,294); //yes
-	//
-
-	//	inliers_filter.emplace(256,67); //yes
-	//	inliers_filter.emplace(255,69);//yes
-	//	inliers_filter.emplace(252,76);//yes
-	//
-	//	//telephone_surface
-	//	inliers_filter.emplace(254,191);//0.012 ,yes
-	//	inliers_filter.emplace(243,190);//-0.0005.yes
-	//	inliers_filter.emplace(241,191);//0.008 yes
-	//
-	//	inliers_filter.emplace(449,383);//yes
-	//	inliers_filter.emplace(319,331);//yes
-	//	inliers_filter.emplace(288,327);//yes
-	//	inliers_filter.emplace(432,86);//yes
-	//	inliers_filter.emplace(459,80);//yes
-	//	inliers_filter.emplace(293,535);//yes
-	//
-	//  inliers_filter.emplace(310,540);//yes
-	//	inliers_filter.emplace(308,555);//yes
-	//	inliers_filter.emplace(307,548);//yes
-	//	inliers_filter.emplace(324,376);//yes
-	//	inliers_filter.emplace(324,231);//yes
-	//	inliers_filter.emplace(121,93);//yes
-	//	inliers_filter.emplace(131,104);//yes
+		//	inliers_filter.emplace(159,294); //yes
+		//	inliers_filter.emplace(256,67); //yes
+		//	inliers_filter.emplace(255,69);//yes
+		//	inliers_filter.emplace(252,76);//yes
+		//
+		//	//telephone_surface
+		//	inliers_filter.emplace(254,191);//0.012 ,yes
+		//	inliers_filter.emplace(243,190);//-0.0005.yes
+		//	inliers_filter.emplace(241,191);//0.008 yes
+		//
+		//	inliers_filter.emplace(449,383);//yes
+		//	inliers_filter.emplace(319,331);//yes
+		//	inliers_filter.emplace(288,327);//yes
+		//	inliers_filter.emplace(432,86);//yes
+		//	inliers_filter.emplace(459,80);//yes
+		//	inliers_filter.emplace(293,535);//yes
+		//
+		//  inliers_filter.emplace(310,540);//yes
+		//	inliers_filter.emplace(308,555);//yes
+		//	inliers_filter.emplace(307,548);//yes
+		//	inliers_filter.emplace(324,376);//yes
+		//	inliers_filter.emplace(324,231);//yes
+		//	inliers_filter.emplace(121,93);//yes
+		//	inliers_filter.emplace(131,104);//yes
 
 
 		double depth_para,intensity_l ,gray_values[1]{};
 		double *transformation = pose.data();
 		// use pixels and depth to optimize pose and depth itself
-		for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 640
+		for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
 		{
-			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 480
+			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
 			{
 				// use the inlier filter
-	//		   if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-	//		   if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-	//		   cout<<" \n show the coordinates:"<<u<<","<<v<<"---> value:"<<image.at<double>(u,v)<<endl; // checked already// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				//if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				//if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				//cout<<" \n show the coordinates:"<<u<<","<<v<<"---> value:"<<image.at<double>(u,v)<<endl; // checked already// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 				if (img_ref_depth.at<double>(u,v) < 1e-3 ) { continue; } //&& p_3d_new_proj(2)< 1e-4
 				gray_values[0] =  image.at<double>(u, v);
 				Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
-
-
-				// Add BRDF
-
-				BrdfMicrofacet brdfMicro();
-
-
-
-
-
-
-
 
 
 
@@ -122,13 +118,16 @@ namespace DSONL{
 								                      img_gray_values,
 								                      img_ref_depth_values,
 								                      image_ref_vec,
-								                      light_source,
-													  img_ref_depth
+								                      l2c1,
+													  img_ref_depth,
+													  image_baseColor,
+													  img_metallic,
+													  img_roughness
+													  //normalMap
 								)
 						),
 						new ceres::HuberLoss(4.0/255.0), //   new ceres::HuberLoss(4.0/255.0),      // matlab (4.0/255.0)
 						transformation
-//							&testDirect
 				);
 
 			}
