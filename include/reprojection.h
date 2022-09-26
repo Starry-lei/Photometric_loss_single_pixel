@@ -42,6 +42,7 @@ namespace DSONL{
 		                  const Eigen::Matrix3d & K,
 		                  const int rows,
 		                  const int cols,
+						  const Sophus::SE3<double> CurrentT,
 		                  const std::vector<double> &vec_pixel_gray_values,
 		                  const std::vector<double> &img_ref_depth_values,
 		                  const std::vector<double> &img_ref_vec_values,
@@ -50,7 +51,8 @@ namespace DSONL{
 						  const Mat& image_baseColor,
 						  const std::vector<double> &image_metallic,
 						  const std::vector<double> &image_roughness
-//						  const Mat & normalMap_Vec  //std::vector<float>
+//						  const std::vector<double> &deltaMap
+
 		) {
 			pixel_gray_val_in_[0] = pixel_gray_val_in[0];
 			rows_ = rows;
@@ -59,6 +61,7 @@ namespace DSONL{
 			K_ = K;
 			L2c1_=L2c1;
 			depth_map_=depth_map;
+			CurrentT_=CurrentT;
 
 
 			grid2d_image_metallic.reset(new ceres::Grid2D<double>(&image_metallic[0],0, rows_, 0, cols_));
@@ -81,11 +84,8 @@ namespace DSONL{
 			interp_img_ref.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_img_ref));
 
 
-			grid2d.reset(new ceres::Grid2D<double>(
-					&vec_pixel_gray_values[0], 0, rows_, 0, cols_));
-			get_pixel_gray_val.reset(
-					new ceres::BiCubicInterpolator<ceres::Grid2D<double> >(*grid2d));
-		}
+			grid2d.reset(new ceres::Grid2D<double>(&vec_pixel_gray_values[0], 0, rows_, 0, cols_));
+			get_pixel_gray_val.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double> >(*grid2d));}
 
 		template<typename T>
 		bool operator()(
@@ -95,9 +95,10 @@ namespace DSONL{
 
 			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
 
+
 			// project and search for optimization variable depth
 			// calculate transformed pixel coordinates
-			double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2), f=30.0;
+			double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
 			// focal length: 30
 			Eigen::Matrix<double,3,1> p_3d_no_d;
 			p_3d_no_d<< (pixelCoor_(0)-cx)/fx, (pixelCoor_(1)-cy)/fy,1.0;
@@ -119,7 +120,6 @@ namespace DSONL{
 			Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
 			Eigen::Matrix<double,3,1> p_c1_=depth_*p_3d_no_d;
 
-
 			// Eigen::Matrix<T, 3,1> p_c1= T(1.0) *backProjection<double>(pixelCoor_,K_, depth_map_);
 
             // calculate normal for each point
@@ -139,12 +139,16 @@ namespace DSONL{
 			Eigen::Matrix<double,3,1> alpha_1= L2c1_-p_c1_; alpha_1=alpha_1.normalized();
 			// calculate beta and beta_prime;
 			Eigen::Matrix<double,3,1> beta,beta_prime;
-			beta=-p_c1_; beta=beta.normalized();
+			beta=-p_c1_;
+			beta=beta.normalized();
 //			Eigen::Quaternion<double> q(*(sT+3),*(sT),*(sT+1),*(sT+2));
 //			Eigen::Matrix<double, 3,1> translation(*(sT+4),*(sT+5),*(sT+6));
 //			Eigen::Matrix<double,3,3>R;
 //			R=q.normalized().toRotationMatrix();
-//			beta_prime=-R.transpose()*translation-p_c1_;
+//			R=Transf.rotationMatrix();
+			beta_prime=-CurrentT_.rotationMatrix().transpose()*CurrentT_.translation()-p_c1_;
+			beta_prime=beta_prime.normalized();
+
 
 			double baseColor_bgr[3],metallic, roughness;
 			interp_img_baseColor->Evaluate(pixelCoor_(1),pixelCoor_(0),baseColor_bgr);
@@ -154,13 +158,18 @@ namespace DSONL{
 
 
 
-
 			Vec3f L_(alpha_1(0),alpha_1(1),alpha_1(2));
 			Vec3f N_(normal(0),normal(1),normal(2));
 			Vec3f View_beta(beta(0),beta(1),beta(2));
+			Vec3f View_beta_prime(beta_prime(0),beta_prime(1),beta_prime(2));
+			Vec3f baseColor(baseColor_bgr[2],baseColor_bgr[1],baseColor_bgr[0]);
 
-//			BrdfMicrofacet delta_beta(L_,N_,);
-//			BrdfMicrofacet delta_beta_prime();
+
+//			BrdfMicrofacet radiance_beta_vec(L_,N_,View_beta,(float )roughness,(float)metallic,baseColor);
+//			double radiance_beta= radiance_beta_vec.radiance;
+//			BrdfMicrofacet radiance_beta_prime_vec(L_,N_,View_beta_prime,(float )roughness,(float)metallic,baseColor);
+//		    double radiance_beta_prime= radiance_beta_prime_vec.radiance;
+//			double delta= radiance_beta/radiance_beta_prime;
 
 
 
@@ -170,11 +179,11 @@ namespace DSONL{
 			T x = (pt[0] / pt[2]); // col id
 			T y = (pt[1] / pt[2]);// row id
 
-//	    cout<<"\n Show current col id and row id:("<<x<<","<<y<<")"<<endl;
+
 			T pixel_gray_val_out;
 			get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out); //
-//	    cout<<"\n Show current pixel_gray_val_out:"<< pixel_gray_val_out<<endl;
-			residual[0] = intensity_image_ref - pixel_gray_val_out;
+
+			residual[0] = intensity_image_ref - delta*pixel_gray_val_out;
 
 
 			return true;
@@ -185,6 +194,7 @@ namespace DSONL{
 		int rows_, cols_;
 		Eigen::Vector2d pixelCoor_;
 		Eigen::Matrix3d K_;
+		Sophus::SE3<double> CurrentT_;
 		std::unique_ptr<ceres::Grid2D<double> > grid2d;
 		std::unique_ptr<ceres::Grid2D<double> > grid2d_depth;
 		std::unique_ptr<ceres::Grid2D<double> > grid2d_img_ref; //

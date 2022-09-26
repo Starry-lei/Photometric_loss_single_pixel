@@ -99,8 +99,8 @@ namespace DSONL{
 			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
 			{
 				// use the inlier filter
-				//if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-				//if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 				//cout<<" \n show the coordinates:"<<u<<","<<v<<"---> value:"<<image.at<double>(u,v)<<endl; // checked already// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 				if (img_ref_depth.at<double>(u,v) < 1e-3 ) { continue; } //&& p_3d_new_proj(2)< 1e-4
 				gray_values[0] =  image.at<double>(u, v);
@@ -115,6 +115,7 @@ namespace DSONL{
 								                      K,
 								                      image.rows,
 								                      image.cols,
+													  pose,
 								                      img_gray_values,
 								                      img_ref_depth_values,
 								                      image_ref_vec,

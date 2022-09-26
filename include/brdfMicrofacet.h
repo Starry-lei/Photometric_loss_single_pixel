@@ -67,8 +67,8 @@ namespace DSONL {
 	public:
 		BrdfMicrofacet(const Vec3f&  L_, const Vec3f&  N_, const Vec3f& view_beta,
 					   const float& roughnessValue_,
-					   const float & metallicValue_,
-					   const Vec3f& baseColor_ // BGR order
+					   const float& metallicValue_,
+					   const Vec3f& baseColor_ // RGB order
 					   ){
 			L=L_;
 			V=view_beta; float shiftAmount = N_.dot(view_beta);
@@ -87,6 +87,7 @@ namespace DSONL {
 			specularityVec=specularity(F,D,G, NdotL, NdotV);
 			diffuseColorVec=diffuseColor(baseColor, metallicValue);
 			lightingModel= brdfMicrofacet(baseColor,metallicValue, specularityVec, NdotL);
+			radiance=0.299*lightingModel.val[0]+0.587*lightingModel.val[1]+0.114*lightingModel.val[2];// 0R,1G,2B
 		}
         float D;
 		Vec3f F;
@@ -94,6 +95,7 @@ namespace DSONL {
 		Vec3f specularityVec;
 		Vec3f diffuseColorVec;
 		Vec3f lightingModel;
+		float radiance;
 
 		float GGXNormalDistribution(float roughness, float NdotH);
 		Vec3f NewSchlickFresnelFunction(float ior, Vec3f Color, float LdotH, float Metallicness);
@@ -156,6 +158,84 @@ namespace DSONL {
 	}
 
 
+	void runEM(){
+
+	}
+
+	void updateDelta(
+			         const Sophus::SE3d CurrentT,
+					 const Eigen::Matrix3d & K,
+					 const Mat& image_baseColor,
+					 const Mat& depth_map,
+					 const Mat& image_metallic,
+					 const Mat& image_roughnes,
+					 const Eigen::Vector3d & L2c1,
+					 Mat& deltaMap
+					 ){
+		double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2);
+		for (int u = 0; u< depth_map.rows; u++) // colId, cols: 0 to 480
+		{
+			for (int v = 0; v < depth_map.cols; v++) // rowId,  rows: 0 to 640
+			{
+				if (depth_map.at<double>(u,v) < 1e-3 ) { continue; }
+				Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
+				double d=depth_map.at<double>(u,v);
+				double d_x1= depth_map.at<double>(u,v+1);
+				double  d_y1= depth_map.at<double>(u+1, v);
+				// calculate 3D point coordinate
+				Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
+				Eigen::Vector3d p_c1=d*p_3d_no_d;
+
+
+				// calculate normal for each point
+				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
+				v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
+				v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
+				v_x=v_x.normalized();
+				v_y=v_y.normalized();
+				normal=v_x.cross(v_y);
+				normal=normal.normalized();
+
+				// calculate alpha_1
+				Eigen::Matrix<double,3,1> alpha_1= L2c1-p_c1; alpha_1=alpha_1.normalized();
+				// calculate beta and beta_prime;
+				Eigen::Matrix<double,3,1> beta,beta_prime;
+				beta=-p_c1;
+				beta=beta.normalized();
+				beta_prime=-CurrentT.rotationMatrix().transpose()*CurrentT.translation()-p_c1;
+				beta_prime=beta_prime.normalized();
+
+				// baseColor_bgr[3],metallic, roughness
+				float metallic=image_metallic.at<float>(u,v);
+				float roughness =image_roughnes.at<float>(u,v);
+				//Instantiation of BRDF object
+				Vec3f baseColor(image_baseColor.at<Vec3b>(u,v)[2],image_baseColor.at<Vec3b>(u,v)[1],image_baseColor.at<Vec3b>(u,v)[0]);
+				Vec3f L_(alpha_1(0),alpha_1(1),alpha_1(2));
+				Vec3f N_(normal(0),normal(1),normal(2));
+				Vec3f View_beta(beta(0),beta(1),beta(2));
+				Vec3f View_beta_prime(beta_prime(0),beta_prime(1),beta_prime(2));
+
+				BrdfMicrofacet radiance_beta_vec(L_,N_,View_beta,(float )roughness,(float)metallic,baseColor);
+				double radiance_beta= radiance_beta_vec.radiance;
+				BrdfMicrofacet radiance_beta_prime_vec(L_,N_,View_beta_prime,(float )roughness,(float)metallic,baseColor);
+				double radiance_beta_prime= radiance_beta_prime_vec.radiance;
+				double delta= radiance_beta/radiance_beta_prime;
+				// store delta in the delta map
+				deltaMap.at<double>(u,v)= delta;
+
+
+			}
+		}
+
+
+
+
+
+
+
+
+
+	}
 
 
 

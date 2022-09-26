@@ -152,17 +152,17 @@ int main(int argc, char **argv) {
 	// read target image
 	Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	// color space conversion
-	cvtColor(image_target, grayImage_target, COLOR_RGB2GRAY);
+	cvtColor(image_target, grayImage_target, COLOR_BGR2GRAY);
 	// precision improvement
 	grayImage_target.convertTo(grayImage_target, CV_64FC1, 1.0 / 255.0);
 	// read ref image
 	Mat image_ref = imread(image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	// color space conversion
-	cvtColor(image_ref, grayImage_ref, COLOR_RGB2GRAY);
+	cvtColor(image_ref, grayImage_ref, COLOR_BGR2GRAY);
 	// precision improvement
 	grayImage_ref.convertTo(grayImage_ref, CV_64FC1, 1.0 / 255.0);
 	Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-	cout<<"show the depth() of image:\n "<<depth_ref.depth()<<"and channels:"<<depth_ref.channels()<<endl;
+//	cout<<"show the depth() of image:\n "<<depth_ref.depth()<<"and channels:"<<depth_ref.channels()<<endl;
 	Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 	Mat channel[3],depth_ref_render;
 	split(depth_ref,channel);
@@ -221,8 +221,8 @@ int main(int argc, char **argv) {
 
 
 // TODO: test the current pose and compare it with the one using function
-	Mat normalMap=getNormals(K,depth_ref);
-	Mat normalMap2= getNormals_renderedDepth(M, depth_ref_render);
+//	Mat normalMap=getNormals(K,depth_ref);
+//	Mat normalMap2= getNormals_renderedDepth(M, depth_ref_render);
 
 //	Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynamic> eigenMat;
 //	cv2eigen(normalMap,eigenMat);
@@ -236,13 +236,17 @@ int main(int argc, char **argv) {
 //	R<< 0.9990,  0.0210 ,   0.0395,
 //	   -0.0219 ,   0.9995 ,  0.0237,
 //	    -0.0389,   -0.0246,  0.9989;
+//R << 0.9998,   -0.0031  ,  0.0183,
+//	0.0030  ,  1.0000 ,   0.0059,
+//	-0.0183 ,  -0.0058,    0.9998;
 
 
 //	R = 0.7202, 0.2168, 0.6591,
 //	        -0.4602,  0.8601,  0.2200,
 //			-0.5192,  -0.4617, 0.7192;
 // GT
-	Eigen::Quaterniond q(0.9998,    0.0174 ,   0.0076 ,  -0.0003);
+  Eigen::Quaterniond q(1.0000 ,  -0.0029  ,  0.0092  ,  0.0015);
+//	Eigen::Quaterniond q(0.9998,    0.0174 ,   0.0076 ,  -0.0003);
 	// disturbing rotation
 //	Eigen::Quaterniond q( 0.9998,    0.0174 ,   0.0076 ,  -0.0003);
     //	0.9949 ,  -0.0103  ,  0.0206 ,  -0.0978 : 10 degree disturbing only in one axis. yes
@@ -251,17 +255,24 @@ int main(int argc, char **argv) {
 
 	R=q.normalized().toRotationMatrix();
 // GT
-	t<<   0.0028,
-	      -0.0053,
-	      -0.0362;
+t << -0.9098,
+	0.0424,
+	0.4129;
+//	t<<   0.0028,
+//	      -0.0053,
+//	      -0.0362;
 	// disturbing translation
 //	t<<  0.0223,
 //	     0.1023,
 //		 -0.0246;
 
-//	xi.setRotationMatrix(R);
-//	xi.translation()=t;
+	xi.setRotationMatrix(R);
+	xi.translation()=t;
 	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
+
+	Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_64FC1, Scalar(1)); // storing delta
+
+
 
 	int lvl_target, lvl_ref;
 	for (int lvl = 1; lvl >= 1; lvl--)
@@ -288,10 +299,11 @@ int main(int argc, char **argv) {
 //	    printAll(&img_gray_values[0], img_gray_values.size());//~~~~~~~~~~~~~~~~~~
 
 		PhotometricBAOptions options;
-		PhotometricBA(IRef, I, options, Klvl, xi, DRef, L2C1,
-					  image_ref_metallic,
-					  image_target_roughness,
-					  image_ref_baseColor);
+
+		PhotometricBA(IRef, I, options, Klvl, xi, DRef, L2C1,image_ref_metallic,image_target_roughness,image_ref_baseColor);
+
+
+
 //		cout<<"optimized test value: "<<DRef.at<double>(363,376)<<endl;
 		cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()
 		     << endl;
