@@ -27,11 +27,7 @@ namespace DSONL{
 	void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
 	                   Sophus::SE3d &pose,
 					   Mat &img_ref_depth,
-					   Eigen::Vector3d &l2c1,
-					   Mat & metallic,
-					   Mat & roughness,
-					   Mat & image_baseColor
-					   //Mat & normalMap
+					   Mat & deltaMap
 					   ) {
 		ceres::Problem problem;
 		// Setup optimization problem
@@ -39,12 +35,12 @@ namespace DSONL{
 
 		//cv::Mat flat_3d = normalMap.reshape(1, normalMap.total() * normalMap.channels());
 		//std::vector<Vec3f> normalMap_Vec3 = normalMap.isContinuous() ? flat_3d : flat_3d.clone();
-		cv::Mat flat_metallic = metallic.reshape(1, metallic.total() * metallic.channels());
-		std::vector<double> img_metallic = metallic.isContinuous() ? flat_metallic : flat_metallic.clone();
+//		cv::Mat flat_metallic = metallic.reshape(1, metallic.total() * metallic.channels());
+//		std::vector<double> img_metallic = metallic.isContinuous() ? flat_metallic : flat_metallic.clone();
 
 
-		cv::Mat flat_roughness = roughness.reshape(1, roughness.total() * roughness.channels());
-		std::vector<double> img_roughness = roughness.isContinuous() ? flat_roughness : flat_roughness.clone();
+		cv::Mat flat_deltaMap = deltaMap.reshape(1, deltaMap.total() * deltaMap.channels());
+		std::vector<double> img_deltaMap = deltaMap.isContinuous() ? flat_deltaMap : flat_deltaMap.clone();
 
 		cv::Mat flat = image_right.reshape(1, image_right.total() * image_right.channels());
 		std::vector<double> img_gray_values = image_right.isContinuous() ? flat : flat.clone();
@@ -60,11 +56,18 @@ namespace DSONL{
 
 		std::unordered_map<int, int> inliers_filter;
 		//new image
-		inliers_filter.emplace(213,248); //yes
-		inliers_filter.emplace(280,411); //yes
-		inliers_filter.emplace(112,304); //yes
-		inliers_filter.emplace(121,231); //yes
-		inliers_filter.emplace(312,180); //yes
+//		inliers_filter.emplace(309,294); //yes
+//		inliers_filter.emplace(210,292); //yes
+//		inliers_filter.emplace(209,293); //yes
+//		inliers_filter.emplace(208,294); //yes
+//		inliers_filter.emplace(209,295); //yes
+//		inliers_filter.emplace(208,296); //yes
+//		inliers_filter.emplace(206,297); //yes
+		inliers_filter.emplace(205,301); //yes
+//		inliers_filter.emplace(184,279); //yes
+//		inliers_filter.emplace(330,354); //yes
+//		inliers_filter.emplace(316,503); //yes
+//		inliers_filter.emplace(312,180); //yes
 		//	inliers_filter.emplace(159,294); //yes
 		//	inliers_filter.emplace(256,67); //yes
 		//	inliers_filter.emplace(255,69);//yes
@@ -99,9 +102,9 @@ namespace DSONL{
 			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
 			{
 				// use the inlier filter
-//				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-//				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-				//cout<<" \n show the coordinates:"<<u<<","<<v<<"---> value:"<<image.at<double>(u,v)<<endl; // checked already// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//				cout<<" \n show the coordinates:"<<u<<","<<v<<"---> value:"<<image.at<double>(u,v)<<endl; // checked already// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 				if (img_ref_depth.at<double>(u,v) < 1e-3 ) { continue; } //&& p_3d_new_proj(2)< 1e-4
 				gray_values[0] =  image.at<double>(u, v);
 				Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
@@ -115,19 +118,14 @@ namespace DSONL{
 								                      K,
 								                      image.rows,
 								                      image.cols,
-													  pose,
 								                      img_gray_values,
 								                      img_ref_depth_values,
 								                      image_ref_vec,
-								                      l2c1,
 													  img_ref_depth,
-													  image_baseColor,
-													  img_metallic,
-													  img_roughness
-													  //normalMap
+													  img_deltaMap
 								)
 						),
-						new ceres::HuberLoss(4.0/255.0), //   new ceres::HuberLoss(4.0/255.0),      // matlab (4.0/255.0)
+						new ceres::HuberLoss(1), //   new ceres::HuberLoss(4.0/255.0),      // matlab (4.0/255.0)
 						transformation
 				);
 
@@ -136,13 +134,14 @@ namespace DSONL{
 		// Solve
 		std::cout << "\n Solving ceres directBA ... " << endl;
 		ceres::Solver::Options ceres_options;
-		ceres_options.max_num_iterations = 10000;
+		ceres_options.max_num_iterations = 300;
 //	ceres_options.gradient_check_numeric_derivative_relative_step_size=1e-4;
 
 		ceres_options.linear_solver_type =ceres::SPARSE_SCHUR; // ceres::SPARSE_SCHUR;  DENSE_NORMAL_CHOLESKY;
 		ceres_options.num_threads = std::thread::hardware_concurrency();
 		ceres_options.minimizer_progress_to_stdout = true;
 		ceres::Solver::Summary summary;
+
 		Solve(ceres_options, &problem, &summary);
 		switch (options.verbosity_level) {
 			// 0: silent

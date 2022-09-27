@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <vector>
+#include <ultils.h>
 
 // change functions here to a brdf class
 
@@ -72,7 +73,7 @@ namespace DSONL {
 					   ){
 			L=L_;
 			V=view_beta; float shiftAmount = N_.dot(view_beta);
-			N= shiftAmount < 0.0f ? N_ + view_beta * (-shiftAmount + 1e-5f) : N_; //normal direction calculations
+			N= shiftAmount < 0.0f ? (N_ + view_beta * (-shiftAmount + 1e-5f) ): N_; //normal direction calculations
 			H= normalize(view_beta+L_);
 			LdotH= _dot(L,H);
 			NdotH= _dot(N,H);
@@ -81,30 +82,40 @@ namespace DSONL {
 			baseColor=baseColor_;
 			roughnessValue=roughnessValue_;
 			metallicValue=metallicValue_;
+			specColor_= specColor(baseColor, metallicValue);
 			D= GGXNormalDistribution(roughnessValue, NdotH);// calculate the normal distribution function result
             F=NewSchlickFresnelFunction(IOR,baseColor, LdotH,metallicValue);// calculate the Fresnel reflectance
 			G=AshikhminShirleyGeometricShadowingFunction( NdotL,  NdotV,  LdotH);
 			specularityVec=specularity(F,D,G, NdotL, NdotV);
 			diffuseColorVec=diffuseColor(baseColor, metallicValue);
-			lightingModel= brdfMicrofacet(baseColor,metallicValue, specularityVec, NdotL);
-			radiance=0.299*lightingModel.val[0]+0.587*lightingModel.val[1]+0.114*lightingModel.val[2];// 0R,1G,2B
+			brdf_value_c3= brdfMicrofacet(baseColor,metallicValue, specularityVec, NdotL);
+
+
+//			brdf_value=0.299*lightingModel.val[0]+0.587*lightingModel.val[1]+0.114*lightingModel.val[2];// 0R,1G,2B
 		}
         float D;
 		Vec3f F;
 		float G;
 		Vec3f specularityVec;
 		Vec3f diffuseColorVec;
-		Vec3f lightingModel;
-		float radiance;
+		Vec3f brdf_value_c3;
+		Vec3f specColor_;
+//		float brdf_value;
 
 		float GGXNormalDistribution(float roughness, float NdotH);
 		Vec3f NewSchlickFresnelFunction(float ior, Vec3f Color, float LdotH, float Metallicness);
 		float AshikhminShirleyGeometricShadowingFunction (float NdotL, float NdotV, float LdotH);
-		Vec3f specularity( Vec3f FresnelFunction,Vec3f SpecularDistribution, float GeometricShadow, float NdotL,float NdotV );
+		Vec3f specularity( Vec3f FresnelFunction,float SpecularDistribution, float GeometricShadow, float NdotL,float NdotV );
 		Vec3f diffuseColor ( Vec3f baseColor ,float _Metallic );
 		Vec3f brdfMicrofacet (  Vec3f Color_rgb ,float _Metallic, Vec3f specularity, float  NdotL);
+		Vec3f specColor( Vec3f baseColor, float  metallic);
 
 	};
+
+	Vec3f BrdfMicrofacet:: specColor( Vec3f baseColor, float  metallic){
+		Vec3f _SpecularColor (1.0,1.0,1.0);
+		return lerp_3d(_SpecularColor , baseColor , metallic * 0.5);
+	}
 
 	float BrdfMicrofacet::GGXNormalDistribution(float roughness, float NdotH)
 	{
@@ -117,7 +128,6 @@ namespace DSONL {
 
 		return (1.0/3.1415926535) * _squared(roughness/(NdotHSqr * (roughnessSqr + TanNdotHSqr)));
 
-		// float denom = NdotHSqr * (roughnessSqr-1)
 
 	}
 
@@ -125,7 +135,7 @@ namespace DSONL {
 
 		Vec3f f0 = Vec3f(0.16*ior*ior,0.16*ior*ior,0.16*ior*ior);
 		Vec3f F0 = lerp_3d(f0,Color,Metallicness);
-		Vec3f one(1,1,1);
+		Vec3f one(1.0,1.0,1.0);
 		return F0 + (one - F0) * SchlickFresnel(LdotH);
 
 	}
@@ -135,9 +145,14 @@ namespace DSONL {
 		return  (Gs);
 	}
 
-	Vec3f BrdfMicrofacet::specularity( Vec3f FresnelFunction,Vec3f SpecularDistribution, float GeometricShadow, float NdotL,float NdotV ){
+	Vec3f BrdfMicrofacet::specularity( Vec3f FresnelFunction,float SpecularDistribution, float GeometricShadow, float NdotL,float NdotV ){
 
-		return (SpecularDistribution.mul(FresnelFunction)  * GeometricShadow) / (4 * (  NdotL * NdotV));
+		FresnelFunction.val[0] *= specColor_.val[0];
+		FresnelFunction.val[1] *= specColor_.val[1];
+		FresnelFunction.val[2] *= specColor_.val[2];
+
+
+		return   (SpecularDistribution  *FresnelFunction * GeometricShadow )/ (4.0 * (  NdotL * NdotV));
 	}
 
     //  Color_rgb is the texture base color
@@ -150,17 +165,15 @@ namespace DSONL {
 
 		Vec3f diffuseColor_=diffuseColor( baseColor ,_Metallic);
 
-		Vec3f lightingModel = specularity+diffuseColor_;
+		Vec3f brdf_Val = specularity+diffuseColor_;
 
-		lightingModel *= NdotL;
+//		brdf_Val *= NdotL;
 
-		return lightingModel;
+		return brdf_Val;
 	}
 
 
-	void runEM(){
 
-	}
 
 	void updateDelta(
 			         const Sophus::SE3d CurrentT,
@@ -169,35 +182,56 @@ namespace DSONL {
 					 const Mat& depth_map,
 					 const Mat& image_metallic,
 					 const Mat& image_roughnes,
-					 const Eigen::Vector3d & L2c1,
+					 const Eigen::Vector3d & light_source,
 					 Mat& deltaMap
 					 ){
 		double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2);
+
+		std::unordered_map<int, int> inliers_filter;
+		//new image
+//		inliers_filter.emplace(309,294); //yes
+//		inliers_filter.emplace(210,292); //yes
+//		inliers_filter.emplace(209,293); //yes
+//		inliers_filter.emplace(208,294); //yes
+//		inliers_filter.emplace(209,295); //yes
+//		inliers_filter.emplace(208,296); //yes
+//		inliers_filter.emplace(206,297); //yes
+		inliers_filter.emplace(205,301); //yes
+
+
+
+
 		for (int u = 0; u< depth_map.rows; u++) // colId, cols: 0 to 480
 		{
 			for (int v = 0; v < depth_map.cols; v++) // rowId,  rows: 0 to 640
 			{
+				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~
+//				cout<<"show delta:"<<deltaMap.at<double>(u,v)<<endl;
+
 				if (depth_map.at<double>(u,v) < 1e-3 ) { continue; }
 				Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
 				double d=depth_map.at<double>(u,v);
 				double d_x1= depth_map.at<double>(u,v+1);
-				double  d_y1= depth_map.at<double>(u+1, v);
+				double d_y1= depth_map.at<double>(u+1, v);
 				// calculate 3D point coordinate
 				Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
 				Eigen::Vector3d p_c1=d*p_3d_no_d;
 
 
 				// calculate normal for each point
+				// TODO: calculate another 5 normals for the same point
 				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
 				v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
 				v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
 				v_x=v_x.normalized();
 				v_y=v_y.normalized();
-				normal=v_x.cross(v_y);
+				normal=v_y.cross(v_x);
 				normal=normal.normalized();
 
 				// calculate alpha_1
-				Eigen::Matrix<double,3,1> alpha_1= L2c1-p_c1; alpha_1=alpha_1.normalized();
+				Eigen::Matrix<double,3,1> alpha_1= light_C1(light_source) -p_c1;
+				alpha_1=alpha_1.normalized();
 				// calculate beta and beta_prime;
 				Eigen::Matrix<double,3,1> beta,beta_prime;
 				beta=-p_c1;
@@ -209,19 +243,26 @@ namespace DSONL {
 				float metallic=image_metallic.at<float>(u,v);
 				float roughness =image_roughnes.at<float>(u,v);
 				//Instantiation of BRDF object
-				Vec3f baseColor(image_baseColor.at<Vec3b>(u,v)[2],image_baseColor.at<Vec3b>(u,v)[1],image_baseColor.at<Vec3b>(u,v)[0]);
+				Vec3f baseColor(image_baseColor.at<Vec3f>(u,v)[2],image_baseColor.at<Vec3f>(u,v)[1],image_baseColor.at<Vec3f>(u,v)[0]);
 				Vec3f L_(alpha_1(0),alpha_1(1),alpha_1(2));
 				Vec3f N_(normal(0),normal(1),normal(2));
 				Vec3f View_beta(beta(0),beta(1),beta(2));
 				Vec3f View_beta_prime(beta_prime(0),beta_prime(1),beta_prime(2));
 
 				BrdfMicrofacet radiance_beta_vec(L_,N_,View_beta,(float )roughness,(float)metallic,baseColor);
-				double radiance_beta= radiance_beta_vec.radiance;
+				Vec3f radiance_beta= radiance_beta_vec.brdf_value_c3;
+//				Vec3f checkVariable= radiance_beta_vec.specularityVec;
+
 				BrdfMicrofacet radiance_beta_prime_vec(L_,N_,View_beta_prime,(float )roughness,(float)metallic,baseColor);
-				double radiance_beta_prime= radiance_beta_prime_vec.radiance;
-				double delta= radiance_beta/radiance_beta_prime;
+				Vec3f radiance_beta_prime= radiance_beta_prime_vec.brdf_value_c3;
+				double delta_r= radiance_beta.val[0]/ radiance_beta_prime.val[0];
+				double delta_g= radiance_beta.val[1]/ radiance_beta_prime.val[1];
+				double delta_b= radiance_beta.val[2]/ radiance_beta_prime.val[2];
+
+//				Vec3f delta(delta_r,delta_g,delta_b);
+//				double delta= radiance_beta/radiance_beta_prime;
 				// store delta in the delta map
-				deltaMap.at<double>(u,v)= delta;
+				deltaMap.at<float>(u,v)= delta_g;
 
 
 			}

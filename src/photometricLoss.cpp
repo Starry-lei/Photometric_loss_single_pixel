@@ -39,32 +39,30 @@ using namespace cv;
 using namespace std;
 using namespace DSONL;
 
-const double DEG_TO_ARC = 0.0174532925199433;
+
 
 int main(int argc, char **argv) {
 
-	Eigen::Matrix<double,3,1> light_source(-32.4, -27 ,31.8);
+	Eigen::Matrix<double,3,1> light_source(-0.666, 0.1 ,-0.186);
 	Eigen::Matrix<double,3,1> Camera1(3.8, -16.5 ,26.1);
 	Eigen::Matrix<double,3,1> Camera2(0.3 ,-16.9, 27.7);
 
-    Eigen::Matrix<double,3,1> L2C1= light_source-Camera1;
+	Eigen::Matrix3d R1w;
+//	Eigen::Matrix3d R_X=  rotmatx(-3.793*DEG_TO_ARC);
+//	Eigen::Matrix3d R_Y=  rotmaty(-178.917*DEG_TO_ARC);
+//	Eigen::Matrix3d R_Z=  rotmatz(0*DEG_TO_ARC);
+//	Eigen::Matrix3d R_1w=  R_Y*R_X*R_Z;
+	Eigen::Quaterniond q_1( 9.44564042e-03, -9.99407604e-01, -3.30926474e-02, -3.12766530e-04); // wxyz
 
-	double roll_arc_c1 = -178.917* DEG_TO_ARC;      // 绕X轴
-	double pitch_arc_c1 = 0* DEG_TO_ARC;     // 绕Y轴
-	double yaw_arc_c1 = -3.793* DEG_TO_ARC;     // 绕Z轴
+	R1w=q_1.toRotationMatrix();
 
-	double roll_arc_c2 = -179.988* DEG_TO_ARC;      // 绕X轴
-	double pitch_arc_c2 = 0.263* DEG_TO_ARC;     // 绕Y轴
-	double yaw_arc_c2 = -3.972* DEG_TO_ARC;     // 绕Z轴
-	Eigen::Vector3d euler_angle1(roll_arc_c1, pitch_arc_c1, yaw_arc_c1);
-	Eigen::Vector3d euler_angle2(roll_arc_c2, pitch_arc_c2, yaw_arc_c2);
-	Eigen::Matrix3d rotation_matrix1, rotation_matrix2;
-	rotation_matrix1 = Eigen::AngleAxisd(euler_angle1[2], Eigen::Vector3d::UnitZ()) *
-	                   Eigen::AngleAxisd(euler_angle1[1], Eigen::Vector3d::UnitY()) *
-	                   Eigen::AngleAxisd(euler_angle1[0], Eigen::Vector3d::UnitX());
-	rotation_matrix2 = Eigen::AngleAxisd(euler_angle2[2], Eigen::Vector3d::UnitZ()) *
-	                   Eigen::AngleAxisd(euler_angle2[1], Eigen::Vector3d::UnitY()) *
-	                   Eigen::AngleAxisd(euler_angle2[0], Eigen::Vector3d::UnitX());
+	Eigen::Vector3d l_w,N_w;
+	l_w<< 0.223529, 0.490196, 0.843137;
+	N_w<< 0.0352942, -0.223529, 0.976471;
+
+
+	cout << "\n show normal in C1 \n"<<R1w.transpose()*N_w<<endl;
+
 
 
 
@@ -88,21 +86,14 @@ int main(int argc, char **argv) {
 
 
 
-
-
-//
-//	Eigen::Vector3d light_source_c1;
-//	light_source_c1= light_source-Camera1; //TODO: remains to be subtracted by p_3d and normalised;
-
-
 //	loaded images
 //	string image_ref_path = "../data/rgb/1305031102.175304.png"; // data/rgb/1305031102.175304.png, data_test/rgb/1305031453.359684.png
 //	string image_target_path = "../data/rgb/1305031102.275326.png";  // matlab 1305031102.175304
 //	string depth_ref_path = "../data/depth/1305031102.160407.png";  //   matlab      1305031102.262886
-	string image_ref_path = "../data/rgb/viewpoint1_rgb.png";
-	string image_target_path = "../data/rgb/viewpoint2_rgb.png";
+	string image_ref_path = "../data/rgb/newviewpoint1_colorful.png";
+	string image_target_path = "../data/rgb/newviewpoint2_colorful.png";
 	string depth_ref_path = "../data/depth/viewpoint1_depth.exr";
-
+    //data/rgb/viewpoint1_mr.png
 	// read metallic adn roughness data, read metallic adn roughness data
 	string image_ref_MR_path = "../data/rgb/viewpoint1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
 	string image_target_MR_path = "../data/rgb/viewpoint2_mr.png";
@@ -113,8 +104,12 @@ int main(int argc, char **argv) {
 	split(image_ref_MR,ref_mr_table);// 0: red, 1: green, 2: blue
 	Mat image_ref_metallic=  ref_mr_table[2];
 	Mat image_ref_roughness= ref_mr_table[1];
-	image_ref_metallic.convertTo(image_ref_metallic, CV_64FC1,1.0 / 255.0);
-	image_ref_roughness.convertTo(image_ref_roughness, CV_64FC1,1.0 / 255.0);
+
+	image_ref_metallic.convertTo(image_ref_metallic, CV_32FC1,1.0 / 255.0);
+
+	image_ref_roughness.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
+//	imshow("image_ref_roughness", image_ref_roughness);
+//	waitKey(0);
     //  create a metallic and roughness table for target image
 	Mat image_target_MR= imread(image_target_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 	Mat taget_mr_table[3];
@@ -130,10 +125,17 @@ int main(int argc, char **argv) {
 
 
 	// read base color data TODO: check if we need to map the value of baseColor
-	string image_ref_baseColor_path = "../data/rgb/viewpoint1_texture.png";
-	string image_target_baseColor = "../data/rgb/viewpoint2_texture.png";
+	string image_ref_baseColor_path = "../data/rgb/newviewpoint1_texture.png";
+	string image_target_baseColor = "../data/rgb/newviewpoint2_texture.png";
 	Mat image_ref_baseColor= imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-    //	image_ref_baseColor.convertTo(image_ref_baseColor, CV_32FC3);
+
+	image_ref_baseColor.convertTo(image_ref_baseColor, CV_32FC3, 1.0/255.0);
+	double min, max;
+	cv::minMaxIdx(image_ref_baseColor, &min, &max);
+	cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
+
+
+
 
 
 
@@ -152,13 +154,37 @@ int main(int argc, char **argv) {
 	// read target image
 	Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	// color space conversion
-	cvtColor(image_target, grayImage_target, COLOR_BGR2GRAY);
+//	cvtColor(image_target, grayImage_target, COLOR_BGR2GRAY);  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! right
+
+
+	Mat tar_ch_red;
+	int channelIdx= 1;
+	extractChannel(image_target, tar_ch_red, channelIdx);
+	grayImage_target=tar_ch_red;
+
+
+	
+
 	// precision improvement
 	grayImage_target.convertTo(grayImage_target, CV_64FC1, 1.0 / 255.0);
 	// read ref image
 	Mat image_ref = imread(image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	// color space conversion
-	cvtColor(image_ref, grayImage_ref, COLOR_BGR2GRAY);
+//	cvtColor(image_ref, grayImage_ref, COLOR_BGR2GRAY);   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11 left
+    Mat ref_ch_red;
+
+	extractChannel(image_ref, ref_ch_red, channelIdx);
+	grayImage_ref=ref_ch_red;
+
+
+//	imshow("grayImage_ref",grayImage_ref);
+//	imshow("grayImage_target",grayImage_target);
+//	waitKey(0);
+
+
+
+
+
 	// precision improvement
 	grayImage_ref.convertTo(grayImage_ref, CV_64FC1, 1.0 / 255.0);
 	Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
@@ -174,7 +200,6 @@ int main(int argc, char **argv) {
 	depth_ref= depth_ref *(60.0-0.01) + 0.01;
 	depth_ref.convertTo(depth_ref, CV_64FC1);
 
-   double min, max;
    cv::minMaxIdx(depth_ref, &min, &max);
    cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
 
@@ -208,10 +233,12 @@ int main(int argc, char **argv) {
 
 //	K<<fx,0,cx,0,fy,cy,0,0,1.0;
 
- K<< 800.0, 0, 0,
-     0, 800.0, 0,
-	 0,   0,  1;
-
+// K<< 800.0, 0, 0,
+//     0, 800.0, 0,
+//	 0,   0,  1;
+	K<< 800.0, 0, 320,
+	    0, 800.0, 240,
+		0,   0,  1;
 
  M << 1.0/(tan(0.5*fov_y)*aspect), 0, 0, 0,
       0,  atan(0.5*fov_y), 0   ,  0,
@@ -245,7 +272,7 @@ int main(int argc, char **argv) {
 //	        -0.4602,  0.8601,  0.2200,
 //			-0.5192,  -0.4617, 0.7192;
 // GT
-  Eigen::Quaterniond q(1.0000 ,  -0.0029  ,  0.0092  ,  0.0015);
+  Eigen::Quaterniond q(1.0000  ,  0.0092 ,   0.0029    ,0.0015); // ( 1.0000  ,  0.0016,    0.0093  , -0.0017);
 //	Eigen::Quaterniond q(0.9998,    0.0174 ,   0.0076 ,  -0.0003);
 	// disturbing rotation
 //	Eigen::Quaterniond q( 0.9998,    0.0174 ,   0.0076 ,  -0.0003);
@@ -255,9 +282,13 @@ int main(int argc, char **argv) {
 
 	R=q.normalized().toRotationMatrix();
 // GT
-t << -0.9098,
-	0.0424,
-	0.4129;
+//t <<-3.4990,
+//	0.3043,
+//	1.6231;
+
+t <<  3.5266,
+      -0.1558,
+	1.5840;
 //	t<<   0.0028,
 //	      -0.0053,
 //	      -0.0362;
@@ -270,7 +301,6 @@ t << -0.9098,
 	xi.translation()=t;
 	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
 
-	Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_64FC1, Scalar(1)); // storing delta
 
 
 
@@ -297,10 +327,73 @@ t << -0.9098,
 //	    cv::Mat flat= I.reshape(1, I.total()*I.channels());
 //	    std::vector<double> img_gray_values= I.isContinuous()? flat : flat.clone();
 //	    printAll(&img_gray_values[0], img_gray_values.size());//~~~~~~~~~~~~~~~~~~
+		Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
 
 		PhotometricBAOptions options;
 
-		PhotometricBA(IRef, I, options, Klvl, xi, DRef, L2C1,image_ref_metallic,image_target_roughness,image_ref_baseColor);
+		std::unordered_map<int, int> inliers_filter;
+		//new image
+//		inliers_filter.emplace(309,294); //yes
+////		inliers_filter.emplace(210,292); //yes
+////		inliers_filter.emplace(209,293); //yes
+////		inliers_filter.emplace(208,294); //yes
+////		inliers_filter.emplace(209,295); //yes
+////		inliers_filter.emplace(208,296); //yes
+////		inliers_filter.emplace(206,297); //yes
+		inliers_filter.emplace(205,301); //yes
+
+
+
+
+
+
+
+
+        int i=0;
+		while ( i < 2){
+			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
+			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap);
+
+
+
+
+//			deltaMap.convertTo(deltaMap, CV_32FC1, 200.0);
+//			imshow("deltamap", deltaMap);
+//			waitKey(0);
+
+			for(int x = 0; x < deltaMap.rows; ++x)
+			{
+				for(int y = 0; y < deltaMap.cols; ++y)
+				{
+					if(inliers_filter.count(x)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+					if(inliers_filter[x]!=y ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//					if (deltaMap.at<float>(x,y)==-nan){cout << "coord"<< }
+					cout<<"show delta:"<<deltaMap.at<float>(x,y)<<endl;
+					int tst=1;
+
+
+				}
+			}
+//			Mat mask = cv::Mat(deltaMap != deltaMap);
+//			deltaMap.setTo(1.0, mask);
+			double  max, min;
+			cv::minMaxIdx(deltaMap, &min, &max);
+			cout<<"show max and min"<< max <<","<<min<<endl;
+
+
+//			Mat result;
+//			grayImage_ref.copyTo(result,mask);
+//			imshow("show masked image", result);
+//			waitKey(0);
+
+
+
+
+
+          i+=1;
+
+		}
+
 
 
 
@@ -314,3 +407,4 @@ t << -0.9098,
 
 	return 0;
 }
+

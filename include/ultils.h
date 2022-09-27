@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <vector>
+#include <cmath>
 #include <omp.h>
 
 
@@ -28,6 +29,82 @@ namespace DSONL{
 
 	using namespace cv;
 	using namespace std;
+	const double DEG_TO_ARC = 0.0174532925199433;
+
+
+
+    Eigen::Matrix3d rotmatz(double a)
+    {
+	    Eigen::Matrix3d R;
+		R<<cos(a), -sin(a), 0,
+		   sin(a) , cos(a), 0,
+	         0,     0,      1;
+	    return R;
+	}
+	Eigen::Matrix3d rotmatx(double a)
+	{
+		Eigen::Matrix3d R;
+		R<<     1,     0,   0,
+				0,cos(a), -sin(a),
+				0,   sin(a) , cos(a);
+		return R;
+	}
+
+	Eigen::Matrix3d rotmaty(double a)
+	{
+		Eigen::Matrix3d R;
+		R<<      cos(a) ,0,sin(a),
+		          0,    1 ,    0,
+				-sin(a), 0, cos(a);
+		return R;
+	}
+	Eigen::Vector3d light_C1( Eigen::Vector3d light_w){
+
+
+
+
+//
+//		Eigen::Matrix3d R_X=  rotmatx(-3.793*DEG_TO_ARC);
+//		Eigen::Matrix3d R_Y=  rotmaty(-178.917*DEG_TO_ARC);
+//		Eigen::Matrix3d R_Z=  rotmatz(0*DEG_TO_ARC);
+
+		Eigen::Quaterniond q(9.44564042e-03, -9.99407604e-01, -3.30926474e-02, -3.12766530e-04);
+
+
+
+
+
+//	    Eigen::Matrix3d R_1w=  R_Y*R_X*R_Z;
+//
+//		Eigen::Matrix3d R_1w_new = (Eigen::AngleAxisd(-178.917*DEG_TO_ARC, Eigen::Vector3d::UnitY()) *
+//		                   Eigen::AngleAxisd(0*DEG_TO_ARC, Eigen::Vector3d::UnitZ()) *
+//		                   Eigen::AngleAxisd(-3.793*DEG_TO_ARC, Eigen::Vector3d::UnitX())).toRotationMatrix();
+
+
+
+
+		Eigen::Vector3d t_1w;
+		t_1w<<3.8, -16.5, 26.1;
+
+//		Eigen::Matrix3d  R_w1;
+//		Eigen::Vector3d  t_w1;
+//		R_w1=R_1w.transpose();
+//        R_w1=(R_Y*R_X*R_Z).transpose();
+
+//		t_w1= - R_1w.transpose()*t_1w;
+//		t_w1=- (R_Y*R_X*R_Z).transpose()*t_1w;
+
+
+//		return (R_w1* light_w+ t_w1);
+
+		return (q.toRotationMatrix()).transpose()* (light_w -t_1w);
+
+	}
+
+
+
+
+
 
    class normalMapFiltering {
    private:
@@ -293,7 +370,7 @@ namespace DSONL{
 				v_y << (d_y1-d)*(y-cx)/fx,(d_y1+ (d_y1-d)*(x-cy))/fy, (d_y1-d);
 				v_x=v_x.normalized();
 				v_y=v_y.normalized();
-				normal=v_x.cross(v_y);
+				normal=v_y.cross(v_x);
 //				normal=v_x.cross(v_y);
 				normal=normal.normalized();
 
