@@ -68,7 +68,7 @@ namespace DSONL{
 //		Eigen::Matrix3d R_Y=  rotmaty(-178.917*DEG_TO_ARC);
 //		Eigen::Matrix3d R_Z=  rotmatz(0*DEG_TO_ARC);
 
-		Eigen::Quaterniond q(9.44564042e-03, -9.99407604e-01, -3.30926474e-02, -3.12766530e-04);
+		Eigen::Quaterniond q(0.009445649,-0.0003128,-0.9994076,-0.0330920);
 
 
 

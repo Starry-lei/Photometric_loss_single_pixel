@@ -43,7 +43,7 @@ using namespace DSONL;
 
 int main(int argc, char **argv) {
 
-	Eigen::Matrix<double,3,1> light_source(-0.666, 0.1 ,-0.186);
+	Eigen::Matrix<double,3,1> light_source(7.1, -22.9 ,11.0);
 	Eigen::Matrix<double,3,1> Camera1(3.8, -16.5 ,26.1);
 	Eigen::Matrix<double,3,1> Camera2(0.3 ,-16.9, 27.7);
 
@@ -56,19 +56,23 @@ int main(int argc, char **argv) {
 
 
 
-	Eigen::Quaterniond q_1(0.009445649,0.00, -1.00,-0.03); //  cam1  wxyz
-	Eigen::Quaterniond q_2(-0.08239185,0.05,-0.99,-0.02); //  cam4  wxyz
+	Eigen::Quaterniond q_1(0.009445649,-0.0003128,-0.9994076,-0.0330920); //  cam1  wxyz
+	Eigen::Quaterniond q_2(-0.08078633,-0.0084485,-0.9962677,-0.0292077 ); //  cam5  wxyz
 	t1<< 3.8, -16.5, 26.1;
-	t2 << -1.4 ,-14.71 ,25 ;
+	t2 << -5.1,-15.2 ,27.5 ;
 
-	R1=q_1.normalized().toRotationMatrix();
-	R2=q_2.normalized().toRotationMatrix();
-	cout<<"show R1, R2: \n"<< R1 << "and \n "<< R2<< endl;
+	R1=q_1.toRotationMatrix();
+	R2=q_2.toRotationMatrix();
+	cout<< "show R1:\n"<< R1<<endl;
+	cout<< "show R2:\n"<< R2<<endl;
     R12= R2.transpose() * R1;
 	t12= R2.transpose()* (t1-t2);
 
-	cout<< "show R12"<< R12<<endl;
-	cout<< "show t12"<< t12<<endl;
+	Eigen::Quaterniond q_12(R12);
+
+
+	cout<< "show R12:\n"<< R12<<endl;
+	cout<< "show t12:\n"<< t12<<endl;
 
 
 
@@ -106,13 +110,33 @@ int main(int argc, char **argv) {
 //	string image_ref_path = "../data/rgb/1305031102.175304.png"; // data/rgb/1305031102.175304.png, data_test/rgb/1305031453.359684.png
 //	string image_target_path = "../data/rgb/1305031102.275326.png";  // matlab 1305031102.175304
 //	string depth_ref_path = "../data/depth/1305031102.160407.png";  //   matlab      1305031102.262886
-	string image_ref_path = "../data/rgb/newviewpoint1_colorful.png";
-	string image_target_path = "../data/rgb/viewpoint4.png";
-	string depth_ref_path = "../data/depth/viewpoint1_depth.exr";
-    //data/rgb/viewpoint1_mr.png
+
+    // old dataset
+//	string image_ref_path = "../data/rgb/newviewpoint1_colorful.png";
+//	string image_target_path = "../data/rgb/viewpoint4.png";
+//	string depth_ref_path = "../data/depth/viewpoint1_depth.exr";
+
+	// new  dataset
+	string image_ref_path = "../data/rgb/vp1.png";
+	string image_target_path = "../data/rgb/vp5.png";
+	string depth_ref_path = "../data/depth/pos1_depth.exr";
+
+
+
+
+
+
+
+	//data/rgb/viewpoint1_mr.png
 	// read metallic adn roughness data, read metallic adn roughness data
-	string image_ref_MR_path = "../data/rgb/viewpoint1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
-	string image_target_MR_path = "../data/rgb/viewpoint2_mr.png";
+	string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
+	string image_target_MR_path = "../data/rgb/vp5_mr.png";
+
+
+
+
+
+
 	//  create a metallic and roughness table, (map R G values into [0 ,1] for two images)
 	// create a metallic and roughness table for reference image
 	Mat image_ref_MR= imread(image_ref_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
@@ -135,28 +159,23 @@ int main(int argc, char **argv) {
 	image_target_metallic.convertTo(image_target_metallic, CV_64FC1,1.0 / 255.0);
 	image_target_roughness.convertTo(image_target_roughness, CV_64FC1,1.0 / 255.0);
 
+//	imshow("image_ref_metallic",image_ref_metallic);
+//	imshow("image_ref_roughness",image_ref_roughness);
+//	waitKey(0);
 
 
 
 
 
 	// read base color data TODO: check if we need to map the value of baseColor
-	string image_ref_baseColor_path = "../data/rgb/newviewpoint1_texture.png";
-	string image_target_baseColor = "../data/rgb/newviewpoint2_texture.png";
+	string image_ref_baseColor_path = "../data/rgb/vp1_basecolor.png";
+	string image_target_baseColor = "../data/rgb/vp5_basecolor.png";
 	Mat image_ref_baseColor= imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-
+	Mat image_right_baseColor= imread(image_target_baseColor,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 	image_ref_baseColor.convertTo(image_ref_baseColor, CV_32FC3, 1.0/255.0);
 	double min, max;
 	cv::minMaxIdx(image_ref_baseColor, &min, &max);
 	cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
-
-
-
-
-
-
-
-
 
 
 
@@ -288,7 +307,7 @@ int main(int argc, char **argv) {
 //	        -0.4602,  0.8601,  0.2200,
 //			-0.5192,  -0.4617, 0.7192;
 // GT
-  Eigen::Quaterniond q(1.0000  ,  0.0092 ,   0.0029    ,0.0015); // ( 1.0000  ,  0.0016,    0.0093  , -0.0017);
+//  Eigen::Quaterniond q(1.0000  ,  0.0092 ,   0.0029    ,0.0015); // ( 1.0000  ,  0.0016,    0.0093  , -0.0017);
 //	Eigen::Quaterniond q(0.9998,    0.0174 ,   0.0076 ,  -0.0003);
 	// disturbing rotation
 //	Eigen::Quaterniond q( 0.9998,    0.0174 ,   0.0076 ,  -0.0003);
@@ -296,7 +315,7 @@ int main(int argc, char **argv) {
 	// 0.9913    0.0811   -0.0597    0.0843  :10 degree disturbing only in each axis.
 	// 0.9986    0.0329   -0.0221    0.0351 : 5 degree in each axis,
 
-	R=q.normalized().toRotationMatrix();
+	R=q_12.normalized().toRotationMatrix();
 // GT
 //t <<-3.4990,
 //	0.3043,
@@ -304,7 +323,7 @@ int main(int argc, char **argv) {
 
 t <<  3.5266,
       -0.1558,
-	1.5840;
+	  1.5840;
 //	t<<   0.0028,
 //	      -0.0053,
 //	      -0.0362;
@@ -313,7 +332,7 @@ t <<  3.5266,
 //	     0.1023,
 //		 -0.0246;
 
-	xi.setRotationMatrix( R12);
+	xi.setRotationMatrix(R);
 	xi.translation()=t12;
 	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
 
@@ -368,7 +387,7 @@ t <<  3.5266,
 
         int i=0;
 		while ( i < 2){
-			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
+//			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
 			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap);
 
 
@@ -378,30 +397,50 @@ t <<  3.5266,
 //			imshow("deltamap", deltaMap);
 //			waitKey(0);
 
-			for(int x = 0; x < deltaMap.rows; ++x)
-			{
-				for(int y = 0; y < deltaMap.cols; ++y)
-				{
-					if(inliers_filter.count(x)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-					if(inliers_filter[x]!=y ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-//					if (deltaMap.at<float>(x,y)==-nan){cout << "coord"<< }
-					cout<<"show delta:"<<deltaMap.at<float>(x,y)<<endl;
-					int tst=1;
-
-
-				}
-			}
+//			for(int x = 0; x < deltaMap.rows; ++x)
+//			{
+//				for(int y = 0; y < deltaMap.cols; ++y)
+//				{
+////					if(inliers_filter.count(x)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+////					if(inliers_filter[x]!=y ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+////					if (deltaMap.at<float>(x,y)==-nan){cout << "coord"<< }
+//					cout<<"show delta:"<<deltaMap.at<float>(x,y)<<endl;
+//					int tst=1;
+//
+//
+//				}
+//			}
 //			Mat mask = cv::Mat(deltaMap != deltaMap);
+//
 //			deltaMap.setTo(1.0, mask);
-			double  max, min;
-			cv::minMaxIdx(deltaMap, &min, &max);
-			cout<<"show max and min"<< max <<","<<min<<endl;
 
+//			Mat mask_specular = cv::Mat( (deltaMap < 0.85) && (deltaMap > 1.15));
+//			Mat mask_specular_2 = cv::Mat(deltaMap < 0.85);
+//			double  max, min;
+//			cv::minMaxIdx(deltaMap, &min, &max);
+//			cout<<"show max and min"<< max <<","<<min<<endl;
 
-//			Mat result;
-//			grayImage_ref.copyTo(result,mask);
-//			imshow("show masked image", result);
-//			waitKey(0);
+//			for(int x = 0; x < deltaMap.rows; ++x)
+//			{
+//				for(int y = 0; y < deltaMap.cols; ++y)
+//
+//					if (deltaMap.at<float>(x,y) <0.85 || deltaMap.at<float>(x,y)>1.15 ){
+//						deltaMap.at<float>(x,y)=255;
+//					}
+//				else{
+//						deltaMap.at<float>(x,y)=0;
+//				}
+//
+//
+//			}
+
+			Mat result, result2;
+//			grayImage_ref.copyTo(result,mask_specular);
+//			grayImage_ref.copyTo(result2,mask_specular_2 );
+
+			imshow("show masked deltaMap", deltaMap);
+//			imshow("show masked image2", result2);
+			waitKey(0);
 
 
 

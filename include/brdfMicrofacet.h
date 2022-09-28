@@ -206,8 +206,8 @@ namespace DSONL {
 		{
 			for (int v = 0; v < depth_map.cols; v++) // rowId,  rows: 0 to 640
 			{
-				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~
+//				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~
 //				cout<<"show delta:"<<deltaMap.at<double>(u,v)<<endl;
 
 				if (depth_map.at<double>(u,v) < 1e-3 ) { continue; }
