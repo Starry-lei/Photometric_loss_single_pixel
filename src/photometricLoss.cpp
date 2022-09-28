@@ -47,21 +47,37 @@ int main(int argc, char **argv) {
 	Eigen::Matrix<double,3,1> Camera1(3.8, -16.5 ,26.1);
 	Eigen::Matrix<double,3,1> Camera2(0.3 ,-16.9, 27.7);
 
-	Eigen::Matrix3d R1w;
+	Eigen::Matrix3d R1,R2, R12;
+	Eigen::Vector3d l_w,N_w, t12, t1,t2;
 //	Eigen::Matrix3d R_X=  rotmatx(-3.793*DEG_TO_ARC);
 //	Eigen::Matrix3d R_Y=  rotmaty(-178.917*DEG_TO_ARC);
 //	Eigen::Matrix3d R_Z=  rotmatz(0*DEG_TO_ARC);
 //	Eigen::Matrix3d R_1w=  R_Y*R_X*R_Z;
-	Eigen::Quaterniond q_1( 9.44564042e-03, -9.99407604e-01, -3.30926474e-02, -3.12766530e-04); // wxyz
 
-	R1w=q_1.toRotationMatrix();
 
-	Eigen::Vector3d l_w,N_w;
+
+	Eigen::Quaterniond q_1(0.009445649,0.00, -1.00,-0.03); //  cam1  wxyz
+	Eigen::Quaterniond q_2(-0.08239185,0.05,-0.99,-0.02); //  cam4  wxyz
+	t1<< 3.8, -16.5, 26.1;
+	t2 << -1.4 ,-14.71 ,25 ;
+
+	R1=q_1.normalized().toRotationMatrix();
+	R2=q_2.normalized().toRotationMatrix();
+	cout<<"show R1, R2: \n"<< R1 << "and \n "<< R2<< endl;
+    R12= R2.transpose() * R1;
+	t12= R2.transpose()* (t1-t2);
+
+	cout<< "show R12"<< R12<<endl;
+	cout<< "show t12"<< t12<<endl;
+
+
+
+
 	l_w<< 0.223529, 0.490196, 0.843137;
 	N_w<< 0.0352942, -0.223529, 0.976471;
 
 
-	cout << "\n show normal in C1 \n"<<R1w.transpose()*N_w<<endl;
+//	cout << "\n show normal in C1 \n"<<R1w.transpose()*N_w<<endl;
 
 
 
@@ -91,7 +107,7 @@ int main(int argc, char **argv) {
 //	string image_target_path = "../data/rgb/1305031102.275326.png";  // matlab 1305031102.175304
 //	string depth_ref_path = "../data/depth/1305031102.160407.png";  //   matlab      1305031102.262886
 	string image_ref_path = "../data/rgb/newviewpoint1_colorful.png";
-	string image_target_path = "../data/rgb/newviewpoint2_colorful.png";
+	string image_target_path = "../data/rgb/viewpoint4.png";
 	string depth_ref_path = "../data/depth/viewpoint1_depth.exr";
     //data/rgb/viewpoint1_mr.png
 	// read metallic adn roughness data, read metallic adn roughness data
@@ -297,8 +313,8 @@ t <<  3.5266,
 //	     0.1023,
 //		 -0.0246;
 
-	xi.setRotationMatrix(R);
-	xi.translation()=t;
+	xi.setRotationMatrix( R12);
+	xi.translation()=t12;
 	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
 
 
@@ -340,7 +356,8 @@ t <<  3.5266,
 ////		inliers_filter.emplace(209,295); //yes
 ////		inliers_filter.emplace(208,296); //yes
 ////		inliers_filter.emplace(206,297); //yes
-		inliers_filter.emplace(205,301); //yes
+		inliers_filter.emplace(173,333); //yes
+		inliers_filter.emplace(378,268); //yes
 
 
 

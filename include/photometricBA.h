@@ -63,7 +63,8 @@ namespace DSONL{
 //		inliers_filter.emplace(209,295); //yes
 //		inliers_filter.emplace(208,296); //yes
 //		inliers_filter.emplace(206,297); //yes
-		inliers_filter.emplace(205,301); //yes
+		inliers_filter.emplace(173,333); //yes
+		inliers_filter.emplace(378,268); //yes
 //		inliers_filter.emplace(184,279); //yes
 //		inliers_filter.emplace(330,354); //yes
 //		inliers_filter.emplace(316,503); //yes
