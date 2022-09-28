@@ -410,15 +410,15 @@ t <<  3.5266,
 //
 //				}
 //			}
-//			Mat mask = cv::Mat(deltaMap != deltaMap);
+			Mat mask = cv::Mat(deltaMap != deltaMap);
 //
-//			deltaMap.setTo(1.0, mask);
+			deltaMap.setTo(1.0, mask);
 
 //			Mat mask_specular = cv::Mat( (deltaMap < 0.85) && (deltaMap > 1.15));
 //			Mat mask_specular_2 = cv::Mat(deltaMap < 0.85);
-//			double  max, min;
-//			cv::minMaxIdx(deltaMap, &min, &max);
-//			cout<<"show max and min"<< max <<","<<min<<endl;
+			double  max, min;
+			cv::minMaxIdx(deltaMap, &min, &max);
+			cout<<"show max and min"<< max <<","<<min<<endl;
 
 //			for(int x = 0; x < deltaMap.rows; ++x)
 //			{
@@ -437,7 +437,7 @@ t <<  3.5266,
 			Mat result, result2;
 //			grayImage_ref.copyTo(result,mask_specular);
 //			grayImage_ref.copyTo(result2,mask_specular_2 );
-
+			deltaMap=deltaMap*(1.0/(3.8044-0.356712))+(-0.356712*(1.0/(3.8044-0.356712)));
 			imshow("show masked deltaMap", deltaMap);
 //			imshow("show masked image2", result2);
 			waitKey(0);
