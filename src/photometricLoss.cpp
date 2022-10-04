@@ -63,16 +63,16 @@ int main(int argc, char **argv) {
 
 	R1=q_1.toRotationMatrix();
 	R2=q_2.toRotationMatrix();
-	cout<< "show R1:\n"<< R1<<endl;
-	cout<< "show R2:\n"<< R2<<endl;
+//	cout<< "show R1:\n"<< R1<<endl;
+//	cout<< "show R2:\n"<< R2<<endl;
     R12= R2.transpose() * R1;
 	t12= R2.transpose()* (t1-t2);
 
 	Eigen::Quaterniond q_12(R12);
 
 
-	cout<< "show R12:\n"<< R12<<endl;
-	cout<< "show t12:\n"<< t12<<endl;
+//	cout<< "show R12:\n"<< R12<<endl;
+//	cout<< "show t12:\n"<< t12<<endl;
 
 
 
@@ -116,10 +116,58 @@ int main(int argc, char **argv) {
 //	string image_target_path = "../data/rgb/viewpoint4.png";
 //	string depth_ref_path = "../data/depth/viewpoint1_depth.exr";
 
-	// new  dataset
+//	// new  dataset
 	string image_ref_path = "../data/rgb/vp1.png";
 	string image_target_path = "../data/rgb/vp5.png";
-	string depth_ref_path = "../data/depth/pos1_depth.exr";
+
+	// no texture
+//	string image_ref_path = "../data/rgb/cam1_notexture.png";
+//	string image_target_path = "../data/rgb/cam5_notexture.png";
+
+
+
+//	string depth_ref_path = "../data/depth/old_lineareyedepth.exr";
+//	string depth_ref_path = "../data/depth/new_cam1.exr";
+
+	string depth_ref_path = "../data/depth/cam1_depth.exr";
+	//	string depth_target_path = "../data/depth/old_cam5.exr";
+   //	string depth_target_path = "../data/depth/new_cam5.exr";
+	string depth_target_path = "../data/depth/cam5_depth.exr";
+
+
+
+//	string BRDFVals = "../data/depth/rt_14_52_47_cam1_diffuse.exr";//       yes
+	string BRDFVals = "../data/depth/rt_14_50_34_cam1_spec.exr";//          no!
+
+//	string BRDFVals = "../data/depth/rt_15_3_19_cam1_spdistribution.exr";// no!   but    yes for another pixel
+//	string BRDFVals = "../data/depth/rt_14_55_15_cam1_fresnel.exr";//  yes!,, yes
+//	string BRDFVals = "../data/depth/rt_14_56_47_cam1_geo.exr";//  almost  yes
+
+//	string BRDFVals = "../data/depth/rt_18_16_4_cam1_specColor.exr";//
+//	string BRDFVals = "../data/depth/rt_18_21_4_cam1_ggx.exr";//
+	string NdotH_GT_Map_path = "../data/depth/rt_20_23_47_cam1_NdotH.exr";//
+	string NdotH_GT_Map5_path = "../data/depth/rt_20_23_47_cam5_NdotH.exr";//
+
+
+
+
+	string NdotL_GT_Map_path = "../data/depth/rt_21_54_36_cam1_NdotL.exr";//
+	string NdotV_GT_Map_path = "../data/depth/rt_21_55_49_cam1_NdotV.exr";//
+	string NdotV_GT_Map5_path = "../data/depth/rt_21_55_49_cam5_NdotV.exr";//
+
+
+//	Eigen::Vector2i pixel_pos(173,333);
+//	Eigen::Vector2i pixel_pos(378,268);
+	Eigen::Vector2i pixel_pos(213,295);
+//	Eigen::Vector2i pixel_pos(370,488);
+
+
+//	readGT(BRDFVals, pixel_pos);
+
+
+
+
+
 
 
 
@@ -170,13 +218,23 @@ int main(int argc, char **argv) {
 	// read base color data TODO: check if we need to map the value of baseColor
 	string image_ref_baseColor_path = "../data/rgb/vp1_basecolor.png";
 	string image_target_baseColor = "../data/rgb/vp5_basecolor.png";
+
+	// no texture
+//	string image_ref_baseColor_path = "../data/rgb/cam1_color.png";
+//	string image_target_baseColor = "../data/rgb/cam5_color.png";
+
+
+
 	Mat image_ref_baseColor= imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 	Mat image_right_baseColor= imread(image_target_baseColor,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 	image_ref_baseColor.convertTo(image_ref_baseColor, CV_32FC3, 1.0/255.0);
+	image_right_baseColor.convertTo(image_right_baseColor,CV_32FC3,1.0/255.0);
 	double min, max;
 	cv::minMaxIdx(image_ref_baseColor, &min, &max);
 	cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
-
+//	imshow("image_ref_baseColor",image_ref_baseColor);
+//	imshow("grayImage_target",grayImage_target);
+//	waitKey(0);
 
 
 
@@ -184,7 +242,7 @@ int main(int argc, char **argv) {
 	//	string image_target_path = "../data_test/rgb/1305031117.843291.png";  // matlab 1305031102.175304
 	//	string depth_ref_path = "../data_test/depth/1305031117.241340.png";  //   matlab      1305031102.262886
 
-	string depth_target_path = "../data/depth/1305031102.160407.png";
+
 	Mat grayImage_target, grayImage_ref;
 	// read target image
 	Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
@@ -223,20 +281,59 @@ int main(int argc, char **argv) {
 	// precision improvement
 	grayImage_ref.convertTo(grayImage_ref, CV_64FC1, 1.0 / 255.0);
 	Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+
+
+
+
+
+//	cout<<"\n show Value depth:\n"<<depth_ref.depth()<<"show Val channels :\n "<< depth_ref.channels()<<endl;
+//	imshow("getValues", depth_ref);
+//
+//	double min_v, max_v;
+//	cv::minMaxLoc(depth_ref, &min_v, &max_v);
+//	cout<<"\n show Value min, max:\n"<<min_v<<","<<max_v<<endl;
+//
+//	waitKey(0);
+
+
+
+
 //	cout<<"show the depth() of image:\n "<<depth_ref.depth()<<"and channels:"<<depth_ref.channels()<<endl;
 	Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-	Mat channel[3],depth_ref_render;
+
+
+	// left map depth
+	Mat channel[3],depth_ref_render, channel_tar[3], depth_tar_render;
 	split(depth_ref,channel);
 	depth_ref=channel[0];
+//	readGT(depth_ref_path,pixel_pos);
 
 
-	depth_ref.convertTo(depth_ref_render, CV_64FC1);
 
-	depth_ref= depth_ref *(60.0-0.01) + 0.01;
-	depth_ref.convertTo(depth_ref, CV_64FC1);
+//	depth_ref.convertTo(depth_ref_render, CV_64FC1);
+//	depth_ref= depth_ref_render *(60.0-0.01) + 0.01;
+	depth_ref.convertTo(depth_ref, CV_64FC1);// ?????????????????????????????????????????????
+
+//		cv::minMaxIdx(depth_ref, &min, &max);
+//		cout<<"\n show the depth_ref value range:\n"<<"min:"<<min<<"max:"<<max<<endl;
+
+//		cout<<"depth of depth_ref"<<depth_ref.depth()<<"!!!!!!!!!!!!!!"<<endl;
+
 
    cv::minMaxIdx(depth_ref, &min, &max);
-   cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
+   cout<<"\n show the depth_ref value range:\n"<<"min:"<<min<<"max:"<<max<<endl;
+
+   // right map depth
+	split(depth_target, channel_tar);
+	depth_target=channel_tar[0];
+//	depth_target.convertTo(depth_tar_render,CV_64FC1);
+//	depth_target=depth_tar_render *(60.0-0.01) + 0.01;
+	depth_target.convertTo(depth_target, CV_64FC1);
+
+
+//	cv::minMaxIdx(depth_target, &min, &max);
+//	cout<<"\n show the depth_target value range:\n"<<"min:"<<min<<"max:"<<max<<endl;
+
 
 
 //   depth_target.convertTo(depth_target, CV_64F);
@@ -337,6 +434,55 @@ t <<  3.5266,
 	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
 
 
+//	imshow("grayImage_ref",grayImage_ref);
+//	imshow("grayImage_target",grayImage_target);
+//	double min_in,max_in;
+//	cv::minMaxLoc(grayImage_target, &min_in, &max_in);
+//	cout<<"\n show min and max of grayImage_target:\n"<< min_in <<","<<max_in<<endl;
+//	waitKey(0);
+
+
+	Mat NdotH_GT_Map=imread(NdotH_GT_Map_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
+	Mat channel_NH[3],NHrender;// ???????????????????????????????????????
+	split(NdotH_GT_Map,channel_NH);// ???????????????????????????????????????
+	NHrender=channel_NH[0];// ???????????????????????????????????????
+
+	Mat NdotH_GT5_Map=imread(NdotH_GT_Map5_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
+	Mat channel5_NH[3],NHrender5;// ???????????????????????????????????????
+	split(NdotH_GT5_Map,channel5_NH);// ???????????????????????????????????????
+	NHrender5=channel5_NH[0];// ???????????????????????????????????????
+
+
+//	float NH_val= NHrender.at<float>(370,488);
+//	cout<<"\n show Value depth:\n"<<NHrender.depth()<<"\n show Val channels :\n "<< NHrender.channels()<<endl;
+	Mat NdotL_GT_Map=imread(NdotL_GT_Map_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
+	Mat channel_NL[3],NLrender;// ???????????????????????????????????????
+	split(NdotL_GT_Map,channel_NL);// ???????????????????????????????????????
+	NLrender=channel_NL[0];// ???????????????????????????????????????
+
+	Mat NdotV_GT_Map=imread(NdotV_GT_Map_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
+	Mat channel_NV[3],NVrender;// ???????????????????????????????????????
+	split(NdotV_GT_Map,channel_NV);// ???????????????????????????????????????
+	NVrender=channel_NV[0];// ???????????????????????????????????????
+
+	Mat NdotV_GT5_Map=imread(NdotV_GT_Map5_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
+	Mat channel5_NV[3],NVrender5;// ???????????????????????????????????????
+	split(NdotV_GT5_Map,channel5_NV);// ???????????????????????????????????????
+	NVrender5=channel5_NV[0];// ???????????????????????????????????????
+
+
+
+
+	double distanceThres=0.07;
+	Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi);
+
+
+
+
+
+
+
+
 
 
 	int lvl_target, lvl_ref;
@@ -388,7 +534,9 @@ t <<  3.5266,
         int i=0;
 		while ( i < 2){
 //			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
-			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap);
+			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap, NHrender, NLrender, NVrender, NHrender5, NVrender5);// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+//			updateDelta(xi,Klvl,image_ref_baseColor,image_right_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap);
 
 
 
@@ -411,14 +559,14 @@ t <<  3.5266,
 //				}
 //			}
 			Mat mask = cv::Mat(deltaMap != deltaMap);
-//
+
 			deltaMap.setTo(1.0, mask);
 
 //			Mat mask_specular = cv::Mat( (deltaMap < 0.85) && (deltaMap > 1.15));
 //			Mat mask_specular_2 = cv::Mat(deltaMap < 0.85);
-			double  max, min;
-			cv::minMaxIdx(deltaMap, &min, &max);
-			cout<<"show max and min"<< max <<","<<min<<endl;
+			double  max_n, min_n;
+			cv::minMaxIdx(deltaMap, &min_n, &max_n);
+			cout<<"show max and min"<< max_n <<","<<min_n<<endl;
 
 //			for(int x = 0; x < deltaMap.rows; ++x)
 //			{
@@ -437,8 +585,16 @@ t <<  3.5266,
 			Mat result, result2;
 //			grayImage_ref.copyTo(result,mask_specular);
 //			grayImage_ref.copyTo(result2,mask_specular_2 );
-			deltaMap=deltaMap*(1.0/(3.8044-0.356712))+(-0.356712*(1.0/(3.8044-0.356712)));
+//			deltaMap=deltaMap*(1.0/(3.8044-0.356712))+(-0.356712*(1.0/(3.8044-0.356712)));
+
+			deltaMap=deltaMap*(1.0/(max_n-min_n))+(-min_n*(1.0/(max_n-min_n)));
 			imshow("show masked deltaMap", deltaMap);
+//			Mat BigDelta;
+//			deltaMap.convertTo(BigDelta, CV_8UC1, 255.0);
+//
+//			imshow("BigDelta",BigDelta);
+//			imwrite("notexture.",deltaMap);
+
 //			imshow("show masked image2", result2);
 			waitKey(0);
 

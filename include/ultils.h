@@ -24,12 +24,20 @@
 #include <cmath>
 #include <omp.h>
 
+#include <pcl/io/ply_io.h>
+
+#include <pcl/io/pcd_io.h>
+#include <chrono>
+#include <pcl/point_cloud.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 namespace DSONL{
 
 	using namespace cv;
 	using namespace std;
 	const double DEG_TO_ARC = 0.0174532925199433;
+
+
 
 
 
@@ -214,6 +222,62 @@ namespace DSONL{
 
 
 
+
+	// read GT function
+
+	void readGT(string& img_path,  Eigen::Vector2i& position ){
+
+//		position,  fst is rowIdx, snd is colIdx
+		Mat im= imread(img_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+       int img_depth= im.depth();
+		switch (img_depth) {
+			case 5:
+				cout<<"The data type of current image is CV_32F. \n"<<endl;
+
+		}
+
+		cout<<"\n show Value depth:\n"<<im.depth()<<"\n show Val channels :\n "<< im.channels()<<endl;
+		imshow("getValues", im);
+
+		double min_v, max_v;
+		cv::minMaxLoc(im, &min_v, &max_v);
+		cout<<"\n show Value min, max:\n"<<min_v<<","<<max_v<<endl;
+
+//		double fstChannel, sndChannel,thrChannel;
+
+		if (static_cast<int>(im.channels())==1)
+		{
+			//若为灰度图，显示鼠标点击的坐标以及灰度值
+			cout<<"at("<<position.x()<<","<<position.y()<<")value is:"<<static_cast<float >(im.at<float>(position.x(),position.y()))<<endl;
+		}
+		else if (static_cast<int>(im.channels() == 3))
+		{
+			//若图像为彩色图像，则显示鼠标点击坐标以及对应的B, G, R值
+			cout << "at (" << position.x() << ", " << position.y() << ")"
+			     << "  R value is: " << static_cast<float>(im.at<Vec3f>(position.x(), position.y())[2])
+				 << "  G value is: " << static_cast<float>(im.at<Vec3f>(position.x(), position.y())[1])
+				 << "  B value is: " << static_cast<float >(im.at<Vec3f>(position.x(), position.y())[0])
+			     << endl;
+		}
+
+		waitKey(0);
+
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	template<typename T> Eigen::Matrix<T,3,1> backProjection(const Eigen::Matrix<T,2,1> &pixelCoord, const Eigen::Matrix<T,3,3> & K, const Mat& depthMap ){
         // convert depth map into grid2D table
 		cv::Mat flat_depth_map = depthMap.reshape(1, depthMap.total() * depthMap.channels());
@@ -335,7 +399,6 @@ namespace DSONL{
 
 	}
 
-
 	Mat getNormals(const Eigen::Matrix<double,3,3> & K_, const Mat& depth){
 
 		Mat normalsMap(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
@@ -370,7 +433,7 @@ namespace DSONL{
 				v_y << (d_y1-d)*(y-cx)/fx,(d_y1+ (d_y1-d)*(x-cy))/fy, (d_y1-d);
 				v_x=v_x.normalized();
 				v_y=v_y.normalized();
-				normal=v_y.cross(v_x);
+				normal=v_y.cross(v_x);// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
 //				normal=v_x.cross(v_y);
 				normal=normal.normalized();
 
@@ -493,6 +556,141 @@ namespace DSONL{
 
 
 	}
+
+
+
+
+	Mat deltaMapGT(Mat& Img_left,  Mat& depth_left,  Mat& Img_right, Mat& depth_right,const Eigen::Matrix<double,3,3> & K_, double & thres, const  Sophus::SE3d & ExtrinsicPose){
+
+//		Mat normalMap_left=getNormals(K_,depth_left);
+//		Mat normalMap_right=getNormals(K_,depth_right);
+
+		Mat deltaMapGT(depth_left.rows, depth_left.cols, CV_32FC1, Scalar(1.0)); // default value 1.0
+		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
+		pcl::PCDWriter writer;
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_rig (new pcl::PointCloud<pcl::PointXYZ>);
+
+
+		for(int x = 0; x < depth_left.rows; ++x) {
+			for (int y = 0; y < depth_left.cols; ++y) {
+				double d_r= depth_right.at<double>(x,y);
+				Eigen::Matrix<double,3,1> p_3d_no_d_r;
+				p_3d_no_d_r<< (y-cx)/fx, (x-cy)/fy,1.0;
+				Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
+				cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
+			}
+		}
+
+		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+		kdtree.setInputCloud (cloud_rig);
+		double  max, min;
+		cv::minMaxLoc(Img_left, &min, &max);
+		cout<<"\n show max and min of Img_left:\n"<< max <<","<<min<<endl;
+
+
+		cv::minMaxLoc(Img_right, &min, &max);
+		cout<<"\n show max and min of Img_right:\n"<< max <<","<<min<<endl;
+
+
+		std::unordered_map<int, int> inliers_filter;
+		//new image
+
+		inliers_filter.emplace(173,333); //yes
+		inliers_filter.emplace(378,268); //yes
+
+		std::vector<int> pointIdxRadiusSearch;
+		std::vector<float> pointRadiusSquaredDistance;
+
+		float radius =thres;
+
+		for(int x = 0; x < depth_left.rows; ++x)
+		{
+			for(int y = 0; y < depth_left.cols; ++y)
+			{
+
+//				if(inliers_filter.count(x)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//				if(inliers_filter[x]!=y ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~
+
+
+				// calculate 3D point of left camera
+				double d= depth_left.at<double>(x,y);
+				Eigen::Matrix<double,3,1> p_3d_no_d;
+				p_3d_no_d<< (y-cx)/fx, (x-cy)/fy,1.0;
+				Eigen::Matrix<double, 3,1> p_c1=d*p_3d_no_d;
+
+				Eigen::Vector3d  point_Trans=ExtrinsicPose.rotationMatrix() *  p_c1+ExtrinsicPose.translation();
+
+				pcl::PointXYZ searchPoint(point_Trans.x(),point_Trans.y(),point_Trans.z());
+				if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 )
+				{
+//					for (std::size_t i = 0; i < pointIdxRadiusSearch.size (); ++i)
+						std::cout << "\n------"  <<   (*cloud_rig)[ pointIdxRadiusSearch[0] ].x
+						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].y
+						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].z
+						          << " (squared distance: " << pointRadiusSquaredDistance[0] << ")" << std::endl;
+
+
+					double left_intensity=Img_left.at<double>(x,y);
+					float pointCorres_x= (*cloud_rig)[ pointIdxRadiusSearch[0] ].x;
+					float pointCorres_y= (*cloud_rig)[ pointIdxRadiusSearch[0] ].y;
+					float pointCorres_z= (*cloud_rig)[ pointIdxRadiusSearch[0] ].z;
+					float pixel_x=(fx*pointCorres_x)/pointCorres_z+cx;
+					float pixel_y= (fy*pointCorres_y)/pointCorres_z+cy;
+					double right_intensity=Img_right.at<double>((int)pixel_y, (int)pixel_x);
+					if ( left_intensity <0.01 || right_intensity<0.01){ continue;}
+
+					if(left_intensity/right_intensity> 2.0 || left_intensity/right_intensity<0.5){ continue;}
+					deltaMapGT.at<float>(x,y)=left_intensity/right_intensity;
+
+
+				}
+
+
+//				double left_intensity=Img_left.at<double>(x,y);
+//				for(int x_ = 0; x_ < depth_left.rows; ++x_) {
+//					for (int y_ = 0; y_ < depth_left.cols; ++y_) {
+//
+//						double d_r= depth_right.at<double>(x_,y_);
+//						Eigen::Matrix<double,3,1> p_3d_no_d_r;
+//						p_3d_no_d_r<< (y_-cx)/fx, (x_-cy)/fy,1.0;
+//						Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
+//						cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
+//						double distance= ((point_Trans-p_c2).norm());
+//						if ( distance< thres){
+//							double rigth_intensity=Img_right.at<double>(x_,y_);
+//							deltaMapGT.at<double>(x,y)=left_intensity/rigth_intensity;
+//						}
+//					}
+//				}
+
+
+//				double d_r= depth_right.at<double>(x,y);
+//				Eigen::Matrix<double,3,1> p_3d_no_d_r;
+//				p_3d_no_d_r<< (y-cx)/fx, (x-cy)/fy,1.0;
+//				Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
+//				cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
+
+			}
+		}
+
+//		writer.write("PointCloud_Transformed.pcd",*cloud, false);// do we need the sensor acquisition origin?
+//		writer.write("PointCloud_right.pcd",*cloud_rig, false);// do we need the sensor acquisition origin?
+
+//		double  max, min;
+		cv::minMaxLoc(deltaMapGT, &min, &max);
+
+		deltaMapGT=deltaMapGT*(1.0/(2.0-0.5))+(-0.5*(1.0/(2-0.5)));
+//		deltaMap=deltaMap*(1.0/(3.8044-0.356712))+(-0.356712*(1.0/(3.8044-0.356712)));
+
+		cout<<"\n show max and min of deltaMapGT:\n"<< max <<","<<min<<endl;
+		imshow("DeltaMapGT", deltaMapGT);
+//		waitKey(0);
+
+		return deltaMapGT;
+	}
+
+
 
 
 
