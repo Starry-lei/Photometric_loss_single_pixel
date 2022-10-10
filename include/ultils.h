@@ -7,6 +7,8 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
+
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -22,20 +24,41 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include <omp.h>
+//#include <omp.h>
 
 #include <pcl/io/ply_io.h>
-
 #include <pcl/io/pcd_io.h>
 #include <chrono>
 #include <pcl/point_cloud.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/search/search.h>
+#include <pcl/surface/mls.h>
+
+#include <pcl/point_types.h>
+#include <pcl/io/io.h>
+
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/filters/radius_outlier_removal.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/features/normal_3d.h>
+
 
 namespace DSONL{
 
 	using namespace cv;
 	using namespace std;
 	const double DEG_TO_ARC = 0.0174532925199433;
+
+
+	template<typename T>struct ptsNormal{
+	std::vector<Eigen::Matrix<T,3,1>> pts;
+	cv::Mat normal_map;
+};
+
+
+
+
 
 
 
@@ -222,26 +245,29 @@ namespace DSONL{
 
 
 
+	// show image function
+	void imageInfo(string& img_path,  Eigen::Vector2i& position ){
 
-	// read GT function
-
-	void readGT(string& img_path,  Eigen::Vector2i& position ){
-
-//		position,  fst is rowIdx, snd is colIdx
+		//position,  fst is rowIdx, snd is colIdx
 		Mat im= imread(img_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
        int img_depth= im.depth();
 		switch (img_depth) {
-			case 5:
-				cout<<"The data type of current image is CV_32F. \n"<<endl;
-
+			case 0:cout<<"The data type of current image is CV_8U. \n"<<endl;
+			case 1:cout<<"The data type of current image is CV_8S. \n"<<endl;
+			case 2:cout<<"The data type of current image is CV_16U. \n"<<endl;
+			case 3:cout<<"The data type of current image is CV_16S. \n"<<endl;
+			case 4:cout<<"The data type of current image is CV_32S. \n"<<endl;
+			case 5:cout<<"The data type of current image is CV_32F. \n"<<endl;
+			case 6:cout<<"The data type of current image is CV_64F. \n"<<endl;
+			case 7:cout<<"The data type of current image is CV_USRTYPE1. \n"<<endl;
 		}
 
-		cout<<"\n show Value depth:\n"<<im.depth()<<"\n show Val channels :\n "<< im.channels()<<endl;
-		imshow("getValues", im);
+		cout<<"\n show Image depth:\n"<<im.depth()<<"\n show Image channels :\n "<< im.channels()<<endl;
+		imshow("Image", im);
 
 		double min_v, max_v;
 		cv::minMaxLoc(im, &min_v, &max_v);
-		cout<<"\n show Value min, max:\n"<<min_v<<","<<max_v<<endl;
+		cout<<"\n show Image min, max:\n"<<min_v<<","<<max_v<<endl;
 
 //		double fstChannel, sndChannel,thrChannel;
 
@@ -385,7 +411,6 @@ namespace DSONL{
 	Eigen::Vector3d backprojection_renderDepth(double& depth, int& p_x, int& p_y, Eigen::Matrix<double,4,4>& M){
 
 
-
 	}
 
 	Eigen::Vector3d backprojection_realDepth(double& depth, int& p_row, int& p_col, Eigen::Matrix<double,3,3>& K_){
@@ -396,6 +421,194 @@ namespace DSONL{
 		Eigen::Matrix<double, 3,1> p_c1=depth*p_3d_no_d;
 
 		return  p_c1;
+
+	}
+
+
+//
+//	int iterate_all_pts(int n_eigen_current, const std::vector<Eigen::Vector3d>& cloud_eigen, Eigen::Vector3d pt_mls,
+//	                    bool& is_match) // n_eigen is a bigger one
+//	{
+//		int match_n_eigen = 0;
+//
+//		for(int n_eigen = n_eigen_current; n_eigen < cloud_eigen.size(); n_eigen++)
+//		{
+//			Eigen::Vector3d pt_eigen = cloud_eigen[n_eigen];
+//
+//
+//
+//			Eigen::Vector3d vec_diff = pt_eigen - pt_mls;
+//			if(vec_diff.norm() < 0.1)
+////        if(vec_diff.norm() < 0.05)
+//			{
+//				match_n_eigen = n_eigen;
+//				is_match = true;
+//				break;
+//			}
+//
+//		}
+//
+//		if(is_match == false)
+//		{
+//			std::cout << "fail to match !!!!!!!!" << std::endl;
+//			match_n_eigen = n_eigen_current;
+//		}
+//
+//
+//
+//		return match_n_eigen;
+//	}
+//
+//
+//	void resamplePts_and_compNormal(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_init, std::vector<Eigen::Vector3d> cloud_eigen, cv::Mat init_normal_map)
+//	{
+//
+//		// Create a KD-Tree
+//		pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+//
+//		// Output has the PointNormal type in order to store the normals calculated by MLS
+//		pcl::PointCloud<pcl::PointNormal> mls_points;
+//
+//		// Init object (second point type is for the normals, even if unused)
+//		pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;
+//
+//		mls.setComputeNormals (true);
+//
+//		// Set parameters
+//		mls.setInputCloud (cloud_init);
+//		mls.setPolynomialOrder (2);
+//		mls.setSearchMethod (tree);
+////    mls.setSearchRadius (0.1); // 304511 pts
+////    mls.setSearchRadius (0.15); // 306776 pts
+////        mls.setSearchRadius (0.2); // 307073 pts
+//		mls.setSearchRadius (0.5); // 307200 pts
+//
+//
+//
+//		// Reconstruct
+//		mls.process (mls_points);
+//
+////	std::cout << "number of new pts:" << std::endl;
+////	std::cout << mls_points.size() << std::endl;
+//
+//
+//		int n_eigen_current = 0;
+//
+//		for(int nIndex = 0; nIndex < mls_points.points.size(); nIndex++)
+//		{
+//
+//
+//			//
+//			double n_x = mls_points.points[nIndex].normal_x;
+//			double n_y = mls_points.points[nIndex].normal_y;
+//			double n_z = mls_points.points[nIndex].normal_z;
+//
+//			Eigen::Vector3d normal_new(n_x, n_y, n_z);
+//			normal_new = normal_new.normalized();
+//
+//			Eigen::Vector3d principal_axis(0, 0, 1);
+//			if(normal_new.dot(principal_axis)<0)
+//			{
+//				normal_new = -normal_new;
+//			}
+//
+//			//
+//			double pt_x = mls_points.points[nIndex].x;
+//			double pt_y = mls_points.points[nIndex].y;
+//			double pt_z = mls_points.points[nIndex].z;
+//
+//			Eigen::Vector3d pt_mls(pt_x, pt_y, pt_z);
+//
+//			bool is_match = false;
+//			n_eigen_current = iterate_all_pts(n_eigen_current, cloud_eigen, pt_mls, // assign pt_mls's normal to eigen map's pixel
+//			                                  is_match);
+//
+//			if(is_match == false)
+//			{
+//				std::cout << "use orig value !!!!!!!!" << std::endl;
+//				continue;
+//			}
+//
+//
+////        std::cout << "successful matching" << std::endl;
+//
+//			int row_id = trunc(n_eigen_current/640); // 640 pixels in a row
+//			int col_id = (n_eigen_current - row_id*640) % 640;
+//
+//			init_normal_map.at<cv::Vec3d>(row_id, col_id)[0] = normal_new(2);
+//			init_normal_map.at<cv::Vec3d>(row_id, col_id)[1] = normal_new(1);
+//			init_normal_map.at<cv::Vec3d>(row_id, col_id)[2] = normal_new(0);
+//
+//			n_eigen_current = n_eigen_current + 1;
+//
+//		}
+//
+//		std::cout << "====== complete! =======" << std::endl;
+//
+////	cv::imshow("img3", init_normal_map);
+////	cv::waitKey(0);
+//
+//
+//	}
+//
+//	void comp_accurate_normals(std::vector<Eigen::Vector3d> cloud_eigen, cv::Mat init_normal_map)
+//	{
+//		// convert format
+//		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+//		cloud->points.resize(cloud_eigen.size());
+//		for(int i=0; i<cloud_eigen.size(); i++)
+//		{
+//			cloud->points[i].getVector3fMap() = Eigen::Vector3f(cloud_eigen[i](0), cloud_eigen[i](1), cloud_eigen[i](2)).cast<float>();
+//
+//		}
+//
+//		// resample
+//		resamplePts_and_compNormal(cloud, cloud_eigen, init_normal_map);
+//
+//		std::cout << "---------" << std::endl;
+//	}
+//
+//
+
+
+
+
+	void getPtsNormalMap(const Eigen::Matrix<double,3,3> & K_, const Mat& depth,  ptsNormal<double>& pN_ptr){
+
+		Mat normalsMap(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
+		Mat normalsMap_bgr(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
+		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2), f=30.0;
+		// focal length: 30
+		cout <<"fx:"<<fx <<"fy:"<<fy<<endl;
+		std::unordered_map<int, int> inliers_filter;
+
+		for(int x = 0; x < depth.rows; ++x)
+		{
+			for(int y = 0; y < depth.cols; ++y)
+			{
+				double d= depth.at<double>(x,y);
+				Eigen::Matrix<double,3,1> p_3d_no_d;
+				p_3d_no_d<< (y-cx)/fx, (x-cy)/fy,1.0;
+				Eigen::Matrix<double, 3,1> p_c1=d*p_3d_no_d;
+
+				pN_ptr.pts.push_back(p_c1);
+				double d_x1= depth.at<double>(x,y+1);
+				double  d_y1= depth.at<double>(x+1, y);
+				// calculate normal for each point
+				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
+				v_x <<  ((d_x1-d)*(y-cx)+d_x1)/fx, (d_x1-d)*(x-cy)/fy , (d_x1-d);
+				v_y << (d_y1-d)*(y-cx)/fx,(d_y1+ (d_y1-d)*(x-cy))/fy, (d_y1-d);
+				v_x=v_x.normalized();
+				v_y=v_y.normalized();
+//				normal=v_y.cross(v_x);// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
+				normal=v_x.cross(v_y);
+				normal=normal.normalized();
+				Vec3d d_n(normal.z(), normal.y(), normal.x());
+				normalsMap.at<Vec3d>(x, y) = d_n;
+			}
+		}
+				pN_ptr.normal_map=normalsMap;
+
 
 	}
 
@@ -438,10 +651,11 @@ namespace DSONL{
 				normal=normal.normalized();
 
 //				Vec3d d_n_rgb(normal.x(),normal.y(),normal.z());
-				Vec3d d_n_rgb(normal.z()*0.5+0.5, normal.y()*0.5+0.5, normal.x()*0.5+0.5);
+//				Vec3d d_n_rgb(normal.z()*0.5+0.5, normal.y()*0.5+0.5, normal.x()*0.5+0.5);
 //				Vec3d d_n(normal.z(), normal.y(), normal.x());
-				normalsMap_bgr.at<Vec3d>(x, y) = d_n_rgb;
-//				normalsMap.at<Vec3d>(x, y) = d_n;
+//				normalsMap_bgr.at<Vec3d>(x, y) = d_n_rgb;
+				Vec3d d_n(normal.x(), normal.y(), normal.z());
+				normalsMap.at<Vec3d>(x, y) = d_n;
 			}
 		}
 
@@ -467,9 +681,10 @@ namespace DSONL{
 //		merge(channels_result, normalMapafterfilter_result);
 //
 //
-		imshow("normalsMap_1", normalsMap_bgr);
-		waitKey(0);
-		return normalMapFilter(normalsMap);
+//		imshow("normalsMap_1", normalsMap_bgr);
+//		waitKey(0);
+//		return normalMapFilter(normalsMap);
+		return normalsMap;
 
 
 	}
@@ -640,7 +855,7 @@ namespace DSONL{
 					double right_intensity=Img_right.at<double>((int)pixel_y, (int)pixel_x);
 					if ( left_intensity <0.01 || right_intensity<0.01){ continue;}
 
-					if(left_intensity/right_intensity> 2.0 || left_intensity/right_intensity<0.5){ continue;}
+					if(left_intensity/right_intensity> 5.0 || left_intensity/right_intensity<0.2){ continue;}
 					deltaMapGT.at<float>(x,y)=left_intensity/right_intensity;
 
 
@@ -677,10 +892,10 @@ namespace DSONL{
 //		writer.write("PointCloud_Transformed.pcd",*cloud, false);// do we need the sensor acquisition origin?
 //		writer.write("PointCloud_right.pcd",*cloud_rig, false);// do we need the sensor acquisition origin?
 
-//		double  max, min;
-		cv::minMaxLoc(deltaMapGT, &min, &max);
+		double  max_n, min_n;
+		cv::minMaxLoc(deltaMapGT, &min_n, &max_n);
 
-		deltaMapGT=deltaMapGT*(1.0/(2.0-0.5))+(-0.5*(1.0/(2-0.5)));
+		deltaMapGT=deltaMapGT*(1.0/(max_n-min_n))+(-min_n*(1.0/(max_n-min_n)));
 //		deltaMap=deltaMap*(1.0/(3.8044-0.356712))+(-0.356712*(1.0/(3.8044-0.356712)));
 
 		cout<<"\n show max and min of deltaMapGT:\n"<< max <<","<<min<<endl;

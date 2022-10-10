@@ -43,7 +43,7 @@ endif()
 # See comment in ./build_submodules.sh on the relation of arch=native
 # and Eigen's alignment. TLDR: Passing arch=native for all build types
 # is currently the only viable option to avoid subtle bugs with Eigen.
-SET(CXX_MARCH native)
+#SET(CXX_MARCH native)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -60,7 +60,7 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -DEIGEN_INITIALIZE_MATRICES_BY_NAN")                   # cmake default: "-g"
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -DNDEBUG -g -DEIGEN_INITIALIZE_MATRICES_BY_NAN")  # cmake default: "-O2 -g -DNDEBUG"
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")                                               # cmake default: "-O3 -DNDEBUG"
-SET(CMAKE_CXX_FLAGS " -ftemplate-backtrace-limit=0 -Wall -Wextra ${EXTRA_WARNING_FLAGS} -march=${CXX_MARCH} ${CMAKE_CXX_FLAGS}")
+#SET(CMAKE_CXX_FLAGS " -ftemplate-backtrace-limit=0 -Wall -Wextra ${EXTRA_WARNING_FLAGS} -march=${CXX_MARCH} ${CMAKE_CXX_FLAGS}")
 
 
 set(EIGEN3_INCLUDE_DIR_HINTS ${EIGEN_ROOT})  # for opengv / pangolin
@@ -99,7 +99,7 @@ message(STATUS "Found TBB ${TBB_VERSION_MAJOR}.${TBB_VERSION_MINOR} (interface v
 # NOTE: not specifying version, since 2, 3 or 4 is fine
 find_package(OpenCV REQUIRED COMPONENTS core features2d)
 message(STATUS "Found OpenCV ${OpenCV_VERSION} headers in: ${OpenCV_INCLUDE_DIRS}")
-add_library(OpenCV INTERFACE IMPORTED src/cal_relativePose.cpp include/reprojection.h include/photometricBA.h include/ultils.h include/brdfMicrofacet.h)
+add_library(OpenCV INTERFACE IMPORTED src/cal_relativePose.cpp include/reprojection.h include/photometricBA.h include/ultils.h include/brdfMicrofacet.h include/PCLOpt.h)
 set_property(TARGET OpenCV PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OpenCV_INCLUDE_DIRS})
 set_property(TARGET OpenCV PROPERTY INTERFACE_LINK_LIBRARIES ${OpenCV_LIBS})
 if(OpenCV_VERSION VERSION_LESS 3)
@@ -153,7 +153,7 @@ message(STATUS "show IT: ${CMAKE_CURRENT_SOURCE_DIR}")
 # add_executable(sfm src/sfm.cpp)
 # target_link_libraries(sfm Ceres::ceres pangolin TBB::tbb OpenCV opengv ${PCL_LIBRARIES})
 
-add_executable(photometricLoss src/photometricLoss.cpp )
+add_executable(photometricLoss src/photometricLoss.cpp src/PCLOpt.cpp )
 target_link_libraries(photometricLoss Ceres::ceres 
 pangolin 
 TBB::tbb 

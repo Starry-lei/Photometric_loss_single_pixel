@@ -7,8 +7,8 @@
 //local header files
 #include <reprojection.h>
 #include <photometricBA.h>
-#include <ultils.h>
-
+#include "ultils.h"
+#include "PCLOpt.h"
 
 //#include <algorithm>
 //#include <atomic>
@@ -18,9 +18,10 @@
 #include <sophus/se3.hpp>
 //#include <tbb/concurrent_unordered_map.h>
 #include <unordered_map>
+#include <Eigen/Dense>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <Eigen/Dense>
+
 #include <Eigen/StdVector>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/mat.hpp>
@@ -49,10 +50,6 @@ int main(int argc, char **argv) {
 
 	Eigen::Matrix3d R1,R2, R12;
 	Eigen::Vector3d l_w,N_w, t12, t1,t2;
-//	Eigen::Matrix3d R_X=  rotmatx(-3.793*DEG_TO_ARC);
-//	Eigen::Matrix3d R_Y=  rotmaty(-178.917*DEG_TO_ARC);
-//	Eigen::Matrix3d R_Z=  rotmatz(0*DEG_TO_ARC);
-//	Eigen::Matrix3d R_1w=  R_Y*R_X*R_Z;
 
 
 
@@ -162,7 +159,7 @@ int main(int argc, char **argv) {
 //	Eigen::Vector2i pixel_pos(370,488);
 
 
-//	readGT(BRDFVals, pixel_pos);
+//	imageInfo(BRDFVals, pixel_pos);
 
 
 
@@ -247,7 +244,7 @@ int main(int argc, char **argv) {
 	// read target image
 	Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	// color space conversion
-//	cvtColor(image_target, grayImage_target, COLOR_BGR2GRAY);  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! right
+//	cvtColor(image_target, grayImage_target, COLOR_BGR2GRAY);   right
 
 
 	Mat tar_ch_red;
@@ -270,9 +267,9 @@ int main(int argc, char **argv) {
 	grayImage_ref=ref_ch_red;
 
 
-//	imshow("grayImage_ref",grayImage_ref);
-//	imshow("grayImage_target",grayImage_target);
-//	waitKey(0);
+	imshow("grayImage_ref",grayImage_ref);
+	imshow("grayImage_target",grayImage_target);
+	waitKey(0);
 
 
 
@@ -281,32 +278,13 @@ int main(int argc, char **argv) {
 	// precision improvement
 	grayImage_ref.convertTo(grayImage_ref, CV_64FC1, 1.0 / 255.0);
 	Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-
-
-
-
-
-//	cout<<"\n show Value depth:\n"<<depth_ref.depth()<<"show Val channels :\n "<< depth_ref.channels()<<endl;
-//	imshow("getValues", depth_ref);
-//
-//	double min_v, max_v;
-//	cv::minMaxLoc(depth_ref, &min_v, &max_v);
-//	cout<<"\n show Value min, max:\n"<<min_v<<","<<max_v<<endl;
-//
-//	waitKey(0);
-
-
-
-
-//	cout<<"show the depth() of image:\n "<<depth_ref.depth()<<"and channels:"<<depth_ref.channels()<<endl;
 	Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-
 
 	// left map depth
 	Mat channel[3],depth_ref_render, channel_tar[3], depth_tar_render;
 	split(depth_ref,channel);
 	depth_ref=channel[0];
-//	readGT(depth_ref_path,pixel_pos);
+//	imageInfo(depth_ref_path,pixel_pos);
 
 
 
@@ -331,18 +309,11 @@ int main(int argc, char **argv) {
 	depth_target.convertTo(depth_target, CV_64FC1);
 
 
-//	cv::minMaxIdx(depth_target, &min, &max);
-//	cout<<"\n show the depth_target value range:\n"<<"min:"<<min<<"max:"<<max<<endl;
-
 
 
 //   depth_target.convertTo(depth_target, CV_64F);
 //   depth_target = depth_target / 5000.0;
 
-
-//	double min, max;
-//	 cv::minMaxIdx(grayImage_ref, &min, &max);
-//	 cout<<"show the depth_ref value range"<<"min:"<<min<<"max:"<<max<<endl;
 
 	// 相机内参
 	Eigen::Matrix3d K;
@@ -380,7 +351,8 @@ int main(int argc, char **argv) {
 
 
 // TODO: test the current pose and compare it with the one using function
-//	Mat normalMap=getNormals(K,depth_ref);
+//	Mat normalMap_=getNormals(K,depth_ref);
+//	imshow("normalsMap_1", normalMap_);
 //	Mat normalMap2= getNormals_renderedDepth(M, depth_ref_render);
 
 //	Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynamic> eigenMat;
@@ -442,41 +414,51 @@ t <<  3.5266,
 //	waitKey(0);
 
 
-	Mat NdotH_GT_Map=imread(NdotH_GT_Map_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
-	Mat channel_NH[3],NHrender;// ???????????????????????????????????????
-	split(NdotH_GT_Map,channel_NH);// ???????????????????????????????????????
-	NHrender=channel_NH[0];// ???????????????????????????????????????
-
-	Mat NdotH_GT5_Map=imread(NdotH_GT_Map5_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
-	Mat channel5_NH[3],NHrender5;// ???????????????????????????????????????
-	split(NdotH_GT5_Map,channel5_NH);// ???????????????????????????????????????
-	NHrender5=channel5_NH[0];// ???????????????????????????????????????
-
-
-//	float NH_val= NHrender.at<float>(370,488);
-//	cout<<"\n show Value depth:\n"<<NHrender.depth()<<"\n show Val channels :\n "<< NHrender.channels()<<endl;
-	Mat NdotL_GT_Map=imread(NdotL_GT_Map_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
-	Mat channel_NL[3],NLrender;// ???????????????????????????????????????
-	split(NdotL_GT_Map,channel_NL);// ???????????????????????????????????????
-	NLrender=channel_NL[0];// ???????????????????????????????????????
-
-	Mat NdotV_GT_Map=imread(NdotV_GT_Map_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
-	Mat channel_NV[3],NVrender;// ???????????????????????????????????????
-	split(NdotV_GT_Map,channel_NV);// ???????????????????????????????????????
-	NVrender=channel_NV[0];// ???????????????????????????????????????
-
-	Mat NdotV_GT5_Map=imread(NdotV_GT_Map5_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR); // ???????????????????????????????????????
-	Mat channel5_NV[3],NVrender5;// ???????????????????????????????????????
-	split(NdotV_GT5_Map,channel5_NV);// ???????????????????????????????????????
-	NVrender5=channel5_NV[0];// ???????????????????????????????????????
-
 
 
 
 	double distanceThres=0.07;
 	Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi);
+//	double mingt, maxgt;
+//	cv::minMaxLoc(deltaMapGT_res, &mingt, &maxgt);
+//	cout<<"show the deltaMapGT_res value range"<<"min:"<<mingt<<"max:"<<maxgt<<endl;
 
+	std::vector<Eigen::Vector3d> pts;
+	cv::Mat normal_map(480, 640, CV_64FC3);
+	double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
 
+	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
+	{
+		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
+		{
+
+			double d=depth_ref.at<double>(u,v);
+			double d_x1= depth_ref.at<double>(u,v+1);
+			double d_y1= depth_ref.at<double>(u+1, v);
+
+			// calculate 3D point coordinate
+			Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
+			Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
+			Eigen::Vector3d p_c1=d*p_3d_no_d;
+
+			pts.push_back(p_c1);
+			Eigen::Matrix<double,3,1> normal, v_x, v_y;
+			v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
+			v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
+			v_x=v_x.normalized();
+			v_y=v_y.normalized();
+            normal=v_y.cross(v_x);
+//			normal=v_x.cross(v_y);
+			normal=normal.normalized();
+
+			normal_map.at<cv::Vec3d>(u, v)[0] = normal(0);
+			normal_map.at<cv::Vec3d>(u, v)[1] = normal(1);
+			normal_map.at<cv::Vec3d>(u, v)[2] = normal(2);
+
+		}
+	}
+	comp_accurate_normals(pts, normal_map);
+	Mat newNormalMap=normal_map;
 
 
 
@@ -515,12 +497,12 @@ t <<  3.5266,
 		std::unordered_map<int, int> inliers_filter;
 		//new image
 //		inliers_filter.emplace(309,294); //yes
-////		inliers_filter.emplace(210,292); //yes
-////		inliers_filter.emplace(209,293); //yes
-////		inliers_filter.emplace(208,294); //yes
-////		inliers_filter.emplace(209,295); //yes
-////		inliers_filter.emplace(208,296); //yes
-////		inliers_filter.emplace(206,297); //yes
+//		inliers_filter.emplace(210,292); //yes
+//		inliers_filter.emplace(209,293); //yes
+//		inliers_filter.emplace(208,294); //yes
+//		inliers_filter.emplace(209,295); //yes
+//		inliers_filter.emplace(208,296); //yes
+//		inliers_filter.emplace(206,297); //yes
 		inliers_filter.emplace(173,333); //yes
 		inliers_filter.emplace(378,268); //yes
 
@@ -534,11 +516,7 @@ t <<  3.5266,
         int i=0;
 		while ( i < 2){
 //			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
-			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap, NHrender, NLrender, NVrender, NHrender5, NVrender5);// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-//			updateDelta(xi,Klvl,image_ref_baseColor,image_right_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap);
-
-
+			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap,newNormalMap);// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 //			deltaMap.convertTo(deltaMap, CV_32FC1, 200.0);
@@ -578,8 +556,6 @@ t <<  3.5266,
 //				else{
 //						deltaMap.at<float>(x,y)=0;
 //				}
-//
-//
 //			}
 
 			Mat result, result2;

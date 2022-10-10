@@ -71,10 +71,7 @@ namespace DSONL {
 		BrdfMicrofacet(const Vec3f&  L_, const Vec3f&  N_, const Vec3f& view_beta,
 					   const float& roughnessValue_,
 					   const float& metallicValue_,
-					   const Vec3f& baseColor_ ,// RGB order,,
-					   const float & NdotH_GT, //?????????????????????????????????????
-					   const float & NdotL_GT, //?????????????????????????????????????
-					   const float & NdotV_GT //?????????????????????????????????????
+					   const Vec3f& baseColor_ // RGB order,,
 					   ){
 			L=L_;
 			V=view_beta; float shiftAmount = N_.dot(view_beta);
@@ -88,17 +85,17 @@ namespace DSONL {
 			roughnessValue=roughnessValue_;
 			metallicValue=metallicValue_;
 			specColor_= specColor(baseColor, metallicValue);
-			NdotH_GT_=NdotH_GT;
-			NdotL_GT_=NdotL_GT;
-			NdotV_GT_=NdotV_GT;
+//			NdotH_GT_=NdotH_GT;
+//			NdotL_GT_=NdotL_GT;
+//			NdotV_GT_=NdotV_GT;
 //			D= GGXNormalDistribution(roughnessValue, NdotH);// calculate the normal distribution function result
-			D= GGXNormalDistribution(roughnessValue, NdotH_GT_);
+			D= GGXNormalDistribution(roughnessValue, NdotH);
 
             F=NewSchlickFresnelFunction(IOR,baseColor, LdotH,metallicValue);// calculate the Fresnel reflectance
-			G=AshikhminShirleyGeometricShadowingFunction( NdotL_GT_,  NdotV_GT_,  LdotH);
-			specularityVec=specularity(F,D,G, NdotL_GT_, NdotV_GT_);
+			G=AshikhminShirleyGeometricShadowingFunction( NdotL,  NdotV,  LdotH);
+			specularityVec=specularity(F,D,G, NdotL, NdotV);
 			diffuseColorVec=diffuseColor(baseColor, metallicValue);
-			brdf_value_c3= brdfMicrofacet(baseColor,metallicValue, specularityVec, NdotL_GT_);
+			brdf_value_c3= brdfMicrofacet(baseColor,metallicValue, specularityVec, NdotL);
 
 
 //			brdf_value=0.299*lightingModel.val[0]+0.587*lightingModel.val[1]+0.114*lightingModel.val[2];// 0R,1G,2B
@@ -110,9 +107,9 @@ namespace DSONL {
 		Vec3f diffuseColorVec;
 		Vec3f brdf_value_c3;
 		Vec3f specColor_;
-		float NdotH_GT_;
-		float NdotL_GT_;
-		float NdotV_GT_;
+//		float NdotH_GT_;
+//		float NdotL_GT_;
+//		float NdotV_GT_;
 //		float brdf_value;
 
 		Vec3f GGXNormalDistribution(float roughness, float NdotH);
@@ -217,13 +214,7 @@ namespace DSONL {
 					 const Mat& image_roughnes,
 					 const Eigen::Vector3d & light_source,
 					 Mat& deltaMap,
-					 Mat& NdotH_GT_Map ,//??????????????????????????
-			         Mat& NdotL_GT_Map ,
-			         Mat& NdotV_GT_Map,
-			         Mat& NHrender5,
-			         Mat& NVrender5
-
-
+					 Mat& newNormalMap
 					 ){
 		double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2);
 
@@ -238,8 +229,22 @@ namespace DSONL {
 
 
 
+
+
+
 		pcl::PLYWriter writer;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+
+
+
+		// normal calculation
+		// convert format
+//		std::vector<Eigen::Vector3d> pts;
+
+
+
+
+
 		for (int u = 0; u< depth_map.rows; u++) // colId, cols: 0 to 480
 		{
 			for (int v = 0; v < depth_map.cols; v++) // rowId,  rows: 0 to 640
@@ -253,22 +258,38 @@ namespace DSONL {
 				double d=depth_map.at<double>(u,v);
 				double d_x1= depth_map.at<double>(u,v+1);
 				double d_y1= depth_map.at<double>(u+1, v);
+
+
 				// calculate 3D point coordinate
 				Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
 				Eigen::Vector3d p_c1=d*p_3d_no_d;
 
 
 
-				cloud->push_back(pcl::PointXYZ(p_c1.x(), p_c1.y(), p_c1.z()));
+
+				// record point cloud
+//				cloud->push_back(pcl::PointXYZ(p_c1.x(), p_c1.y(), p_c1.z()));
+
+
 				// calculate normal for each point
 				// TODO: calculate another 5 normals for the same point
-				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
-				v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
-				v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
-				v_x=v_x.normalized();
-				v_y=v_y.normalized();
-				normal=v_y.cross(v_x);
-				normal=normal.normalized();
+//				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
+//				v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
+//				v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
+//				v_x=v_x.normalized();
+//				v_y=v_y.normalized();
+//				normal=v_y.cross(v_x);
+//				normal=normal.normalized();
+
+				Eigen::Matrix<double,3,1> normal;
+				normal.x()= newNormalMap.at<Vec3d>(u,v)[0];
+				normal.y()= newNormalMap.at<Vec3d>(u,v)[1];
+				normal.z()= newNormalMap.at<Vec3d>(u,v)[2];
+
+
+
+
+
 
 				// calculate alpha_1
 				Eigen::Matrix<double,3,1> alpha_1= light_C1(light_source) -p_c1;
@@ -296,21 +317,12 @@ namespace DSONL {
 				Vec3f View_beta(beta(0),beta(1),beta(2));
 				Vec3f View_beta_prime(beta_prime(0),beta_prime(1),beta_prime(2));
 
-				float NdotH_GT =NdotH_GT_Map.at<float>(u,v);
-				float NdotL_GT=NdotL_GT_Map.at<float>(u,v);
-				float NdotV_GT=NdotV_GT_Map.at<float>(u,v);
 
-				float  NdotH_GT_prime= NHrender5.at<float>(u,v);
-				float  NdotV_GT_prime= NVrender5.at<float>(u,v);
-
-
-
-
-				BrdfMicrofacet radiance_beta_vec(L_,N_,View_beta,(float )roughness,(float)metallic,baseColor, NdotH_GT, NdotL_GT, NdotV_GT);
+				BrdfMicrofacet radiance_beta_vec(L_,N_,View_beta,(float )roughness,(float)metallic,baseColor);
 				Vec3f radiance_beta= radiance_beta_vec.brdf_value_c3;
 //				Vec3f checkVariable= radiance_beta_vec.specularityVec;
 
-				BrdfMicrofacet radiance_beta_prime_vec(L_,N_,View_beta_prime,(float )roughness,(float)metallic,baseColor, NdotH_GT_prime,NdotL_GT, NdotV_GT_prime);
+				BrdfMicrofacet radiance_beta_prime_vec(L_,N_,View_beta_prime,(float )roughness,(float)metallic,baseColor);
 				Vec3f radiance_beta_prime= radiance_beta_prime_vec.brdf_value_c3;
 				double delta_r= radiance_beta.val[0]/ radiance_beta_prime.val[0];
 				double delta_g= radiance_beta.val[1]/ radiance_beta_prime.val[1];
@@ -320,21 +332,13 @@ namespace DSONL {
 //				double delta= radiance_beta/radiance_beta_prime;
 				// store delta in the delta map
 
-//				if(delta_g> 1.05 || delta_g<0.95){ continue;}// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+//				if(delta_g> 1.05 || delta_g<0.95){ continue;}// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 				deltaMap.at<float>(u,v)= delta_g;
-
-
 			}
 		}
 
 //		writer.write("PointCloud.ply",*cloud, false);//
-
-
-
-
-
 
 
 	}
