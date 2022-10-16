@@ -201,7 +201,51 @@ namespace DSONL {
 		return brdf_Val;
 	}
 
+	void colorDeltaMap(Mat& src, Mat& output, float & upper, float & buttom ){
 
+		std::vector<Mat> channels;
+		channels.push_back(src);
+		channels.push_back(src);
+		channels.push_back(src);
+		merge(channels, output);
+		for(int x = 0; x < src.rows; ++x)
+		{
+			for(int y = 0; y < src.cols; ++y)
+			{
+
+				float delta =output.at<Vec3f>(x,y)[0];
+
+				if(delta> upper){
+					output.at<Vec3f>(x,y)[0] =0;
+					output.at<Vec3f>(x,y)[1] =upper;
+					output.at<Vec3f>(x,y)[2] =0;
+					continue;
+				}
+				if(delta< buttom){
+					output.at<Vec3f>(x,y)[0] =0;
+					output.at<Vec3f>(x,y)[1] = buttom;
+					output.at<Vec3f>(x,y)[2] =0;
+					continue;
+				}
+				if (isnan(delta)){
+//					output.at<Vec3f>(x,y)[0] =upper;
+//					output.at<Vec3f>(x,y)[1] =0;
+//					output.at<Vec3f>(x,y)[2] =0;
+					continue;
+
+				}
+//				output.at<Vec3f>(x,y)[1] =0;
+//				output.at<Vec3f>(x,y)[0] =0;
+
+
+			}
+		}
+		output=output*(1.0/(upper-buttom))+(-buttom*(1.0/(upper-buttom)));
+
+
+
+
+	}
 
 
 	void updateDelta(
@@ -214,7 +258,10 @@ namespace DSONL {
 					 const Mat& image_roughnes,
 					 const Eigen::Vector3d & light_source,
 					 Mat& deltaMap,
-					 Mat& newNormalMap
+					 Mat& newNormalMap,
+			         float& upper_b,
+			         float& lower_b
+
 					 ){
 		double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2);
 
@@ -226,24 +273,8 @@ namespace DSONL {
 		inliers_filter.emplace(213,295); //ye
 //		inliers_filter.emplace(370,488); //yes
 
-
-
-
-
-
-
-		pcl::PLYWriter writer;
-		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-
-
-
-		// normal calculation
-		// convert format
-//		std::vector<Eigen::Vector3d> pts;
-
-
-
-
+//		pcl::PLYWriter writer;
+//		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
 		for (int u = 0; u< depth_map.rows; u++) // colId, cols: 0 to 480
 		{
@@ -256,10 +287,8 @@ namespace DSONL {
 //				if (depth_map.at<double>(u,v) < 1e-3 ) { continue; }//???????????????????????????????????????????????
 				Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
 				double d=depth_map.at<double>(u,v);
-				double d_x1= depth_map.at<double>(u,v+1);
-				double d_y1= depth_map.at<double>(u+1, v);
-
-
+//				double d_x1= depth_map.at<double>(u,v+1);
+//				double d_y1= depth_map.at<double>(u+1, v);
 				// calculate 3D point coordinate
 				Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
 				Eigen::Vector3d p_c1=d*p_3d_no_d;
@@ -285,11 +314,6 @@ namespace DSONL {
 				normal.x()= newNormalMap.at<Vec3d>(u,v)[0];
 				normal.y()= newNormalMap.at<Vec3d>(u,v)[1];
 				normal.z()= newNormalMap.at<Vec3d>(u,v)[2];
-
-
-
-
-
 
 				// calculate alpha_1
 				Eigen::Matrix<double,3,1> alpha_1= light_C1(light_source) -p_c1;
@@ -328,18 +352,30 @@ namespace DSONL {
 				double delta_g= radiance_beta.val[1]/ radiance_beta_prime.val[1];
 				double delta_b= radiance_beta.val[2]/ radiance_beta_prime.val[2];
 
-//				Vec3f delta(delta_r,delta_g,delta_b);
-//				double delta= radiance_beta/radiance_beta_prime;
-				// store delta in the delta map
-
-//				if(delta_g> 1.05 || delta_g<0.95){ continue;}// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 				deltaMap.at<float>(u,v)= delta_g;
+//				deltaMap.at<Vec3f>(u,v)[0]= delta_g;
+//				deltaMap.at<Vec3f>(u,v)[1]= delta_g;
+//				deltaMap.at<Vec3f>(u,v)[2]= delta_g;
 			}
 		}
+		double  max_n, min_n;
+		cv::minMaxLoc(deltaMap, &min_n, &max_n);
+		cout<<"show max and min of estimated deltaMap"<< max_n <<","<<min_n<<endl;
 
-//		writer.write("PointCloud.ply",*cloud, false);//
+//		colorDeltaMap
+//		Mat coloredDeltaMap(deltaMap.rows, deltaMap.cols, CV_32FC3, Scalar(0,0,0)); // default value 1.0
+//		colorDeltaMap(deltaMap, coloredDeltaMap,upper_b, lower_b);
 
+////		writer.write("PointCloud.ply",*cloud, false);//
+//		Mat mask = cv::Mat(deltaMap != deltaMap);// !!!!!!!!!!!!!!!!!!!!!!!!!!!!! -----------remove nan value --------------
+//		deltaMap.setTo(1.0, mask);
+
+//		deltaMap=deltaMap*(1.0/(upper_b-lower_b))+(-lower_b*(1.0/(upper_b-lower_b)));
+
+//		deltaMap=coloredDeltaMap;
+//		string ESHist="normal map ES";
+//		DrawHist(deltaMap,upper_b,lower_b, ESHist);
 
 	}
 

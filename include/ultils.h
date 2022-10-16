@@ -54,7 +54,7 @@ namespace DSONL{
 	template<typename T>struct ptsNormal{
 	std::vector<Eigen::Matrix<T,3,1>> pts;
 	cv::Mat normal_map;
-};
+	};
 
 
 
@@ -253,13 +253,21 @@ namespace DSONL{
        int img_depth= im.depth();
 		switch (img_depth) {
 			case 0:cout<<"The data type of current image is CV_8U. \n"<<endl;
+				break;
 			case 1:cout<<"The data type of current image is CV_8S. \n"<<endl;
+				break;
 			case 2:cout<<"The data type of current image is CV_16U. \n"<<endl;
+				break;
 			case 3:cout<<"The data type of current image is CV_16S. \n"<<endl;
+				break;
 			case 4:cout<<"The data type of current image is CV_32S. \n"<<endl;
+				break;
 			case 5:cout<<"The data type of current image is CV_32F. \n"<<endl;
+				break;
 			case 6:cout<<"The data type of current image is CV_64F. \n"<<endl;
+				break;
 			case 7:cout<<"The data type of current image is CV_USRTYPE1. \n"<<endl;
+				break;
 		}
 
 		cout<<"\n show Image depth:\n"<<im.depth()<<"\n show Image channels :\n "<< im.channels()<<endl;
@@ -408,10 +416,6 @@ namespace DSONL{
 		downscale(image_d, depth_d, K_d, level, image_d, depth_d, K_d);
 	}
 
-	Eigen::Vector3d backprojection_renderDepth(double& depth, int& p_x, int& p_y, Eigen::Matrix<double,4,4>& M){
-
-
-	}
 
 	Eigen::Vector3d backprojection_realDepth(double& depth, int& p_row, int& p_col, Eigen::Matrix<double,3,3>& K_){
 
@@ -690,6 +694,7 @@ namespace DSONL{
 	}
 
 
+
 	Mat getNormals_renderedDepth(const Eigen::Matrix<double,4,4> & M, const Mat& depth){
 
 		Mat normalsMap(depth.rows, depth.cols, CV_64FC3, Scalar(0,0,0)); // B,G,R
@@ -709,8 +714,8 @@ namespace DSONL{
 			{
 
 				double d_mapped= 2.0 *depth.at<double>(x,y)-1.0;
-				double x_mapped= 2.0* x/ 480.0 -1.0;
-				double y_mapped= 2.0* y/ 640.0 -1.0;
+				double x_mapped= 2.0* x/ depth.rows -1.0;
+				double y_mapped= 2.0* y/ depth.cols -1.0;
 
 //				Eigen::Vector4d p_h(y_mapped,x_mapped,d_mapped,1.0);
 //				Eigen::Vector4d projPointInCam= M.inverse()*p_h;
@@ -736,7 +741,7 @@ namespace DSONL{
 
 
 				double  d_y1=  2.0 *depth.at<double>(x+1, y)-1.0;
-				double x_1mapped= 2.0* (x+1)/ 480.0 -1.0;
+				double x_1mapped= 2.0* (x+1)/ depth.rows -1.0;
 
 //				Eigen::Vector4d p_h_2(y_mapped, x_1mapped,d_y1,1.0);
 //				Eigen::Vector4d projPointInCam2= M.inverse()*p_h_1;
@@ -773,14 +778,185 @@ namespace DSONL{
 	}
 
 
+	Mat colorMap(Mat& deltaMap, float upper, float lower){
+		Mat deltaMap_Color(deltaMap.rows, deltaMap.cols, CV_32FC3, Scalar(0,0,0));
 
 
-	Mat deltaMapGT(Mat& Img_left,  Mat& depth_left,  Mat& Img_right, Mat& depth_right,const Eigen::Matrix<double,3,3> & K_, double & thres, const  Sophus::SE3d & ExtrinsicPose){
+		for(int x = 0; x < deltaMap.rows; ++x) {
+			for (int y = 0; y < deltaMap.cols; ++y) {
+
+				float delta= deltaMap.at<float>(x,y);
+				if (delta< upper && delta> lower){
+
+					delta=delta*(1.0/(upper-lower))+(-lower*(1.0/(upper-lower)));
+					deltaMap_Color.at<Vec3f>(x,y)[0]=delta;
+					deltaMap_Color.at<Vec3f>(x,y)[1]=delta;
+					deltaMap_Color.at<Vec3f>(x,y)[2]=delta;
+
+				} else if(delta>upper){
+					deltaMap_Color.at<Vec3f>(x,y)[0]=0;
+					deltaMap_Color.at<Vec3f>(x,y)[1]=1;
+					deltaMap_Color.at<Vec3f>(x,y)[2]=0;
+				}else if( delta<lower && delta!=-1){
+					deltaMap_Color.at<Vec3f>(x,y)[0]=1;
+					deltaMap_Color.at<Vec3f>(x,y)[1]=0;
+					deltaMap_Color.at<Vec3f>(x,y)[2]=1;
+				}
+				else if(delta==-1){
+					deltaMap_Color.at<Vec3f>(x,y)[0]=0;
+					deltaMap_Color.at<Vec3f>(x,y)[1]=0;
+					deltaMap_Color.at<Vec3f>(x,y)[2]=1;
+
+				}else{
+					deltaMap_Color.at<Vec3f>(x,y)[0]=1;
+					deltaMap_Color.at<Vec3f>(x,y)[1]=0;
+					deltaMap_Color.at<Vec3f>(x,y)[2]=0;
+				}
+
+
+			}
+		}
+
+		return deltaMap_Color;
+	}
+
+//	void minusMap(Mat& Img_left,  Mat& Img_right, Mat& deltaMap){
+//
+//		Mat deltaMapGT(depth_left.rows, depth_left.cols, CV_32FC1, Scalar(-1)); // default value 1.0
+////		Mat deltaMapGT(depth_left.rows, depth_left.cols, CV_32FC1, Scalar(1)); // default value 1.0
+//		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
+//		pcl::PCDWriter writer;
+//		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+//		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_rig (new pcl::PointCloud<pcl::PointXYZ>);
+//
+//
+//		for(int x = 0; x < depth_left.rows; ++x) {
+//			for (int y = 0; y < depth_left.cols; ++y) {
+//				double d_r= depth_right.at<double>(x,y);
+//				Eigen::Matrix<double,3,1> p_3d_no_d_r;
+//				p_3d_no_d_r<< (y-cx)/fx, (x-cy)/fy,1.0;
+//				Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
+//				cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
+//			}
+//		}
+//
+//		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+//		kdtree.setInputCloud (cloud_rig);
+//
+//		std::vector<int> pointIdxRadiusSearch;
+//		std::vector<float> pointRadiusSquaredDistance;
+//
+//		float radius =thres;
+//
+//		for(int x = 0; x < depth_left.rows; ++x)
+//		{
+//			for(int y = 0; y < depth_left.cols; ++y)
+//			{
+////
+////				if(inliers_filter.count(x)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+////				if(inliers_filter[x]!=y ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~
+//
+//
+//				// calculate 3D point of left camera
+//				double d= depth_left.at<double>(x,y);
+//				Eigen::Matrix<double,3,1> p_3d_no_d;
+//				p_3d_no_d<< (y-cx)/fx, (x-cy)/fy,1.0;
+//				Eigen::Matrix<double, 3,1> p_c1=d*p_3d_no_d;
+//
+//				Eigen::Vector3d  point_Trans=ExtrinsicPose.rotationMatrix() *  p_c1+ExtrinsicPose.translation();
+//
+//				pcl::PointXYZ searchPoint(point_Trans.x(),point_Trans.y(),point_Trans.z());
+//				if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 )
+//				{
+////					for (std::size_t i = 0; i < pointIdxRadiusSearch.size (); ++i)
+////						std::cout << "\n------"  <<   (*cloud_rig)[ pointIdxRadiusSearch[0] ].x
+////						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].y
+////						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].z
+////						          << " (squared distance: " << pointRadiusSquaredDistance[0] << ")" << std::endl;
+////
+//
+//					double left_intensity=Img_left.at<double>(x,y);
+//					float pointCorres_x= (*cloud_rig)[ pointIdxRadiusSearch[0] ].x;
+//					float pointCorres_y= (*cloud_rig)[ pointIdxRadiusSearch[0] ].y;
+//					float pointCorres_z= (*cloud_rig)[ pointIdxRadiusSearch[0] ].z;
+//					float pixel_x=(fx*pointCorres_x)/pointCorres_z+cx;
+//					float pixel_y= (fy*pointCorres_y)/pointCorres_z+cy;
+//					float right_intensity=Img_right.at<double>(round(pixel_y), round(pixel_x));
+//
+//
+//
+//	}
+
+
+    void showMinus(Mat& minus_original, Mat& minus_adjust, Mat& minus_mask ){
+
+		double max_orig, min_orig;
+		cv::minMaxLoc(minus_original, &min_orig,&max_orig);
+	    double max_adj, min_adj;
+	    cv::minMaxLoc(minus_adjust, &min_adj,&max_adj);
+
+		double max_real= max(max_adj, max_orig);
+		double min_real=min(min_adj, min_orig);
+
+	    Mat adj_show(minus_original.rows, minus_original.cols, CV_32FC3, Scalar(0,0,0));
+	    Mat orig_show(minus_original.rows, minus_original.cols, CV_32FC3, Scalar(0,0,0));
+
+
+	    for(int x = 0; x < minus_original.rows; ++x) {
+		    for (int y = 0; y < minus_original.cols; ++y) {
+			    if (minus_mask.at<uchar>(x,y)==1){
+
+				   float minus_orig_val= minus_original.at<float>(x,y);
+
+				    minus_orig_val*=(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+
+				    float minus_adj_val= minus_adjust.at<float>(x,y);
+				    minus_adj_val*=(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+				    if (isnan(minus_orig_val) || isnan(minus_adj_val)){
+					    orig_show.at<Vec3f>(x,y)[0]=1;
+					    orig_show.at<Vec3f>(x,y)[1]=0;
+					    orig_show.at<Vec3f>(x,y)[2]=0;
+
+					    adj_show.at<Vec3f>(x,y)[0]=1;
+					    adj_show.at<Vec3f>(x,y)[1]=0;
+					    adj_show.at<Vec3f>(x,y)[2]=0;
+					    continue;
+					}
+				    orig_show.at<Vec3f>(x,y)[0]=minus_orig_val;
+				    orig_show.at<Vec3f>(x,y)[1]=minus_orig_val;
+				    orig_show.at<Vec3f>(x,y)[2]=minus_orig_val;
+
+				    adj_show.at<Vec3f>(x,y)[0]=minus_adj_val;
+				    adj_show.at<Vec3f>(x,y)[1]=minus_adj_val;
+				    adj_show.at<Vec3f>(x,y)[2]=minus_adj_val;
+
+				}else{
+
+				    orig_show.at<Vec3f>(x,y)[0]=0;
+				    orig_show.at<Vec3f>(x,y)[1]=0;
+				    orig_show.at<Vec3f>(x,y)[2]=1;
+
+				    adj_show.at<Vec3f>(x,y)[0]=0;
+				    adj_show.at<Vec3f>(x,y)[1]=0;
+				    adj_show.at<Vec3f>(x,y)[2]=1;
+
+				}
+			}
+	    }
+
+	    imshow("orig_show",orig_show);
+	    imshow("adj_show",adj_show);
+//	    waitKey(0);
+	}
+
+	Mat deltaMapGT(Mat& Img_left,  Mat& depth_left,  Mat& Img_right, Mat& depth_right,const Eigen::Matrix<double,3,3> & K_, double & thres,
+				   const  Sophus::SE3d & ExtrinsicPose, float& upper,float& buttom, Mat& pred_deltaMap ){
 
 //		Mat normalMap_left=getNormals(K_,depth_left);
 //		Mat normalMap_right=getNormals(K_,depth_right);
 
-		Mat deltaMapGT(depth_left.rows, depth_left.cols, CV_32FC1, Scalar(1.0)); // default value 1.0
+		Mat deltaMapGT(depth_left.rows, depth_left.cols, CV_32FC1, Scalar(-1)); // default value 1.0
+//		Mat deltaMapGT(depth_left.rows, depth_left.cols, CV_32FC1, Scalar(1)); // default value 1.0
 		double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
 		pcl::PCDWriter writer;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -802,32 +978,30 @@ namespace DSONL{
 		double  max, min;
 		cv::minMaxLoc(Img_left, &min, &max);
 		cout<<"\n show max and min of Img_left:\n"<< max <<","<<min<<endl;
-
-
 		cv::minMaxLoc(Img_right, &min, &max);
 		cout<<"\n show max and min of Img_right:\n"<< max <<","<<min<<endl;
-
-
 		std::unordered_map<int, int> inliers_filter;
 		//new image
 
-		inliers_filter.emplace(173,333); //yes
-		inliers_filter.emplace(378,268); //yes
+//		inliers_filter.emplace(173,333); //yes
+		inliers_filter.emplace(213,295); //yes
 
 		std::vector<int> pointIdxRadiusSearch;
 		std::vector<float> pointRadiusSquaredDistance;
 
 		float radius =thres;
 
+		Mat minus_original(depth_left.rows, depth_left.cols, CV_32FC1, Scalar(0));
+		Mat minus_adjust(depth_left.rows, depth_left.cols, CV_32FC1, Scalar(0));
+		Mat minus_mask(depth_left.rows, depth_left.cols, CV_8UC1,Scalar(0));
+
 		for(int x = 0; x < depth_left.rows; ++x)
 		{
 			for(int y = 0; y < depth_left.cols; ++y)
 			{
-
+//
 //				if(inliers_filter.count(x)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 //				if(inliers_filter[x]!=y ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~
-
-
 				// calculate 3D point of left camera
 				double d= depth_left.at<double>(x,y);
 				Eigen::Matrix<double,3,1> p_3d_no_d;
@@ -840,11 +1014,11 @@ namespace DSONL{
 				if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 )
 				{
 //					for (std::size_t i = 0; i < pointIdxRadiusSearch.size (); ++i)
-						std::cout << "\n------"  <<   (*cloud_rig)[ pointIdxRadiusSearch[0] ].x
-						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].y
-						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].z
-						          << " (squared distance: " << pointRadiusSquaredDistance[0] << ")" << std::endl;
-
+//						std::cout << "\n------"  <<   (*cloud_rig)[ pointIdxRadiusSearch[0] ].x
+//						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].y
+//						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].z
+//						          << " (squared distance: " << pointRadiusSquaredDistance[0] << ")" << std::endl;
+//
 
 					double left_intensity=Img_left.at<double>(x,y);
 					float pointCorres_x= (*cloud_rig)[ pointIdxRadiusSearch[0] ].x;
@@ -852,11 +1026,18 @@ namespace DSONL{
 					float pointCorres_z= (*cloud_rig)[ pointIdxRadiusSearch[0] ].z;
 					float pixel_x=(fx*pointCorres_x)/pointCorres_z+cx;
 					float pixel_y= (fy*pointCorres_y)/pointCorres_z+cy;
-					double right_intensity=Img_right.at<double>((int)pixel_y, (int)pixel_x);
-					if ( left_intensity <0.01 || right_intensity<0.01){ continue;}
+					float right_intensity=Img_right.at<double>(round(pixel_y), round(pixel_x));
+					float delta=left_intensity/right_intensity;
+                    //float delta= abs(left_intensity-right_intensity);
 
-					if(left_intensity/right_intensity> 5.0 || left_intensity/right_intensity<0.2){ continue;}
-					deltaMapGT.at<float>(x,y)=left_intensity/right_intensity;
+					float diff_orig=std::abs(left_intensity-right_intensity);
+					minus_original.at<float>(x,y)=diff_orig;
+					float delta_pred=pred_deltaMap.at<float>(x,y);
+					float diff_adj=std::abs(left_intensity-delta_pred*right_intensity);
+					minus_adjust.at<float>(x,y)=diff_adj;
+					minus_mask.at<uchar>(x,y)=1;
+
+					deltaMapGT.at<float>(x,y)=delta;
 
 
 				}
@@ -889,17 +1070,16 @@ namespace DSONL{
 			}
 		}
 
+		showMinus(minus_original,minus_adjust, minus_mask);
+
 //		writer.write("PointCloud_Transformed.pcd",*cloud, false);// do we need the sensor acquisition origin?
 //		writer.write("PointCloud_right.pcd",*cloud_rig, false);// do we need the sensor acquisition origin?
 
 		double  max_n, min_n;
 		cv::minMaxLoc(deltaMapGT, &min_n, &max_n);
-
-		deltaMapGT=deltaMapGT*(1.0/(max_n-min_n))+(-min_n*(1.0/(max_n-min_n)));
-//		deltaMap=deltaMap*(1.0/(3.8044-0.356712))+(-0.356712*(1.0/(3.8044-0.356712)));
-
-		cout<<"\n show max and min of deltaMapGT:\n"<< max <<","<<min<<endl;
-		imshow("DeltaMapGT", deltaMapGT);
+//		deltaMapGT=deltaMapGT*(1.0/(upper-buttom))+(-buttom*(1.0/(upper-buttom)));
+		cout<<"\n show max and min of deltaMapGT:\n"<< max_n <<","<<min_n<<endl;
+//		imshow("DeltaMapGT", deltaMapGT);
 //		waitKey(0);
 
 		return deltaMapGT;
@@ -975,4 +1155,46 @@ namespace DSONL{
 		return true;
 	}
 
+	void DrawHist(Mat& src, float& upper_bound, float & lower_bound , string& name){
+		std::vector<Mat> bgr_planes;
+		split( src, bgr_planes );
+		int histSize = 256;
+		float range[] = { lower_bound, upper_bound }; //the upper boundary is exclusive
+		const float* histRange[] = { range };
+		bool uniform = true, accumulate = false;
+		Mat b_hist, g_hist, r_hist;
+		calcHist( &bgr_planes[0], 1, 0, Mat(), b_hist, 1, &histSize, histRange, uniform, accumulate );
+		calcHist( &bgr_planes[1], 1, 0, Mat(), g_hist, 1, &histSize, histRange, uniform, accumulate );
+		calcHist( &bgr_planes[2], 1, 0, Mat(), r_hist, 1, &histSize, histRange, uniform, accumulate );
+		int hist_w = 640, hist_h = 480;
+		int bin_w = cvRound( (double) hist_w/histSize );
+		Mat histImage( hist_h, hist_w, CV_32FC3, Scalar( 0,0,0) );
+		normalize(b_hist, b_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+		normalize(g_hist, g_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+		normalize(r_hist, r_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+		for( int i = 1; i < histSize; i++ )
+		{
+			line( histImage, Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ),
+			      Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
+			      Scalar( 255, 0, 0), 2, 8, 0  );
+			line( histImage, Point( bin_w*(i-1), hist_h - cvRound(g_hist.at<float>(i-1)) ),
+			      Point( bin_w*(i), hist_h - cvRound(g_hist.at<float>(i)) ),
+			      Scalar( 0, 255, 0), 2, 8, 0  );
+			line( histImage, Point( bin_w*(i-1), hist_h - cvRound(r_hist.at<float>(i-1)) ),
+			      Point( bin_w*(i), hist_h - cvRound(r_hist.at<float>(i)) ),
+			      Scalar( 0, 0, 255), 2, 8, 0  );
+		}
+
+//		imshow("Source image", src );
+//        string img_name = std::to_string(src.at<Vec3f>(6,6)[0]);
+		imshow(name, histImage );
+//		waitKey(0);
+	}
+
+
+
+
+
 }
+
+
