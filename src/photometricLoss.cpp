@@ -31,6 +31,7 @@
 //#include "opencv2/features2d.hpp"
 
 
+
 #include <ceres/ceres.h>
 #include <ceres/cubic_interpolation.h>
 #include <ceres/loss_function.h>
@@ -173,64 +174,73 @@ int main(int argc, char **argv) {
 	//	double mingt, maxgt;
 	//	cv::minMaxLoc(deltaMapGT_res, &mingt, &maxgt);
 	//	cout<<"show the deltaMapGT_res value range"<<"min:"<<mingt<<"max:"<<maxgt<<endl;
-
+// ------------------------------------------------------------------------------------------Movingleast algorithm---------------------------------------------------------------
 	std::vector<Eigen::Vector3d> pts;
 	cv::Mat normal_map(depth_ref.rows, depth_ref.cols, CV_64FC3);
 	double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
+//
+//	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
+//	{
+//		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
+//		{
+//
+//			double d=depth_ref.at<double>(u,v);
+//			double d_x1= depth_ref.at<double>(u,v+1);
+//			double d_y1= depth_ref.at<double>(u+1, v);
+//
+//			// calculate 3D point coordinate
+//			Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
+//			Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
+//			Eigen::Vector3d p_c1=d*p_3d_no_d;
+//
+//			pts.push_back(p_c1);
+//			Eigen::Matrix<double,3,1> normal, v_x, v_y;
+//			v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
+//			v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
+//			v_x=v_x.normalized();
+//			v_y=v_y.normalized();
+//            normal=v_y.cross(v_x);
+////			normal=v_x.cross(v_y);
+//			normal=normal.normalized();
+//
+//			normal_map.at<cv::Vec3d>(u, v)[0] = normal(0);
+//			normal_map.at<cv::Vec3d>(u, v)[1] = normal(1);
+//			normal_map.at<cv::Vec3d>(u, v)[2] = normal(2);
+//
+//		}
+//	}
+//	comp_accurate_normals(pts, normal_map);
+
+//	normal_map_GT
+//
+
+//	imageInfo(normal_GT_path, pixel_pos); // normalized already
+
+
+
+
 
 	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
 	{
 		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
 		{
 
-			double d=depth_ref.at<double>(u,v);
-			double d_x1= depth_ref.at<double>(u,v+1);
-			double d_y1= depth_ref.at<double>(u+1, v);
+			Eigen::Vector3d normal_new( normal_map_GT.at<Vec3f>(u,v)[2],  -normal_map_GT.at<Vec3f>(u,v)[1], normal_map_GT.at<Vec3f>(u,v)[0]);// !!!!!!!!!!!!!!!!!!!!!!!
 
-			// calculate 3D point coordinate
-			Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
-			Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
-			Eigen::Vector3d p_c1=d*p_3d_no_d;
+			normal_new= R1.transpose()*normal_new;
 
-			pts.push_back(p_c1);
-			Eigen::Matrix<double,3,1> normal, v_x, v_y;
-			v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
-			v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
-			v_x=v_x.normalized();
-			v_y=v_y.normalized();
-            normal=v_y.cross(v_x);
-//			normal=v_x.cross(v_y);
-			normal=normal.normalized();
+			Eigen::Vector3d principal_axis(0, 0, 1);
+			if(normal_new.dot(principal_axis)>0)
+			{
+				normal_new = -normal_new;
+			}
 
-			normal_map.at<cv::Vec3d>(u, v)[0] = normal(0);
-			normal_map.at<cv::Vec3d>(u, v)[1] = normal(1);
-			normal_map.at<cv::Vec3d>(u, v)[2] = normal(2);
+			normal_map.at<Vec3d>(u,v)[0]=normal_new(0);
+			normal_map.at<Vec3d>(u,v)[1]=normal_new(1);
+			normal_map.at<Vec3d>(u,v)[2]=normal_new(2);
 
 		}
 	}
-	comp_accurate_normals(pts, normal_map);
-
-//	normal_map_GT
-////
-//	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
-//	{
-//		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
-//		{
-//
-//			Eigen::Vector3d normal_new( normal_map_GT.at<Vec3f>(u,v)[2],  -normal_map_GT.at<Vec3f>(u,v)[1], normal_map_GT.at<Vec3f>(u,v)[0]);
-//
-//			Eigen::Vector3d principal_axis(0, 0, 1);
-//			if(normal_new.dot(principal_axis)>0)
-//			{
-//				normal_new = -normal_new;
-//			}
-//
-//			normal_map.at<Vec3d>(u,v)[0]=normal_new(0);
-//			normal_map.at<Vec3d>(u,v)[1]=normal_new(1);
-//			normal_map.at<Vec3d>(u,v)[2]=normal_new(2);
-//
-//		}
-//	}
 
 
 
@@ -355,16 +365,8 @@ int main(int argc, char **argv) {
 		inliers_filter.emplace(378,268); //yes
 
 
-
-
-
-
-
-
 		Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
 //		Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC3, Scalar(0)); // storing delta
-//        string GTHist="normal map GT";
-//		DrawHist(deltaMapGT_res,upper,buttom, GTHist);
         int i=0;
 		while ( i < 2){
 //			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
@@ -372,22 +374,13 @@ int main(int argc, char **argv) {
 			float butt_new=buttom;
 			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap,newNormalMap,up_new, butt_new);// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
-
 			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi, upper, buttom, deltaMap);
-
-
-
-//			deltaMap.convertTo(deltaMap, CV_32FC1, 200.0);
-//			imshow("deltamap", deltaMap);
-//			waitKey(0);
 			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
 			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
 			imshow("show GT deltaMap", showGTdeltaMap);
 			imshow("show ES deltaMap", showESdeltaMap);
-			imwrite("GT_deltaMap.png",showGTdeltaMap);
-			imwrite("ES_deltaMap.png",showESdeltaMap);
-
+			imwrite("GT_deltaMap.tiff",showGTdeltaMap);
+			imwrite("ES_deltaMap.tiff",showESdeltaMap);
 			waitKey(0);
           i+=1;
 

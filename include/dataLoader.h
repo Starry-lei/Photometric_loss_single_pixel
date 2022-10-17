@@ -102,8 +102,9 @@ namespace DSONL{
 	Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 
 //	// normal map GT
-//	cv::Mat normal_map_GT = cv::imread("../data/rgb/normalMap/rt_23_26_45_cam1_normdir.exr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
-	cv::Mat normal_map_GT = cv::imread("../data/rgb/normalMap/rt_20_26_27_cam11_norm.exr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+	string normal_GT_path="../data/rgb/normalMap/rt_23_26_45_cam1_normdir.exr";
+	cv::Mat normal_map_GT = cv::imread(normal_GT_path, cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+//	cv::Mat normal_map_GT = cv::imread("../data/rgb/normalMap/rt_20_26_27_cam11_norm.exr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
 
 
 
