@@ -143,34 +143,37 @@ namespace DSONL{
 				depth_ref=channel[0];
 				depth_ref.convertTo(depth_map_ref, CV_64FC1);
 
+				string image_target_path;
+				string image_target_baseColor;
+				string depth_target_path;
+				string image_target_MR_path;
 				if(options_.baseline==0){
-					string image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
-					string image_target_baseColor = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
-					string depth_target_path = "../data/depth/cam5_depth.exr";
-					string image_target_MR_path = "../data/rgb/vp5_mr.png";
-					Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
-					Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-					Mat image_right_baseColor= imread(image_target_baseColor,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-					Mat image_target_MR= imread(image_target_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-					Mat taget_mr_table[3];
-					split(image_target_MR,taget_mr_table);// 0: red, 1: green, 2: blue
-					Mat image_target_metallic=  taget_mr_table[2];
-					Mat image_target_roughness= taget_mr_table[1];
-					image_target_metallic.convertTo(image_target_metallic, CV_64FC1,1.0 / 255.0);
-					image_target_roughness.convertTo(image_target_roughness, CV_64FC1,1.0 / 255.0);
-
-					extractChannel(image_target, grayImage_target, channelIdx);
-					// right map depth
-					split(depth_target, channel_tar);
-					depth_target=channel_tar[0];
-					depth_target.convertTo(depth_map_target, CV_64FC1);
-
-
+					 image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
+					 image_target_baseColor = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
+					 depth_target_path = "../data/depth/cam5_depth.exr";
+					 image_target_MR_path = "../data/rgb/vp5_mr.png";
 
 				}else if (options_.baseline==1){
 					// TODO: small baseline data
-					string image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
+					 image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
 				}
+
+				Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+				Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+				Mat image_right_baseColor= imread(image_target_baseColor,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+				Mat image_target_MR= imread(image_target_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+				Mat taget_mr_table[3];
+				split(image_target_MR,taget_mr_table);// 0: red, 1: green, 2: blue
+				Mat image_target_metallic=  taget_mr_table[2];
+				Mat image_target_roughness= taget_mr_table[1];
+				image_target_metallic.convertTo(image_target_metallic, CV_64FC1,1.0 / 255.0);
+				image_target_roughness.convertTo(image_target_roughness, CV_64FC1,1.0 / 255.0);
+
+				extractChannel(image_target, grayImage_target, channelIdx);
+				// right map depth
+				split(depth_target, channel_tar);
+				depth_target=channel_tar[0];
+				depth_target.convertTo(depth_map_target, CV_64FC1);
 
 			}else{
 				// RGB image without texture

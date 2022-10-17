@@ -48,8 +48,20 @@ int main(int argc, char **argv) {
 //	Eigen::Vector2i pixel_pos(378,268);
 	Eigen::Vector2i pixel_pos(213,295);
 //	Eigen::Vector2i pixel_pos(370,488);
+	std::unordered_map<int, int> inliers_filter;
+	//new image
+//		inliers_filter.emplace(309,294); //yes
+//		inliers_filter.emplace(210,292); //yes
+//		inliers_filter.emplace(209,293); //yes
+//		inliers_filter.emplace(208,294); //yes
+//		inliers_filter.emplace(209,295); //yes
+//		inliers_filter.emplace(208,296); //yes
+//		inliers_filter.emplace(206,297); //yes
+	inliers_filter.emplace(173,333); //yes
+	inliers_filter.emplace(378,268); //yes
 
-//	dataOptions dataOpt;
+	// data loader
+	Mat grayImage_target, grayImage_ref,depth_ref,depth_target,image_ref_baseColor;
 	dataLoader* dataLoader;
 	dataLoader= new DSONL::dataLoader();
 	dataLoader->Init();
@@ -57,8 +69,6 @@ int main(int argc, char **argv) {
 	Mat image_ref_metallic =dataLoader->image_ref_metallic;
 	Mat image_ref_roughness=dataLoader->image_ref_roughness;
 
-
-	Mat grayImage_target, grayImage_ref,depth_ref,depth_target,image_ref_baseColor;
 	grayImage_ref=dataLoader->grayImage_ref;
 	grayImage_target=dataLoader->grayImage_target;
 
@@ -84,9 +94,7 @@ int main(int argc, char **argv) {
 	xi.translation()=t12;
 	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
 
-	double distanceThres=0.07;
-	float upper=5;
-	float buttom=0.2;
+
 
 // ------------------------------------------------------------------------------------------Movingleast algorithm---------------------------------------------------------------
 	std::vector<Eigen::Vector3d> pts;
@@ -150,9 +158,12 @@ int main(int argc, char **argv) {
 	}
 
 
-
 	Mat newNormalMap=normal_map;
-
+	double distanceThres=0.07;
+	float upper=5;
+	float buttom=0.2;
+	float up_new=upper;
+	float butt_new=buttom;
 
 	int lvl_target, lvl_ref;
 	for (int lvl = 1; lvl >= 1; lvl--)
@@ -166,28 +177,11 @@ int main(int argc, char **argv) {
 		downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
 
 		PhotometricBAOptions options;
-		std::unordered_map<int, int> inliers_filter;
-		//new image
-//		inliers_filter.emplace(309,294); //yes
-//		inliers_filter.emplace(210,292); //yes
-//		inliers_filter.emplace(209,293); //yes
-//		inliers_filter.emplace(208,294); //yes
-//		inliers_filter.emplace(209,295); //yes
-//		inliers_filter.emplace(208,296); //yes
-//		inliers_filter.emplace(206,297); //yes
-		inliers_filter.emplace(173,333); //yes
-		inliers_filter.emplace(378,268); //yes
-
-
 		Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
-//		Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC3, Scalar(0)); // storing delta
         int i=0;
 		while ( i < 2){
 //			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
-			float up_new=upper;
-			float butt_new=buttom;
-			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap,newNormalMap,up_new, butt_new);// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap,newNormalMap,up_new, butt_new);
 			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi, upper, buttom, deltaMap);
 			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
 			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
