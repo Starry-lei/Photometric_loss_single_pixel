@@ -72,7 +72,7 @@ using Timestamp = int64_t;
 /// pair of frame id and camera id identifies an image (== "image id")
 struct FrameCamId {
   FrameCamId() : frame_id(0), cam_id(0){};
-  FrameCamId(const FrameId& new_frame_id, const CamId& new_cam_id)
+  FrameCamId(const FrameId &new_frame_id, const CamId &new_cam_id)
       : frame_id(new_frame_id), cam_id(new_cam_id){};
 
   // Frame id in range 0 ... (num_frames-1)
@@ -82,16 +82,17 @@ struct FrameCamId {
   // respectively)
   CamId cam_id;
 
-  bool operator==(const FrameCamId& other) const {
+  bool operator==(const FrameCamId &other) const {
     return (frame_id == other.frame_id) && (cam_id == other.cam_id);
   }
 
-  bool operator!=(const FrameCamId& other) const {
+  bool operator!=(const FrameCamId &other) const {
     return (frame_id != other.frame_id) || (cam_id != other.cam_id);
   }
 
-  bool operator<(const FrameCamId& other) const {
-    if (frame_id == other.frame_id) return cam_id < other.cam_id;
+  bool operator<(const FrameCamId &other) const {
+    if (frame_id == other.frame_id)
+      return cam_id < other.cam_id;
     return frame_id < other.frame_id;
   }
 
@@ -104,7 +105,7 @@ struct FrameCamId {
   }
 };
 
-std::ostream& operator<<(std::ostream& os, const FrameCamId& fcid) {
+std::ostream &operator<<(std::ostream &os, const FrameCamId &fcid) {
   os << fcid.frame_id << "_" << fcid.cam_id;
   return os;
 }
@@ -214,9 +215,9 @@ struct CameraCandidate {
 
   // keep track of different stages of adding a set of candidate cameras and its
   // landmarks to the map
-  bool tried = false;            //!< tried to add to map
-  bool camera_added = false;     //!< succeeded to add to map
-  bool landmarks_added = false;  //!< added new landmarks to map
+  bool tried = false;           //!< tried to add to map
+  bool camera_added = false;    //!< succeeded to add to map
+  bool landmarks_added = false; //!< added new landmarks to map
 };
 
 /// list of current candidates and some book keeping for the different stages
@@ -237,7 +238,7 @@ struct CameraCandidates {
 
   int num_cameras_added() {
     int num_added = 0;
-    for (const auto& c : cameras) {
+    for (const auto &c : cameras) {
       if (c.camera_added) {
         ++num_added;
       }
@@ -247,7 +248,7 @@ struct CameraCandidates {
 
   int num_landmarks_added() {
     int num_added = 0;
-    for (const auto& c : cameras) {
+    for (const auto &c : cameras) {
       if (c.landmarks_added) {
         ++num_added;
       }
@@ -271,12 +272,12 @@ enum OutlierFlags {
 
 /// info on a single projected landmark
 struct ProjectedLandmark {
-  Eigen::Vector2d point_measured;            //!< detected feature location
-  Eigen::Vector2d point_reprojected;         //!< landmark projected into image
-  Eigen::Vector3d point_3d_c;                //!< 3d point in camera coordinates
-  TrackId track_id = -1;                     //!< corresponding track_id
-  double reprojection_error = 0;             //!< current reprojection error
-  unsigned int outlier_flags = OutlierNone;  //!< flags for outlier
+  Eigen::Vector2d point_measured;           //!< detected feature location
+  Eigen::Vector2d point_reprojected;        //!< landmark projected into image
+  Eigen::Vector3d point_3d_c;               //!< 3d point in camera coordinates
+  TrackId track_id = -1;                    //!< corresponding track_id
+  double reprojection_error = 0;            //!< current reprojection error
+  unsigned int outlier_flags = OutlierNone; //!< flags for outlier
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
@@ -319,13 +320,12 @@ using BowDBInverseIndex =
 using BowDBInverseIndexConcurrent = tbb::concurrent_unordered_map<
     WordId, tbb::concurrent_vector<std::pair<FrameCamId, WordValue>>>;
 
-}  // namespace visnav
+} // namespace visnav
 
 namespace std {
 
-template <>
-struct hash<visnav::FrameCamId> {
-  inline std::size_t operator()(const visnav::FrameCamId& val) const noexcept {
+template <> struct hash<visnav::FrameCamId> {
+  inline std::size_t operator()(const visnav::FrameCamId &val) const noexcept {
     std::size_t seed = 0;
     visnav::hash_combine(seed, val.frame_id);
     visnav::hash_combine(seed, val.cam_id);
@@ -333,4 +333,4 @@ struct hash<visnav::FrameCamId> {
   }
 };
 
-}  // namespace std
+} // namespace std

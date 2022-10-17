@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace visnav {
 
-void computeEssential(const Sophus::SE3d& T_0_1, Eigen::Matrix3d& E) {
+void computeEssential(const Sophus::SE3d &T_0_1, Eigen::Matrix3d &E) {
   const Eigen::Vector3d t_0_1 = T_0_1.translation();
   const Eigen::Matrix3d R_0_1 = T_0_1.rotationMatrix();
   Eigen::Vector3d t_0_1_n = t_0_1.normalized();
@@ -64,11 +64,11 @@ void computeEssential(const Sophus::SE3d& T_0_1, Eigen::Matrix3d& E) {
   UNUSED(R_0_1);
 }
 
-void findInliersEssential(const KeypointsData& kd1, const KeypointsData& kd2,
-                          const std::shared_ptr<AbstractCamera<double>>& cam1,
-                          const std::shared_ptr<AbstractCamera<double>>& cam2,
-                          const Eigen::Matrix3d& E,
-                          double epipolar_error_threshold, MatchData& md) {
+void findInliersEssential(const KeypointsData &kd1, const KeypointsData &kd2,
+                          const std::shared_ptr<AbstractCamera<double>> &cam1,
+                          const std::shared_ptr<AbstractCamera<double>> &cam2,
+                          const Eigen::Matrix3d &E,
+                          double epipolar_error_threshold, MatchData &md) {
   md.inliers.clear();
 
   for (size_t j = 0; j < md.matches.size(); j++) {
@@ -91,11 +91,11 @@ void findInliersEssential(const KeypointsData& kd1, const KeypointsData& kd2,
   }
 }
 
-void findInliersRansac(const KeypointsData& kd1, const KeypointsData& kd2,
-                       const std::shared_ptr<AbstractCamera<double>>& cam1,
-                       const std::shared_ptr<AbstractCamera<double>>& cam2,
+void findInliersRansac(const KeypointsData &kd1, const KeypointsData &kd2,
+                       const std::shared_ptr<AbstractCamera<double>> &cam1,
+                       const std::shared_ptr<AbstractCamera<double>> &cam2,
                        const double ransac_thresh, const int ransac_min_inliers,
-                       MatchData& md) {
+                       MatchData &md) {
   md.inliers.clear();
   md.T_i_j = Sophus::SE3d();
 
@@ -178,4 +178,4 @@ void findInliersRansac(const KeypointsData& kd1, const KeypointsData& kd2,
   UNUSED(ransac_thresh);
   UNUSED(ransac_min_inliers);
 }
-}  // namespace visnav
+} // namespace visnav

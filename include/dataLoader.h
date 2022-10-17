@@ -30,48 +30,28 @@ namespace DSONL{
 	Eigen::Matrix<double,3,1> Camera1(3.8, -16.5 ,26.1);
 	Eigen::Matrix<double,3,1> Camera2(0.3 ,-16.9, 27.7);
 
-	Eigen::Quaterniond q_1(0.009445649,-0.0003128,-0.9994076,-0.0330920); //  cam1  wxyz
-	Eigen::Vector3d t1( 3.8, -16.5, 26.1);
-	Eigen::Matrix3d R1=q_1.toRotationMatrix();
-
-
-
-	Eigen::Quaterniond q_2(-0.08078633,-0.0084485,-0.9962677,-0.0292077 ); //  cam5  wxyz
-	Eigen::Vector3d t2(-5.1,-15.2 ,27.5);
-	Eigen::Matrix3d R2=q_2.toRotationMatrix();
-
-
-	Eigen::Matrix3d R12= R2.transpose() * R1;
-	Eigen::Vector3d t12= R2.transpose()* (t1-t2);
-	Eigen::Quaterniond q_12(R12);
 	Eigen::Vector3d l_w(0.223529, 0.490196, 0.843137);
 	Eigen::Vector3d N_w(0.0352942, -0.223529, 0.976471);
-
-
-
 
 
 	struct dataOptions {
 		/// 0: big baseline, 1: small baseline, 2: other
 		int baseline = 0;
-
 		/// is textured or not
 		bool isTextured = true;
-
 		/// use gree channel for testing
 		int channelIdx= 1;
 
-		/// parameter for huber loss (in pixel)
-		float huber_parameter = 1.0;
-		/// maximum number of solver iterations
-		int max_num_iterations = 20;
 	};
 
 	class dataLoader{
 
+//		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 	public:
-		dataLoader(){};
-		~dataLoader(){};
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+		dataLoader();
+		~dataLoader();
 		dataOptions options_;
 		Mat image_ref_metallic;
 		Mat image_ref_roughness;
@@ -84,8 +64,11 @@ namespace DSONL{
 		Eigen::Matrix4d M_matrix;
 		Mat normal_map_GT;
 		Mat image_ref_baseColor;
-
-
+		Eigen::Matrix3d R12;
+		Eigen::Vector3d t12;
+		Eigen::Quaterniond q_12;
+		Eigen::Matrix3d R1;
+		Eigen::Matrix3d R2;
 
 		void Init(){
 
@@ -105,7 +88,7 @@ namespace DSONL{
 
 			if(options_.isTextured){
 				// RGB image with texture
-				string image_ref_path = "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";
+				string image_ref_path =            "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";
 				// BaseColor Image with texture
 				string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam1_texture_basecolor.exr";
 				//	// Metallic and Roughness
@@ -131,12 +114,9 @@ namespace DSONL{
 				Mat image_ref_roughness_= ref_mr_table[1];
 				image_ref_roughness_.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
 
-
 				int channelIdx= options_.channelIdx;
-
 				extractChannel(image_ref, grayImage_ref, channelIdx);
-//				imshow("grayImage_ref",grayImage_ref);
-//				waitKey(0);
+
 				// left map depth
 				Mat channel[3],depth_ref_render, channel_tar[3], depth_tar_render;
 				split(depth_ref,channel);
@@ -147,15 +127,41 @@ namespace DSONL{
 				string image_target_baseColor;
 				string depth_target_path;
 				string image_target_MR_path;
+				Eigen::Quaterniond q_1(0.009445649,-0.0003128,-0.9994076,-0.0330920); //  cam1  wxyz
+				Eigen::Vector3d t1( 3.8, -16.5, 26.1);
+				R1=q_1.toRotationMatrix();
+
 				if(options_.baseline==0){
 					 image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
 					 image_target_baseColor = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
 					 depth_target_path = "../data/depth/cam5_depth.exr";
 					 image_target_MR_path = "../data/rgb/vp5_mr.png";
 
+					Eigen::Quaterniond q_2(-0.08078633,-0.0084485,-0.9962677,-0.0292077 ); //  cam5  wxyz
+					Eigen::Vector3d t2(-5.1,-15.2 ,27.5);
+					R2=q_2.toRotationMatrix();
+					R12= R2.transpose() * R1;
+					t12= R2.transpose()* (t1-t2);
+					q_12= R12;
+
+
+
 				}else if (options_.baseline==1){
-					// TODO: small baseline data
-					 image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
+
+					 image_target_path = "../data/rgb/small_baseline/rt_12_44_34_cam6_rgb.exr";
+					 image_target_baseColor ="../data/rgb/small_baseline/rt_12_44_34_cam6_rgb.exr";
+					 depth_target_path="../data/rgb/small_baseline/rt_12_44_34_cam6_depth.exr";
+					 image_target_MR_path = "../data/rgb/small_baseline/cam6_mr.png";
+					 Eigen::Quaterniond q_2(-0.0146847,-0.0064972,-0.9994298,-0.0297027 ); //  cam5  wxyz
+					 Eigen::Vector3d t2(0,-16.5,28.2);
+					 R2=q_2.toRotationMatrix();
+
+					 R12= R2.transpose() * R1;
+					 t12= R2.transpose()* (t1-t2);
+					 q_12= R12;
+
+
+
 				}
 
 				Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
@@ -166,8 +172,8 @@ namespace DSONL{
 				split(image_target_MR,taget_mr_table);// 0: red, 1: green, 2: blue
 				Mat image_target_metallic=  taget_mr_table[2];
 				Mat image_target_roughness= taget_mr_table[1];
-				image_target_metallic.convertTo(image_target_metallic, CV_64FC1,1.0 / 255.0);
-				image_target_roughness.convertTo(image_target_roughness, CV_64FC1,1.0 / 255.0);
+				image_target_metallic.convertTo(image_target_metallic, CV_32FC1,1.0 / 255.0);
+				image_target_roughness.convertTo(image_target_roughness, CV_32FC1,1.0 / 255.0);
 
 				extractChannel(image_target, grayImage_target, channelIdx);
 				// right map depth
@@ -194,8 +200,17 @@ namespace DSONL{
 		}
 
 
+
+
 	};
 
+	dataLoader::dataLoader(void ) {
+		cout<<"loading data..."<<endl;
+	}
+
+	dataLoader::~dataLoader(void ) {
+		cout<<"Data is being loaded!"<<endl;
+	}
 
  void showImage(Mat& image, string image_name){
 	imshow(image_name, image);

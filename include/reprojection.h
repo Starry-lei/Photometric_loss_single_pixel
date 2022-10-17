@@ -36,7 +36,9 @@ namespace DSONL{
 	};
 
 	struct GetPixelGrayValue {
+
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 		GetPixelGrayValue(const double pixel_gray_val_in[1],
 		                  const Eigen::Vector2d &pixelCoor,
 		                  const Eigen::Matrix3d & K,
@@ -77,25 +79,17 @@ namespace DSONL{
 				T *residual) const {
 
 			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
-
-
-			// project and search for optimization variable depth
-			// calculate transformed pixel coordinates
 			double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
-			// focal length: 30
 			Eigen::Matrix<double,3,1> p_3d_no_d;
 			p_3d_no_d<< (pixelCoor_(0)-cx)/fx, (pixelCoor_(1)-cy)/fy,1.0;
-
 			T d, u_, v_, intensity_image_ref,d_x1,d_y1,delta;
 			u_=(T)pixelCoor_(1);
 			v_=(T)pixelCoor_(0);
 			interp_depth->Evaluate(u_,v_, &d);
-			interp_depth->Evaluate(u_,(v_+(T)1), &d_x1);
-			interp_depth->Evaluate((u_+(T)1),v_, &d_y1);
+
 
 			interp_img_ref->Evaluate(u_,v_, &intensity_image_ref);
 			Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
-
 
 			interp_deltaMap->Evaluate(u_,v_,&delta);
 
@@ -105,12 +99,14 @@ namespace DSONL{
 			T x = (pt[0] / pt[2]); // col id
 			T y = (pt[1] / pt[2]);// row id
 
+//			if (x< (T)0 || x> (T)640 || y<(T)0 || y>(T)480){
+//				return false;
+//			}
 
 			T pixel_gray_val_out;
-			get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out); //
+			get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out);
 
 			residual[0] = intensity_image_ref - delta*pixel_gray_val_out;
-
 
 			return true;
 		}

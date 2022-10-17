@@ -55,18 +55,18 @@ struct TrackBuilder {
   UnionFind uf_tree;
 
   /// Build tracks for a given series of pairWise matches
-  void Build(const Matches& map_pair_wise_matches) {
+  void Build(const Matches &map_pair_wise_matches) {
     // 1. We need to know how much single set we will have.
     //   i.e each set is made of a tuple : (imageIndex, featureIndex)
     std::set<ImageFeaturePair> allFeatures;
     // For each couple of images list the used features
-    for (const auto& iter : map_pair_wise_matches) {
+    for (const auto &iter : map_pair_wise_matches) {
       const auto I = iter.first.first;
       const auto J = iter.first.second;
-      const MatchData& matchData = iter.second;
+      const MatchData &matchData = iter.second;
 
       // Retrieve all shared features and add them to a set
-      for (const auto& match : matchData.inliers) {
+      for (const auto &match : matchData.inliers) {
         allFeatures.emplace(I, match.first);
         allFeatures.emplace(J, match.second);
       }
@@ -75,7 +75,7 @@ struct TrackBuilder {
     // 2. Build the 'flat' representation where a tuple (the node)
     //  is attached to a unique index.
     TrackId cpt = 0;
-    for (const auto& feat : allFeatures) {
+    for (const auto &feat : allFeatures) {
       map_node_to_index.emplace(feat, cpt);
       ++cpt;
     }
@@ -86,11 +86,11 @@ struct TrackBuilder {
     uf_tree.InitSets(map_node_to_index.size());
 
     // 4. Union of the matched features corresponding UF tree sets
-    for (const auto& iter : map_pair_wise_matches) {
+    for (const auto &iter : map_pair_wise_matches) {
       const auto I = iter.first.first;
       const auto J = iter.first.second;
-      const MatchData& matchData = iter.second;
-      for (const auto& match : matchData.inliers) {
+      const MatchData &matchData = iter.second;
+      for (const auto &match : matchData.inliers) {
         const ImageFeaturePair pairI(I, match.first);
         const ImageFeaturePair pairJ(J, match.second);
         // Link feature correspondences to the corresponding containing sets.
@@ -113,13 +113,13 @@ struct TrackBuilder {
 
     std::set<TrackId> problematic_track_id;
     // Build tracks from the UF tree, track problematic ids.
-    for (const auto& iter : map_node_to_index) {
+    for (const auto &iter : map_node_to_index) {
       const TrackId track_id = uf_tree.Find(iter.second);
       if (problematic_track_id.count(track_id) != 0) {
-        continue;  // Track already marked
+        continue; // Track already marked
       }
 
-      const ImageFeaturePair& feat = iter.first;
+      const ImageFeaturePair &feat = iter.first;
 
       if (tracks[track_id].count(feat.first)) {
         problematic_track_id.insert(track_id);
@@ -129,13 +129,13 @@ struct TrackBuilder {
     }
 
     // - track that are too short,
-    for (const auto& val : tracks) {
+    for (const auto &val : tracks) {
       if (val.second.size() < minimumTrackLength) {
         problematic_track_id.insert(val.first);
       }
     }
 
-    for (uint32_t& root_index : uf_tree.m_cc_parent) {
+    for (uint32_t &root_index : uf_tree.m_cc_parent) {
       if (problematic_track_id.count(root_index) > 0) {
         // reset selected root
         uf_tree.m_cc_size[root_index] = 1;
@@ -158,11 +158,11 @@ struct TrackBuilder {
   /// Export tracks as a map (each entry is a map of imageId and
   /// featureIndex):
   ///  {TrackIndex => {imageIndex => featureIndex}}
-  void Export(FeatureTracks& tracks) {
+  void Export(FeatureTracks &tracks) {
     tracks.clear();
-    for (const auto& iter : map_node_to_index) {
+    for (const auto &iter : map_node_to_index) {
       const TrackId track_id = uf_tree.Find(iter.second);
-      const ImageFeaturePair& feat = iter.first;
+      const ImageFeaturePair &feat = iter.first;
       // ensure never add rejected elements (track marked as invalid)
       if (track_id != UnionFind::InvalidIndex()) {
         tracks[track_id].emplace(feat);
@@ -172,16 +172,16 @@ struct TrackBuilder {
 };
 
 /// Find common tracks between images.
-bool GetTracksInImages(const std::set<FrameCamId>& image_ids,
-                       const FeatureTracks& all_tracks,
-                       std::vector<TrackId>& shared_track_ids) {
+bool GetTracksInImages(const std::set<FrameCamId> &image_ids,
+                       const FeatureTracks &all_tracks,
+                       std::vector<TrackId> &shared_track_ids) {
   shared_track_ids.clear();
 
   // Go along the tracks
-  for (const auto& kv_track : all_tracks) {
+  for (const auto &kv_track : all_tracks) {
     // Look if the track contains the provided view index & save the point ids
     size_t observed_image_count = 0;
-    for (const auto& imageId : image_ids) {
+    for (const auto &imageId : image_ids) {
       if (kv_track.second.count(imageId) > 0) {
         ++observed_image_count;
       } else {
@@ -197,21 +197,21 @@ bool GetTracksInImages(const std::set<FrameCamId>& image_ids,
 }
 
 /// Find all tracks in an image.
-bool GetTracksInImage(const FrameCamId& image_id,
-                      const FeatureTracks& all_tracks,
-                      std::vector<TrackId>& track_ids) {
+bool GetTracksInImage(const FrameCamId &image_id,
+                      const FeatureTracks &all_tracks,
+                      std::vector<TrackId> &track_ids) {
   std::set<FrameCamId> image_set;
   image_set.insert(image_id);
   return GetTracksInImages(image_set, all_tracks, track_ids);
 }
 
 /// Find shared tracks between map and image
-bool GetSharedTracks(const FrameCamId& image_id,
-                     const FeatureTracks& all_tracks,
-                     const Landmarks& landmarks,
-                     std::vector<TrackId>& track_ids) {
+bool GetSharedTracks(const FrameCamId &image_id,
+                     const FeatureTracks &all_tracks,
+                     const Landmarks &landmarks,
+                     std::vector<TrackId> &track_ids) {
   track_ids.clear();
-  for (const auto& kv : landmarks) {
+  for (const auto &kv : landmarks) {
     const TrackId trackId = kv.first;
     if (all_tracks.at(trackId).count(image_id) > 0) {
       track_ids.push_back(trackId);
@@ -220,4 +220,4 @@ bool GetSharedTracks(const FrameCamId& image_id,
   return !track_ids.empty();
 }
 
-}  // namespace visnav
+} // namespace visnav

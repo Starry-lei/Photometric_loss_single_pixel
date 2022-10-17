@@ -38,10 +38,10 @@ namespace visnav {
 
 struct AprilGrid {
   AprilGrid() {
-    const int tagCols = 6;          // number of apriltags
-    const int tagRows = 6;          // number of apriltags
-    const double tagSize = 0.088;   // size of apriltag, edge to edge [m]
-    const double tagSpacing = 0.3;  // ratio of space between tags to tagSize
+    const int tagCols = 6;         // number of apriltags
+    const int tagRows = 6;         // number of apriltags
+    const double tagSize = 0.088;  // size of apriltag, edge to edge [m]
+    const double tagSpacing = 0.3; // ratio of space between tags to tagSize
 
     double x_corner_offsets[4] = {0, tagSize, tagSize, 0};
     double y_corner_offsets[4] = {0, 0, tagSize, tagSize};
@@ -57,7 +57,7 @@ struct AprilGrid {
         for (int i = 0; i < 4; i++) {
           int corner_id = (tag_id << 2) + i;
 
-          Eigen::Vector3d& pos_3d = aprilgrid_corner_pos_3d[corner_id];
+          Eigen::Vector3d &pos_3d = aprilgrid_corner_pos_3d[corner_id];
 
           pos_3d[0] = x_offset + x_corner_offsets[i];
           pos_3d[1] = y_offset + y_corner_offsets[i];
@@ -71,4 +71,4 @@ struct AprilGrid {
       aprilgrid_corner_pos_3d;
 };
 
-}  // namespace visnav
+} // namespace visnav

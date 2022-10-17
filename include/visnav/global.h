@@ -44,11 +44,11 @@ namespace visnav {
 struct RotationAveragingCostFunctor {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  RotationAveragingCostFunctor(const Sophus::SO3d& R_i_j) : R_i_j_(R_i_j) {}
+  RotationAveragingCostFunctor(const Sophus::SO3d &R_i_j) : R_i_j_(R_i_j) {}
 
   template <class T>
-  bool operator()(T const* const sR_w_i, T const* const sR_w_j,
-                  T* sResiduals) const {
+  bool operator()(T const *const sR_w_i, T const *const sR_w_j,
+                  T *sResiduals) const {
     // map inputs
     Eigen::Map<Sophus::SO3<T> const> const R_w_i(sR_w_i);
     Eigen::Map<Sophus::SO3<T> const> const R_w_j(sR_w_j);
@@ -65,12 +65,12 @@ struct RotationAveragingCostFunctor {
 struct TranslationAveragingCostFunctor {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  TranslationAveragingCostFunctor(const Eigen::Vector3d& t_hat_i_j)
+  TranslationAveragingCostFunctor(const Eigen::Vector3d &t_hat_i_j)
       : t_hat_i_j_(t_hat_i_j) {}
 
   template <class T>
-  bool operator()(T const* const st_w_i, T const* const st_w_j,
-                  T* sResiduals) const {
+  bool operator()(T const *const st_w_i, T const *const st_w_j,
+                  T *sResiduals) const {
     Eigen::Map<Eigen::Matrix<T, 3, 1> const> const t_w_i(st_w_i);
     Eigen::Map<Eigen::Matrix<T, 3, 1> const> const t_w_j(st_w_j);
     Eigen::Map<Eigen::Matrix<T, 3, 1>> residuals(sResiduals);
@@ -85,4 +85,4 @@ struct TranslationAveragingCostFunctor {
   const Eigen::Vector3d t_hat_i_j_;
 };
 
-}  // namespace visnav
+} // namespace visnav

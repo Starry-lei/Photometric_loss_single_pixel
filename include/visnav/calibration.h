@@ -67,8 +67,7 @@ struct CalibInitPoseData {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-template <class Scalar, class CamT>
-struct LoadCalibration {
+template <class Scalar, class CamT> struct LoadCalibration {
   static constexpr int N = CamT::N;
 
   LoadCalibration() {}
@@ -92,4 +91,4 @@ struct Calibration {
   std::vector<std::shared_ptr<AbstractCamera<double>>> intrinsics;
 };
 
-}  // namespace visnav
+} // namespace visnav

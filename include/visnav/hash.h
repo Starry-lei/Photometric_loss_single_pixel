@@ -16,17 +16,14 @@ namespace visnav {
 // hash_combine is taken more or less from boost
 
 // forward declaration
-template <typename T>
-inline void hash_combine(std::size_t& seed, const T& val);
+template <typename T> inline void hash_combine(std::size_t &seed, const T &val);
 
 // default to std::hash
-template <typename T>
-struct visnav_hash : public std::hash<T> {};
+template <typename T> struct visnav_hash : public std::hash<T> {};
 
 // specialize for std::pair
-template <typename S, typename T>
-struct visnav_hash<std::pair<S, T>> {
-  inline std::size_t operator()(const std::pair<S, T>& val) const noexcept {
+template <typename S, typename T> struct visnav_hash<std::pair<S, T>> {
+  inline std::size_t operator()(const std::pair<S, T> &val) const noexcept {
     std::size_t seed = 0;
     hash_combine(seed, val.first);
     hash_combine(seed, val.second);
@@ -35,7 +32,7 @@ struct visnav_hash<std::pair<S, T>> {
 };
 
 template <typename T>
-inline void hash_combine(std::size_t& seed, const T& val) {
+inline void hash_combine(std::size_t &seed, const T &val) {
   static_assert(sizeof(size_t) == sizeof(uint64_t),
                 "hash_combine is meant for 64bit size_t");
 
@@ -56,4 +53,4 @@ inline void hash_combine(std::size_t& seed, const T& val) {
   seed += 0xe6546b64;
 }
 
-}  // namespace visnav
+} // namespace visnav

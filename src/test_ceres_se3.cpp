@@ -34,7 +34,7 @@ struct TestCostFunctor {
   TestCostFunctor(Sophus::SE3d T_aw) : T_aw(T_aw) {}
 
   template <class T>
-  bool operator()(T const* const sT_wa, T* sResiduals) const {
+  bool operator()(T const *const sT_wa, T *sResiduals) const {
     Eigen::Map<Sophus::SE3<T> const> const T_wa(sT_wa);
     Eigen::Map<Eigen::Matrix<T, 6, 1>> residuals(sResiduals);
 
@@ -45,7 +45,7 @@ struct TestCostFunctor {
   Sophus::SE3d T_aw;
 };
 
-bool test(Sophus::SE3d const& T_w_targ, Sophus::SE3d const& T_w_init) {
+bool test(Sophus::SE3d const &T_w_targ, Sophus::SE3d const &T_w_init) {
   // Optimisation parameter
   Sophus::SE3d T_wr = T_w_init;
 
@@ -59,8 +59,8 @@ bool test(Sophus::SE3d const& T_w_targ, Sophus::SE3d const& T_w_init) {
   // Create and add cost function. Derivatives will be evaluated via
   // automatic differentiation
 
-  TestCostFunctor* c = new TestCostFunctor(T_w_targ.inverse());
-  ceres::CostFunction* cost_function =
+  TestCostFunctor *c = new TestCostFunctor(T_w_targ.inverse());
+  ceres::CostFunction *cost_function =
       new ceres::AutoDiffCostFunction<TestCostFunctor, Sophus::SE3d::DoF,
                                       Sophus::SE3d::num_parameters>(c);
   problem.AddResidualBlock(cost_function, NULL, T_wr.data());
@@ -90,7 +90,7 @@ bool CreateSE3FromMatrix(Eigen::Matrix<Scalar, 4, 4> mat) {
   return true;
 }
 
-int main(int, char**) {
+int main(int, char **) {
   using SE3Type = Sophus::SE3<double>;
   using SO3Type = Sophus::SO3<double>;
   using Point = SE3Type::Point;

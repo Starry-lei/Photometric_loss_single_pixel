@@ -40,12 +40,12 @@ namespace visnav {
 
 // Implement exp for SO(3)
 template <class T>
-Eigen::Matrix<T, 3, 3> user_implemented_expmap(
-    const Eigen::Matrix<T, 3, 1>& xi) {
+Eigen::Matrix<T, 3, 3>
+user_implemented_expmap(const Eigen::Matrix<T, 3, 1> &xi) {
   // TODO SHEET 1: implement
   Eigen::Matrix<T, 3, 3> I = Eigen::Matrix<T, 3, 3>::Identity();
   Eigen::Matrix<T, 3, 3> expmap_of_xi;
-  T theta = xi.norm();  // l2 norm
+  T theta = xi.norm(); // l2 norm
   if (theta == T(0)) {
     return I;
   }
@@ -61,8 +61,8 @@ Eigen::Matrix<T, 3, 3> user_implemented_expmap(
 }
 // Implement log for SO(3)
 template <class T>
-Eigen::Matrix<T, 3, 1> user_implemented_logmap(
-    const Eigen::Matrix<T, 3, 3>& mat) {
+Eigen::Matrix<T, 3, 1>
+user_implemented_logmap(const Eigen::Matrix<T, 3, 3> &mat) {
   // TODO SHEET 1: implement
   Eigen::Matrix<T, 3, 1> so3_w;
   Eigen::Matrix<T, 3, 1> so3_w_temp;
@@ -79,8 +79,8 @@ Eigen::Matrix<T, 3, 1> user_implemented_logmap(
 
 // Implement exp for SE(3)
 template <class T>
-Eigen::Matrix<T, 4, 4> user_implemented_expmap(
-    const Eigen::Matrix<T, 6, 1>& xi) {
+Eigen::Matrix<T, 4, 4>
+user_implemented_expmap(const Eigen::Matrix<T, 6, 1> &xi) {
   // TODO SHEET 1: implement
   Eigen::Matrix<T, 3, 3> I = Eigen::Matrix<T, 3, 3>::Identity();
   Eigen::Matrix<T, 4, 4> expmap_of_xi;
@@ -88,7 +88,7 @@ Eigen::Matrix<T, 4, 4> user_implemented_expmap(
   Eigen::Matrix<T, 3, 1> rotation;
   translation = xi.head(3);
   rotation = xi.tail(3);
-  T theta = rotation.norm();  // l2 norm
+  T theta = rotation.norm(); // l2 norm
   if (theta == T(0)) {
     expmap_of_xi << T(1), T(0), T(0), translation(0), T(0), T(1), T(0),
         translation(1), T(0), T(0), T(1), translation(2), T(0), T(0), T(0),
@@ -114,8 +114,8 @@ Eigen::Matrix<T, 4, 4> user_implemented_expmap(
 
 // Implement log for SE(3)
 template <class T>
-Eigen::Matrix<T, 6, 1> user_implemented_logmap(
-    const Eigen::Matrix<T, 4, 4>& mat) {
+Eigen::Matrix<T, 6, 1>
+user_implemented_logmap(const Eigen::Matrix<T, 4, 4> &mat) {
   // TODO SHEET 1: implement
   Eigen::Matrix<T, 6, 1> se3;
   Eigen::Matrix<T, 3, 3> R;
@@ -154,4 +154,4 @@ Eigen::Matrix<T, 6, 1> user_implemented_logmap(
   return Eigen::Matrix<T, 6, 1>(se3);
 }
 
-}  // namespace visnav
+} // namespace visnav

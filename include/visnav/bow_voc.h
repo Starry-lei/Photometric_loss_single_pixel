@@ -48,14 +48,14 @@ class access;
 namespace visnav {
 
 class BowVocabulary {
- public:
+public:
   using NodeId = unsigned int;
   using TDescriptor = std::bitset<256>;
 
-  BowVocabulary(const std::string& filename) { load(filename); }
+  BowVocabulary(const std::string &filename) { load(filename); }
 
-  inline void transformFeatureToWord(const TDescriptor& feature,
-                                     WordId& word_id, WordValue& weight) const {
+  inline void transformFeatureToWord(const TDescriptor &feature,
+                                     WordId &word_id, WordValue &weight) const {
     // TODO SHEET 3: propagate feature through the vocabulary tree stored in the
     // array m_nodes. The root node has id=0 (m_nodes[0]). The array
     // m_nodes[id].children stores ids (index in the array) of the children
@@ -90,8 +90,8 @@ class BowVocabulary {
     UNUSED(weight);
   }
 
-  inline void transform(const std::vector<TDescriptor>& features,
-                        BowVector& v) const {
+  inline void transform(const std::vector<TDescriptor> &features,
+                        BowVector &v) const {
     v.clear();
 
     if (m_nodes.empty()) {
@@ -118,14 +118,14 @@ class BowVocabulary {
       }
     }
 
-    for (auto& iter : Bowmap) {
+    for (auto &iter : Bowmap) {
       v.emplace_back(iter.first, iter.second / norm_l1);
     }
 
     UNUSED(features);
   }
 
-  void save(const std::string& filename) const {
+  void save(const std::string &filename) const {
     std::ofstream os(filename, std::ios::binary);
 
     if (os.is_open()) {
@@ -138,7 +138,7 @@ class BowVocabulary {
     }
   }
 
-  void load(const std::string& filename) {
+  void load(const std::string &filename) {
     std::ifstream is(filename, std::ios::binary);
 
     if (is.is_open()) {
@@ -155,7 +155,7 @@ class BowVocabulary {
     }
   }
 
- protected:
+protected:
   /// Tree node
   struct Node {
     /// Node id
@@ -189,21 +189,18 @@ class BowVocabulary {
      */
     inline bool isLeaf() const { return children.empty(); }
 
-    template <class Archive>
-    void serialize(Archive& ar) {
+    template <class Archive> void serialize(Archive &ar) {
       ar(id, weight, children, parent, descriptor, word_id);
     }
   };
 
-  template <class Archive>
-  void save(Archive& ar) const {
+  template <class Archive> void save(Archive &ar) const {
     ar(CEREAL_NVP(this->m_k));
     ar(CEREAL_NVP(this->m_L));
     ar(CEREAL_NVP(this->m_nodes));
   }
 
-  template <class Archive>
-  void load(Archive& ar) {
+  template <class Archive> void load(Archive &ar) {
     ar(CEREAL_NVP(this->m_k));
     ar(CEREAL_NVP(this->m_L));
     ar(CEREAL_NVP(this->m_nodes));
@@ -217,7 +214,7 @@ class BowVocabulary {
     if (!m_nodes.empty()) {
       m_words.reserve((int)pow((double)m_k, (double)m_L));
 
-      for (Node& n : m_nodes) {
+      for (Node &n : m_nodes) {
         if (n.isLeaf()) {
           n.word_id = m_words.size();
           m_words.push_back(&n);
@@ -239,7 +236,7 @@ class BowVocabulary {
 
   /// Words of the vocabulary (tree leaves)
   /// this condition holds: m_words[wid]->word_id == wid
-  std::vector<Node*> m_words;
+  std::vector<Node *> m_words;
 };
 
-}  // namespace visnav
+} // namespace visnav

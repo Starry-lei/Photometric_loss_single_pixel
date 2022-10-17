@@ -33,15 +33,15 @@ namespace Sophus {
 namespace test {
 
 class LocalParameterizationSE3 : public ceres::LocalParameterization {
- public:
+public:
   virtual ~LocalParameterizationSE3() {}
 
   // SE3 plus operation for Ceres
   //
   //  T * exp(x)
   //
-  virtual bool Plus(double const* T_raw, double const* delta_raw,
-                    double* T_plus_delta_raw) const {
+  virtual bool Plus(double const *T_raw, double const *delta_raw,
+                    double *T_plus_delta_raw) const {
     Eigen::Map<SE3d const> const T(T_raw);
     Eigen::Map<Vector6d const> const delta(delta_raw);
     Eigen::Map<SE3d> T_plus_delta(T_plus_delta_raw);
@@ -53,8 +53,8 @@ class LocalParameterizationSE3 : public ceres::LocalParameterization {
   //
   // Dx T * exp(x)  with  x=0
   //
-  virtual bool ComputeJacobian(double const* T_raw,
-                               double* jacobian_raw) const {
+  virtual bool ComputeJacobian(double const *T_raw,
+                               double *jacobian_raw) const {
     Eigen::Map<SE3d const> T(T_raw);
     Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> jacobian(
         jacobian_raw);
@@ -66,7 +66,7 @@ class LocalParameterizationSE3 : public ceres::LocalParameterization {
 
   virtual int LocalSize() const { return SE3d::DoF; }
 };
-}  // namespace test
-}  // namespace Sophus
+} // namespace test
+} // namespace Sophus
 
 #endif

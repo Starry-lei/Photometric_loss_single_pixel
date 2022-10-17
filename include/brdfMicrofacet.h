@@ -23,7 +23,7 @@
 #include <iostream>
 #include <vector>
 #include <ultils.h>
-
+#include <sophus/se3.hpp>
 
 // change functions here to a brdf class
 
@@ -108,7 +108,10 @@ namespace DSONL {
 		Vec3f diffuseColorVec;
 		Vec3f brdf_value_c3;
 		Vec3f specColor_;
-
+//		float NdotH_GT_;
+//		float NdotL_GT_;
+//		float NdotV_GT_;
+//		float brdf_value;
 
 		Vec3f GGXNormalDistribution(float roughness, float NdotH);
 		Vec3f NewSchlickFresnelFunction(float ior, Vec3f Color, float LdotH, float Metallicness);

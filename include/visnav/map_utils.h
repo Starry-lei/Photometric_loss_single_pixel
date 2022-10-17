@@ -47,22 +47,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <visnav/common_types.h>
 #include <visnav/serialization.h>
 
-#include <visnav/reprojection.h>
 #include <visnav/local_parameterization_se3.hpp>
+#include <visnav/reprojection.h>
 
 #include <visnav/tracks.h>
 
-#include <pcl/point_cloud.h>
 #include <pcl/octree/octree_search.h>
+#include <pcl/point_cloud.h>
 
 namespace visnav {
 
 // save map with all features and matches
-void save_map_file(const std::string& map_path, const Corners& feature_corners,
-                   const Matches& feature_matches,
-                   const FeatureTracks& feature_tracks,
-                   const FeatureTracks& outlier_tracks, const Cameras& cameras,
-                   const Landmarks& landmarks) {
+void save_map_file(const std::string &map_path, const Corners &feature_corners,
+                   const Matches &feature_matches,
+                   const FeatureTracks &feature_tracks,
+                   const FeatureTracks &outlier_tracks, const Cameras &cameras,
+                   const Landmarks &landmarks) {
   {
     std::ofstream os(map_path, std::ios::binary);
 
@@ -76,7 +76,7 @@ void save_map_file(const std::string& map_path, const Corners& feature_corners,
       archive(landmarks);
 
       size_t num_obs = 0;
-      for (const auto& kv : landmarks) {
+      for (const auto &kv : landmarks) {
         num_obs += kv.second.obs.size();
       }
       std::cout << "Saved map as " << map_path << " (" << cameras.size()
@@ -89,10 +89,10 @@ void save_map_file(const std::string& map_path, const Corners& feature_corners,
 }
 
 // load map with all features and matches
-void load_map_file(const std::string& map_path, Corners& feature_corners,
-                   Matches& feature_matches, FeatureTracks& feature_tracks,
-                   FeatureTracks& outlier_tracks, Cameras& cameras,
-                   Landmarks& landmarks) {
+void load_map_file(const std::string &map_path, Corners &feature_corners,
+                   Matches &feature_matches, FeatureTracks &feature_tracks,
+                   FeatureTracks &outlier_tracks, Cameras &cameras,
+                   Landmarks &landmarks) {
   {
     std::ifstream is(map_path, std::ios::binary);
 
@@ -106,7 +106,7 @@ void load_map_file(const std::string& map_path, Corners& feature_corners,
       archive(landmarks);
 
       size_t num_obs = 0;
-      for (const auto& kv : landmarks) {
+      for (const auto &kv : landmarks) {
         num_obs += kv.second.obs.size();
       }
       std::cout << "Loaded map from " << map_path << " (" << cameras.size()
@@ -121,13 +121,13 @@ void load_map_file(const std::string& map_path, Corners& feature_corners,
 // Create new landmarks from shared feature tracks if they don't already exist.
 // The two cameras must be in the map already.
 // Returns the number of newly created landmarks.
-int add_new_landmarks_between_cams(const FrameCamId& fcid0,
-                                   const FrameCamId& fcid1,
-                                   const Calibration& calib_cam,
-                                   const Corners& feature_corners,
-                                   const FeatureTracks& feature_tracks,
-                                   const Cameras& cameras,
-                                   Landmarks& landmarks) {
+int add_new_landmarks_between_cams(const FrameCamId &fcid0,
+                                   const FrameCamId &fcid1,
+                                   const Calibration &calib_cam,
+                                   const Corners &feature_corners,
+                                   const FeatureTracks &feature_tracks,
+                                   const Cameras &cameras,
+                                   Landmarks &landmarks) {
   // shared_track_ids will contain all track ids shared between the two images,
   // including existing landmarks
   std::vector<TrackId> shared_track_ids;
@@ -145,23 +145,23 @@ int add_new_landmarks_between_cams(const FrameCamId& fcid0,
   opengv::bearingVectors_t bearing_vectors_1;
   opengv::bearingVectors_t bearing_vectors_2;
 
-  for (const auto& track_id : shared_track_ids) {
+  for (const auto &track_id : shared_track_ids) {
     if (landmarks.find(track_id) == landmarks.end()) {
       int Feature_Id_1 =
-          feature_tracks.at(track_id).at(fcid0);  // get feature id_1
+          feature_tracks.at(track_id).at(fcid0); // get feature id_1
       const Eigen::Vector2d p0_2d =
           feature_corners.at(fcid0)
-              .corners[Feature_Id_1];  // get 2d corner points
+              .corners[Feature_Id_1]; // get 2d corner points
       Eigen::Vector3d p0_3d = (calib_cam.intrinsics.at(fcid0.cam_id)
                                    ->unproject(p0_2d)
                                    .normalized());
       bearing_vectors_1.push_back(p0_3d);
 
       int Feature_Id_2 =
-          feature_tracks.at(track_id).at(fcid1);  // get feature id_2
+          feature_tracks.at(track_id).at(fcid1); // get feature id_2
       const Eigen::Vector2d p1_2d =
           feature_corners.at(fcid1)
-              .corners[Feature_Id_2];  // get 2d corner points
+              .corners[Feature_Id_2]; // get 2d corner points
       Eigen::Vector3d p1_3d = (calib_cam.intrinsics.at(fcid1.cam_id)
                                    ->unproject(p1_2d)
                                    .normalized());
@@ -184,7 +184,7 @@ int add_new_landmarks_between_cams(const FrameCamId& fcid0,
     landmark.p = cameras.at(fcid0).T_w_c * point;
 
     // fill obs with all observations of existing cameras in the map
-    for (const auto& kv : feature_tracks.at(new_track_ids[i])) {
+    for (const auto &kv : feature_tracks.at(new_track_ids[i])) {
       if (cameras.find(kv.first) != cameras.end()) {
         landmark.obs[kv.first] = kv.second;
       }
@@ -207,12 +207,12 @@ int add_new_landmarks_between_cams(const FrameCamId& fcid0,
 // using the transformation from the pairwise matching with the 5-point
 // algorithm. However, using a stereo pair has the advantage that the map is
 // initialized with metric scale.
-bool initialize_scene_from_stereo_pair(const FrameCamId& fcid0,
-                                       const FrameCamId& fcid1,
-                                       const Calibration& calib_cam,
-                                       const Corners& feature_corners,
-                                       const FeatureTracks& feature_tracks,
-                                       Cameras& cameras, Landmarks& landmarks) {
+bool initialize_scene_from_stereo_pair(const FrameCamId &fcid0,
+                                       const FrameCamId &fcid1,
+                                       const Calibration &calib_cam,
+                                       const Corners &feature_corners,
+                                       const FeatureTracks &feature_tracks,
+                                       Cameras &cameras, Landmarks &landmarks) {
   // check that the two image ids refer to a stereo pair
   if (!(fcid0.frame_id == fcid1.frame_id && fcid0.cam_id != fcid1.cam_id)) {
     std::cerr << "Images " << fcid0 << " and " << fcid1
@@ -225,7 +225,7 @@ bool initialize_scene_from_stereo_pair(const FrameCamId& fcid0,
   Camera left_c, right_c;
   left_c.T_w_c = calib_cam.T_i_c[fcid0.cam_id];
   right_c.T_w_c = calib_cam.T_i_c[fcid1.cam_id];
-  cameras.emplace(fcid0, left_c);  // insert()
+  cameras.emplace(fcid0, left_c); // insert()
   cameras.emplace(fcid1, right_c);
 
   add_new_landmarks_between_cams(fcid0, fcid1, calib_cam, feature_corners,
@@ -254,11 +254,11 @@ bool initialize_scene_from_stereo_pair(const FrameCamId& fcid0,
 // how to convert this to a ransac threshold:
 // http://laurentkneip.github.io/opengv/page_how_to_use.html#sec_threshold
 void localize_camera(
-    const FrameCamId& fcid, const std::vector<TrackId>& shared_track_ids,
-    const Calibration& calib_cam, const Corners& feature_corners,
-    const FeatureTracks& feature_tracks, const Landmarks& landmarks,
+    const FrameCamId &fcid, const std::vector<TrackId> &shared_track_ids,
+    const Calibration &calib_cam, const Corners &feature_corners,
+    const FeatureTracks &feature_tracks, const Landmarks &landmarks,
     const double reprojection_error_pnp_inlier_threshold_pixel,
-    Sophus::SE3d& T_w_c, std::vector<TrackId>& inlier_track_ids) {
+    Sophus::SE3d &T_w_c, std::vector<TrackId> &inlier_track_ids) {
   inlier_track_ids.clear();
 
   // TODO SHEET 4: Localize a new image in a given map
@@ -266,11 +266,11 @@ void localize_camera(
   // bearing-vectors expressed in the camera-frame
   opengv::bearingVectors_t bearing_vectors_1;
   opengv::points_t points_w;
-  for (auto& track_id : shared_track_ids) {
+  for (auto &track_id : shared_track_ids) {
     FeatureId Feature_Id_1 =
-        feature_tracks.at(track_id).at(fcid);  // get feature id_1
+        feature_tracks.at(track_id).at(fcid); // get feature id_1
     const Eigen::Vector2d p0_2d =
-        feature_corners.at(fcid).corners[Feature_Id_1];  // get 2d corner points
+        feature_corners.at(fcid).corners[Feature_Id_1]; // get 2d corner points
     Eigen::Vector3d p0_3d =
         (calib_cam.intrinsics.at(fcid.cam_id)->unproject(p0_2d));
     bearing_vectors_1.push_back(p0_3d);
@@ -345,17 +345,17 @@ struct BundleAdjustmentOptions {
 };
 
 // Run bundle adjustment to optimize cameras, points, and optionally intrinsics
-void bundle_adjustment(const Corners& feature_corners,
-                       const BundleAdjustmentOptions& options,
-                       const std::set<FrameCamId>& fixed_cameras,
-                       Calibration& calib_cam, Cameras& cameras,
-                       Landmarks& landmarks) {
+void bundle_adjustment(const Corners &feature_corners,
+                       const BundleAdjustmentOptions &options,
+                       const std::set<FrameCamId> &fixed_cameras,
+                       Calibration &calib_cam, Cameras &cameras,
+                       Landmarks &landmarks) {
   ceres::Problem problem;
 
   // TODO SHEET 4: Setup optimization problem
 
   // add all cameras to the problem
-  for (auto& camera : cameras) {
+  for (auto &camera : cameras) {
     problem.AddParameterBlock(camera.second.T_w_c.data(),
                               Sophus::SE3d::num_parameters,
                               new Sophus::test::LocalParameterizationSE3);
@@ -365,11 +365,11 @@ void bundle_adjustment(const Corners& feature_corners,
   }
 
   // add all landmarks to the problem
-  for (auto& landmark : landmarks) {
+  for (auto &landmark : landmarks) {
     problem.AddParameterBlock(landmark.second.p.data(), 3);
   }
 
-  for (auto& intrinsic : calib_cam.intrinsics) {
+  for (auto &intrinsic : calib_cam.intrinsics) {
     problem.AddParameterBlock(intrinsic->data(), 8);
 
     if (!options.optimize_intrinsics) {
@@ -379,24 +379,24 @@ void bundle_adjustment(const Corners& feature_corners,
 
   // use landmarks to optimize
 
-  for (const auto& landmark : landmarks) {
-    double* p_w = const_cast<double*>(landmark.second.p.data());
+  for (const auto &landmark : landmarks) {
+    double *p_w = const_cast<double *>(landmark.second.p.data());
     // add landmarks to problem
 
-    for (auto& feature : landmark.second.obs) {
+    for (auto &feature : landmark.second.obs) {
       const FrameCamId fcid = feature.first;
       const FeatureId fid = feature.second;
       const Eigen::Vector2d p_2d = feature_corners.at(fcid).corners[fid];
       std::string camModel = calib_cam.intrinsics.at(fcid.cam_id)->name();
 
-      double* T_w_c = cameras.at(fcid).T_w_c.data();
-      double* intrinsics = calib_cam.intrinsics.at(fcid.cam_id)->data();
+      double *T_w_c = cameras.at(fcid).T_w_c.data();
+      double *intrinsics = calib_cam.intrinsics.at(fcid.cam_id)->data();
       // add parameter block for camera
 
       // problem.AddParameterBlock(T_w_c,7, new
       // Sophus::test::LocalParameterizationSE3);
 
-      ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<
+      ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
           BundleAdjustmentReprojectionCostFunctor, 2,
           Sophus::SE3d::num_parameters, 3, 8>(
           new BundleAdjustmentReprojectionCostFunctor(p_2d, camModel));
@@ -426,26 +426,16 @@ void bundle_adjustment(const Corners& feature_corners,
   ceres::Solver::Summary summary;
   Solve(ceres_options, &problem, &summary);
   switch (options.verbosity_level) {
-    // 0: silent
-    case 1:
-      std::cout << summary.BriefReport() << std::endl;
-      break;
-    case 2:
-      std::cout << summary.FullReport() << std::endl;
-      break;
+  // 0: silent
+  case 1:
+    std::cout << summary.BriefReport() << std::endl;
+    break;
+  case 2:
+    std::cout << summary.FullReport() << std::endl;
+    break;
   }
 }
 
-
-
 // transform point cloud into voxel grid using octree in PCL library
 
-
-
-
-
-
-
-
-
-}  // namespace visnav
+} // namespace visnav

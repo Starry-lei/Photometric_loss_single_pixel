@@ -46,10 +46,10 @@ bool compare(std::pair<FrameCamId, WordValue> l,
   return l.second < r.second;
 }
 class BowDatabase {
- public:
+public:
   BowDatabase() {}
 
-  inline void insert(const FrameCamId& fcid, const BowVector& bow_vector) {
+  inline void insert(const FrameCamId &fcid, const BowVector &bow_vector) {
     // TODO SHEET 3: add a bow_vector that corresponds to frame fcid to the
     // inverted index. You can assume the image hasn't been added before.
 
@@ -72,8 +72,8 @@ class BowDatabase {
     UNUSED(bow_vector);
   }
 
-  inline void query(const BowVector& bow_vector, size_t num_results,
-                    BowQueryResult& results) const {
+  inline void query(const BowVector &bow_vector, size_t num_results,
+                    BowQueryResult &results) const {
     // TODO SHEET 3: find num_results closest matches to the bow_vector in the
     // inverted index. Hint: for good query performance use std::unordered_map
     // to accumulate scores and std::partial_sort for getting the closest
@@ -84,7 +84,8 @@ class BowDatabase {
     for (size_t i = 0; i < bow_vector.size(); i++) {
       WordId wid = bow_vector[i].first;
       WordValue wval = bow_vector[i].second;
-      if (inverted_index.find(wid) == inverted_index.end()) continue;
+      if (inverted_index.find(wid) == inverted_index.end())
+        continue;
 
       for (size_t j = 0; j < inverted_index.at(wid).size(); j++) {
         FrameCamId fid = inverted_index.at(wid)[j].first;
@@ -110,7 +111,7 @@ class BowDatabase {
     // }
     std::sort(f_score_vec.begin(), f_score_vec.end(), compare);
     unsigned int i = 0;
-    for (const auto& f_score : f_score_vec) {
+    for (const auto &f_score : f_score_vec) {
       if (i < num_results) {
         results.push_back(f_score);
 
@@ -127,10 +128,10 @@ class BowDatabase {
 
   void clear() { inverted_index.clear(); }
 
-  void save(const std::string& out_path) {
+  void save(const std::string &out_path) {
     BowDBInverseIndex state;
-    for (const auto& kv : inverted_index) {
-      for (const auto& a : kv.second) {
+    for (const auto &kv : inverted_index) {
+      for (const auto &a : kv.second) {
         state[kv.first].emplace_back(a);
       }
     }
@@ -140,26 +141,26 @@ class BowDatabase {
     archive(state);
   }
 
-  void load(const std::string& in_path) {
+  void load(const std::string &in_path) {
     BowDBInverseIndex inverseIndexLoaded;
     {
       std::ifstream os(in_path, std::ios::binary);
       cereal::JSONInputArchive archive(os);
       archive(inverseIndexLoaded);
     }
-    for (const auto& kv : inverseIndexLoaded) {
-      for (const auto& a : kv.second) {
+    for (const auto &kv : inverseIndexLoaded) {
+      for (const auto &a : kv.second) {
         inverted_index[kv.first].emplace_back(a);
       }
     }
   }
 
-  const BowDBInverseIndexConcurrent& getInvertedIndex() {
+  const BowDBInverseIndexConcurrent &getInvertedIndex() {
     return inverted_index;
   }
 
- protected:
+protected:
   BowDBInverseIndexConcurrent inverted_index;
 };
 
-}  // namespace visnav
+} // namespace visnav

@@ -48,12 +48,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace visnav {
 
 void project_landmarks(
-    const Sophus::SE3d& current_pose,
-    const std::shared_ptr<AbstractCamera<double>>& cam,
-    const Landmarks& landmarks, const double cam_z_threshold,
-    std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>>&
-        projected_points,
-    std::vector<TrackId>& projected_track_ids) {
+    const Sophus::SE3d &current_pose,
+    const std::shared_ptr<AbstractCamera<double>> &cam,
+    const Landmarks &landmarks, const double cam_z_threshold,
+    std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>>
+        &projected_points,
+    std::vector<TrackId> &projected_track_ids) {
   projected_points.clear();
   projected_track_ids.clear();
 
@@ -62,12 +62,11 @@ void project_landmarks(
   // projected_points and the corresponding id of the landmark into
   // projected_track_ids.
 
-  for (const auto& landmark : landmarks) {
+  for (const auto &landmark : landmarks) {
     if ((current_pose.inverse() * landmark.second.p).z() > cam_z_threshold) {
       Eigen::Vector2d projected_point;
-      projected_point =
-          cam->project(current_pose.inverse() *
-                       landmark.second.p);  // current_pose.inverse()
+      projected_point = cam->project(
+          current_pose.inverse() * landmark.second.p); // current_pose.inverse()
       if (projected_point.x() > 0 && projected_point.x() < cam->width() - 1 &&
           projected_point.y() > 0 && projected_point.y() < cam->height() - 1) {
         projected_points.push_back(projected_point);
@@ -83,14 +82,14 @@ void project_landmarks(
 }
 
 void find_matches_landmarks(
-    const KeypointsData& kdl, const Landmarks& landmarks,
-    const Corners& feature_corners,
+    const KeypointsData &kdl, const Landmarks &landmarks,
+    const Corners &feature_corners,
     const std::vector<Eigen::Vector2d,
-                      Eigen::aligned_allocator<Eigen::Vector2d>>&
-        projected_points,
-    const std::vector<TrackId>& projected_track_ids,
+                      Eigen::aligned_allocator<Eigen::Vector2d>>
+        &projected_points,
+    const std::vector<TrackId> &projected_track_ids,
     const double match_max_dist_2d, const int feature_match_threshold,
-    const double feature_match_dist_2_best, LandmarkMatchData& md) {
+    const double feature_match_dist_2_best, LandmarkMatchData &md) {
   md.matches.clear();
 
   // TODO SHEET 5: Find the matches between projected landmarks and detected
@@ -116,7 +115,7 @@ void find_matches_landmarks(
       int distance_min = 256;
 
       if (dist_p2k < match_max_dist_2d) {
-        for (const auto& obs : landmarks.at(track_id).obs) {
+        for (const auto &obs : landmarks.at(track_id).obs) {
           FrameCamId fcid = obs.first;
           FeatureId fid = obs.second;
 
@@ -156,11 +155,11 @@ void find_matches_landmarks(
   UNUSED(feature_match_dist_2_best);
 }
 
-void localize_camera(const Sophus::SE3d& current_pose,
-                     const std::shared_ptr<AbstractCamera<double>>& cam,
-                     const KeypointsData& kdl, const Landmarks& landmarks,
+void localize_camera(const Sophus::SE3d &current_pose,
+                     const std::shared_ptr<AbstractCamera<double>> &cam,
+                     const KeypointsData &kdl, const Landmarks &landmarks,
                      const double reprojection_error_pnp_inlier_threshold_pixel,
-                     LandmarkMatchData& md) {
+                     LandmarkMatchData &md) {
   md.inliers.clear();
   std::vector<int> inliers;
   inliers.clear();
@@ -179,7 +178,7 @@ void localize_camera(const Sophus::SE3d& current_pose,
   opengv::bearingVectors_t bearing_vectors_1;
   opengv::points_t points_w;
 
-  for (const auto& match : md.matches) {
+  for (const auto &match : md.matches) {
     bearing_vectors_1.push_back(
         cam->unproject(kdl.corners[match.first]).normalized());
     points_w.push_back(landmarks.at(match.second).p);
@@ -219,7 +218,7 @@ void localize_camera(const Sophus::SE3d& current_pose,
   opengv::bearingVectors_t bearing_vectors_inliers;
   opengv::points_t points_w_inliers;
 
-  for (const auto& inlier : ransac.inliers_) {
+  for (const auto &inlier : ransac.inliers_) {
     bearing_vectors_inliers.push_back(bearing_vectors_1[inlier]);
     points_w_inliers.push_back(points_w[inlier]);
   }
@@ -246,10 +245,10 @@ void localize_camera(const Sophus::SE3d& current_pose,
 }
 
 void add_new_landmarks(const FrameCamId fcidl, const FrameCamId fcidr,
-                       const KeypointsData& kdl, const KeypointsData& kdr,
-                       const Calibration& calib_cam, const MatchData& md_stereo,
-                       const LandmarkMatchData& md, Landmarks& landmarks,
-                       TrackId& next_landmark_id) {
+                       const KeypointsData &kdl, const KeypointsData &kdr,
+                       const Calibration &calib_cam, const MatchData &md_stereo,
+                       const LandmarkMatchData &md, Landmarks &landmarks,
+                       TrackId &next_landmark_id) {
   // input should be stereo pair
   assert(fcidl.cam_id == 0);
   assert(fcidr.cam_id == 1);
@@ -283,7 +282,7 @@ void add_new_landmarks(const FrameCamId fcidl, const FrameCamId fcidr,
     }
   }
 
-  for (const auto& pair : map) {
+  for (const auto &pair : map) {
     FeatureId fid_l = pair.first;
     FeatureId fid_r = pair.second;
     TrackId tid = next_landmark_id;
@@ -321,9 +320,9 @@ void add_new_landmarks(const FrameCamId fcidl, const FrameCamId fcidr,
 }
 
 void remove_old_keyframes(const FrameCamId fcidl, const int max_num_kfs,
-                          Cameras& cameras, Landmarks& landmarks,
-                          Landmarks& old_landmarks,
-                          std::set<FrameId>& kf_frames) {
+                          Cameras &cameras, Landmarks &landmarks,
+                          Landmarks &old_landmarks,
+                          std::set<FrameId> &kf_frames) {
   kf_frames.emplace(fcidl.frame_id);
 
   // TODO SHEET 5: Remove old cameras and observations if the number of keyframe
@@ -343,7 +342,7 @@ void remove_old_keyframes(const FrameCamId fcidl, const int max_num_kfs,
     cameras.erase(fcid_l);
     cameras.erase(fcid_r);
 
-    for (auto& landmark : landmarks) {
+    for (auto &landmark : landmarks) {
       landmark.second.obs.erase(fcid_l);
       landmark.second.obs.erase(fcid_r);
       if (landmark.second.obs.size() == 0) {
@@ -364,4 +363,4 @@ void remove_old_keyframes(const FrameCamId fcidl, const int max_num_kfs,
   UNUSED(landmarks);
   UNUSED(old_landmarks);
 }
-}  // namespace visnav
+} // namespace visnav

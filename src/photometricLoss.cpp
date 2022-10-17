@@ -44,19 +44,9 @@ using namespace DSONL;
 
 int main(int argc, char **argv) {
 
-//	Eigen::Vector2i pixel_pos(173,333);
-//	Eigen::Vector2i pixel_pos(378,268);
+
 	Eigen::Vector2i pixel_pos(213,295);
-//	Eigen::Vector2i pixel_pos(370,488);
 	std::unordered_map<int, int> inliers_filter;
-	//new image
-//		inliers_filter.emplace(309,294); //yes
-//		inliers_filter.emplace(210,292); //yes
-//		inliers_filter.emplace(209,293); //yes
-//		inliers_filter.emplace(208,294); //yes
-//		inliers_filter.emplace(209,295); //yes
-//		inliers_filter.emplace(208,296); //yes
-//		inliers_filter.emplace(206,297); //yes
 	inliers_filter.emplace(173,333); //yes
 	inliers_filter.emplace(378,268); //yes
 
@@ -83,55 +73,19 @@ int main(int argc, char **argv) {
 	K=dataLoader->camera_intrinsics;
 	double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
 
-	Sophus::SE3d xi;
+	Sophus::SE3d xi, xi_copy;
 	Eigen::Matrix<double, 3,3> R;
-	Eigen::Matrix<double, 3,1> t;
-	R=q_12.normalized().toRotationMatrix();
-	t <<  3.5266,
-	      -0.1558,
-		  1.5840;
+	R=dataLoader->q_12 .normalized().toRotationMatrix();
 	xi.setRotationMatrix(R);
-	xi.translation()=t12;
+	xi.translation()=dataLoader->t12;
+
+	xi_copy=xi;
 	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
-
-
 
 // ------------------------------------------------------------------------------------------Movingleast algorithm---------------------------------------------------------------
 	std::vector<Eigen::Vector3d> pts;
 	cv::Mat normal_map(depth_ref.rows, depth_ref.cols, CV_64FC3);
-
-//	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
-//	{
-//		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
-//		{
-//
-//			double d=depth_ref.at<double>(u,v);
-//			double d_x1= depth_ref.at<double>(u,v+1);
-//			double d_y1= depth_ref.at<double>(u+1, v);
-//
-//			// calculate 3D point coordinate
-//			Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
-//			Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
-//			Eigen::Vector3d p_c1=d*p_3d_no_d;
-//
-//			pts.push_back(p_c1);
-//			Eigen::Matrix<double,3,1> normal, v_x, v_y;
-//			v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
-//			v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
-//			v_x=v_x.normalized();
-//			v_y=v_y.normalized();
-//            normal=v_y.cross(v_x);
-////			normal=v_x.cross(v_y);
-//			normal=normal.normalized();
-//
-//			normal_map.at<cv::Vec3d>(u, v)[0] = normal(0);
-//			normal_map.at<cv::Vec3d>(u, v)[1] = normal(1);
-//			normal_map.at<cv::Vec3d>(u, v)[2] = normal(2);
-//
-//		}
-//	}
-//	comp_accurate_normals(pts, normal_map);
-
+	//MLS();
 //	---------------------------------------------------------normal_map_GT---------------------------------------------------
 	Mat normal_map_GT;
 	normal_map_GT=dataLoader->normal_map_GT;
@@ -142,7 +96,7 @@ int main(int argc, char **argv) {
 
 			Eigen::Vector3d normal_new( normal_map_GT.at<Vec3f>(u,v)[2],  -normal_map_GT.at<Vec3f>(u,v)[1], normal_map_GT.at<Vec3f>(u,v)[0]);// !!!!!!!!!!!!!!!!!!!!!!!
 
-			normal_new= R1.transpose()*normal_new;
+			normal_new= dataLoader->R1.transpose()*normal_new;
 
 			Eigen::Vector3d principal_axis(0, 0, 1);
 			if(normal_new.dot(principal_axis)>0)
@@ -180,8 +134,11 @@ int main(int argc, char **argv) {
 		Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
         int i=0;
 		while ( i < 2){
-//			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
+
+			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
 			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap,newNormalMap,up_new, butt_new);
+
+
 			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi, upper, buttom, deltaMap);
 			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
 			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
@@ -189,10 +146,18 @@ int main(int argc, char **argv) {
 			imshow("show ES deltaMap", showESdeltaMap);
 			imwrite("GT_deltaMap.exr",showGTdeltaMap);
 			imwrite("ES_deltaMap.exr",showESdeltaMap);
+
+			cout << "\n Show initial pose:\n" << xi_copy.rotationMatrix() << "\n Show translation:\n" << xi_copy.translation()<<endl;
+			cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()
+			     << endl;
 			waitKey(0);
+
+
           i+=1;
 
 		}
+
+
 
 		cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()
 		     << endl;
@@ -200,6 +165,7 @@ int main(int argc, char **argv) {
 		cout<<"\n Show the optimized rotation as quaternion:"<<q_opt.w()<<","<<q_opt.x()<<","<<q_opt.y()<<","<<q_opt.z()<< endl;
 
 	}
-
+	// tidy up
+	delete dataLoader;
 	return 0;
 }

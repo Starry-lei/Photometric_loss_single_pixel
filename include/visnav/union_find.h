@@ -76,7 +76,7 @@ struct UnionFind {
   void Union(ValueType i, ValueType j) {
     i = Find(i);
     j = Find(j);
-    if (i == j) {  // Already in the same set. Nothing to do
+    if (i == j) { // Already in the same set. Nothing to do
       return;
     }
 
@@ -90,9 +90,10 @@ struct UnionFind {
     } else {
       m_cc_parent[j] = i;
       m_cc_size[i] += m_cc_size[j];
-      if (m_cc_rank[i] == m_cc_rank[j]) ++m_cc_rank[i];
+      if (m_cc_rank[i] == m_cc_rank[j])
+        ++m_cc_rank[i];
     }
   }
 };
 
-}  // namespace visnav
+} // namespace visnav

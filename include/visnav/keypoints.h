@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <pangolin/image/managed_image.h>
 
-#include <opencv2/imgproc/imgproc.hpp>
 #include <cmath>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include <map>
 #include <visnav/common_types.h>
@@ -132,8 +132,8 @@ char pattern_31_y_b[256] = {
     -9,  -1,  -2,  -8,  5,   10,  5,   5,   11,  -6,  -12, 9,   4,   -2, -2,
     -11};
 
-void detectKeypoints(const pangolin::ManagedImage<uint8_t>& img_raw,
-                     KeypointsData& kd, int num_features) {
+void detectKeypoints(const pangolin::ManagedImage<uint8_t> &img_raw,
+                     KeypointsData &kd, int num_features) {
   cv::Mat image(img_raw.h, img_raw.w, CV_8U, img_raw.ptr);
 
   std::vector<cv::Point2f> points;
@@ -150,15 +150,15 @@ void detectKeypoints(const pangolin::ManagedImage<uint8_t>& img_raw,
   }
 }
 
-void computeAngles(const pangolin::ManagedImage<uint8_t>& img_raw,
-                   KeypointsData& kd, bool rotate_features) {
+void computeAngles(const pangolin::ManagedImage<uint8_t> &img_raw,
+                   KeypointsData &kd, bool rotate_features) {
   kd.corner_angles.resize(kd.corners.size());
 
   int HALF_PATCH_SIZE = 15;
   // cv::Mat image(img_raw.h, img_raw.w, CV_8U, img_raw.ptr);
 
   for (size_t i = 0; i < kd.corners.size(); i++) {
-    const Eigen::Vector2d& p = kd.corners[i];
+    const Eigen::Vector2d &p = kd.corners[i];
 
     const int cx = p[0];
     const int cy = p[1];
@@ -189,14 +189,14 @@ void computeAngles(const pangolin::ManagedImage<uint8_t>& img_raw,
   }
 }
 
-void computeDescriptors(const pangolin::ManagedImage<uint8_t>& img_raw,
-                        KeypointsData& kd) {
+void computeDescriptors(const pangolin::ManagedImage<uint8_t> &img_raw,
+                        KeypointsData &kd) {
   kd.corner_descriptors.resize(kd.corners.size());
 
   for (size_t i = 0; i < kd.corners.size(); i++) {
     std::bitset<256> descriptor;
 
-    const Eigen::Vector2d& p = kd.corners[i];
+    const Eigen::Vector2d &p = kd.corners[i];
     const double angle = kd.corner_angles[i];
 
     const int cx = p[0];
@@ -216,7 +216,7 @@ void computeDescriptors(const pangolin::ManagedImage<uint8_t>& img_raw,
       // std::cout<<"show p_a" <<p_a(1)<<std::endl;;
       p_b << (double)pattern_31_x_b[i], (double)pattern_31_y_b[i];
 
-      Eigen::Vector2d temp_a = rotation * p_a;  //?
+      Eigen::Vector2d temp_a = rotation * p_a; //?
 
       p_a_prime << round(temp_a(0)), round(temp_a(1));
 
@@ -241,7 +241,7 @@ void computeDescriptors(const pangolin::ManagedImage<uint8_t>& img_raw,
 }
 
 void detectKeypointsAndDescriptors(
-    const pangolin::ManagedImage<uint8_t>& img_raw, KeypointsData& kd,
+    const pangolin::ManagedImage<uint8_t> &img_raw, KeypointsData &kd,
     int num_features, bool rotate_features) {
   detectKeypoints(img_raw, kd, num_features);
   computeAngles(img_raw, kd, rotate_features);
@@ -253,9 +253,9 @@ void detectKeypointsAndDescriptors(
 // {
 //     return (std::get<2>(a) < std::get<2>(b));
 // }
-void matchDescriptors(const std::vector<std::bitset<256>>& corner_descriptors_1,
-                      const std::vector<std::bitset<256>>& corner_descriptors_2,
-                      std::vector<std::pair<int, int>>& matches, int threshold,
+void matchDescriptors(const std::vector<std::bitset<256>> &corner_descriptors_1,
+                      const std::vector<std::bitset<256>> &corner_descriptors_2,
+                      std::vector<std::pair<int, int>> &matches, int threshold,
                       double dist_2_best) {
   matches.clear();
 
@@ -269,7 +269,7 @@ void matchDescriptors(const std::vector<std::bitset<256>>& corner_descriptors_1,
     int sm_idx = -1;
     for (size_t q_j = 0; q_j < corner_descriptors_2.size(); q_j++) {
       int Hamming_dist = (corner_descriptors_1[p_i] ^ corner_descriptors_2[q_j])
-                             .count();  // the number of bits that are different
+                             .count(); // the number of bits that are different
 
       if (Hamming_dist < smallest_d) {
         int temp = smallest_d;
@@ -296,7 +296,7 @@ void matchDescriptors(const std::vector<std::bitset<256>>& corner_descriptors_1,
     int sm_idx = -1;
     for (size_t p_j = 0; p_j < corner_descriptors_1.size(); p_j++) {
       int Hamming_dist = (corner_descriptors_2[q_i] ^ corner_descriptors_1[p_j])
-                             .count();  // the number of bits that are different
+                             .count(); // the number of bits that are different
 
       if (Hamming_dist < smallest_d) {
         int temp = smallest_d;
@@ -331,4 +331,4 @@ void matchDescriptors(const std::vector<std::bitset<256>>& corner_descriptors_1,
   UNUSED(dist_2_best);
 }
 
-}  // namespace visnav
+} // namespace visnav

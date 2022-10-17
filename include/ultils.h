@@ -14,6 +14,7 @@
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 #include <Eigen/Geometry>
+#include <sophus/se3.hpp>
 
 
 #include <ceres/ceres.h>
@@ -472,7 +473,6 @@ namespace DSONL{
 			// set all nan zero
 			Mat mask = Mat(depth_d != depth_d);
 			depth_d.setTo(0.0, mask);
-
 			K_d = K;
 			return;
 		}
@@ -1234,6 +1234,45 @@ namespace DSONL{
 	bool removeNegativeValue(Mat& src, Mat& dst){
 		dst = cv::max(src, 0);
 		return true;
+	}
+
+
+	void MLS(){
+
+		//	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
+//	{
+//		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
+//		{
+//
+//			double d=depth_ref.at<double>(u,v);
+//			double d_x1= depth_ref.at<double>(u,v+1);
+//			double d_y1= depth_ref.at<double>(u+1, v);
+//
+//			// calculate 3D point coordinate
+//			Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
+//			Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
+//			Eigen::Vector3d p_c1=d*p_3d_no_d;
+//
+//			pts.push_back(p_c1);
+//			Eigen::Matrix<double,3,1> normal, v_x, v_y;
+//			v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
+//			v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
+//			v_x=v_x.normalized();
+//			v_y=v_y.normalized();
+//            normal=v_y.cross(v_x);
+////			normal=v_x.cross(v_y);
+//			normal=normal.normalized();
+//
+//			normal_map.at<cv::Vec3d>(u, v)[0] = normal(0);
+//			normal_map.at<cv::Vec3d>(u, v)[1] = normal(1);
+//			normal_map.at<cv::Vec3d>(u, v)[2] = normal(2);
+//
+//		}
+//	}
+//	comp_accurate_normals(pts, normal_map);
+
+
+
 	}
 
 	void DrawHist(Mat& src, float& upper_bound, float & lower_bound , string& name){
