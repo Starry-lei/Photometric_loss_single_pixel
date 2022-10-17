@@ -45,12 +45,12 @@ namespace DSONL{
 
 
 	// RGB image with texture
-//	string image_ref_path = "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";
-//	string image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
+	string image_ref_path = "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";
+	string image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
 
-	// HD RGB image with texture
-	string image_ref_path = "../data/rgb/HDdataset/rt_16_40_56_cam11__rgb.exr";
-	string image_target_path = "../data/rgb/HDdataset/rt_16_40_56_cam55__rgb.exr";
+//	// HD RGB image with texture
+//	string image_ref_path = "../data/rgb/HDdataset/rt_16_40_56_cam11__rgb.exr";
+//	string image_target_path = "../data/rgb/HDdataset/rt_16_40_56_cam55__rgb.exr";
 
 	// RGB image without texture
 //	string image_ref_path = "../data/rgb/No_Texture_Images/rt_16_4_56_cam1_notexture.exr";
@@ -59,12 +59,12 @@ namespace DSONL{
 
 
 //	// BaseColor Image with texture
-//	string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam1_texture_basecolor.exr";
-//	string image_target_baseColor = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
+	string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam1_texture_basecolor.exr";
+	string image_target_baseColor = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
 
    // HD BaseColor Image with texture
-	string image_ref_baseColor_path = "../data/rgb/HDdataset/rt_16_35_53_cam11__basecolor.exr";
-	string image_target_baseColor = "../data/rgb/HDdataset/rt_16_35_53_cam55__basecolor.exr";
+//	string image_ref_baseColor_path = "../data/rgb/HDdataset/rt_16_35_53_cam11__basecolor.exr";
+//	string image_target_baseColor = "../data/rgb/HDdataset/rt_16_35_53_cam55__basecolor.exr";
 
 	// BaseColor Image without texture
 //	string image_ref_baseColor_path = "../data/rgb/No_Texture_Images/rt_16_5_47_cam1_notexture_basecolor.exr";
@@ -72,12 +72,12 @@ namespace DSONL{
 
 
 //	// Depth map
-//	string depth_ref_path = "../data/depth/cam1_depth.exr";
-//	string depth_target_path = "../data/depth/cam5_depth.exr";
+	string depth_ref_path = "../data/depth/cam1_depth.exr";
+	string depth_target_path = "../data/depth/cam5_depth.exr";
 
 	// Depth map
-	string depth_ref_path = "../data/rgb/HDdataset/rt_16_36_54_cam11_depth.exr";
-	string depth_target_path = "../data/rgb/HDdataset/rt_16_36_54_cam55_depth.exr";
+//	string depth_ref_path = "../data/rgb/HDdataset/rt_16_36_54_cam11_depth.exr";
+//	string depth_target_path = "../data/rgb/HDdataset/rt_16_36_54_cam55_depth.exr";
 
 
 	Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
@@ -85,12 +85,12 @@ namespace DSONL{
 
 
 //	// Metallic and Roughness
-//	string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
-//	string image_target_MR_path = "../data/rgb/vp5_mr.png";
+	string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
+	string image_target_MR_path = "../data/rgb/vp5_mr.png";
 
 	// Metallic and Roughness
-	string image_ref_MR_path = "../data/rgb/HDdataset/rt_16_47_3_cam11__mr.exr"; // store value in rgb channels,  channel b: metallic, channel green: roughness
-	string image_target_MR_path = "../data/rgb/HDdataset/rt_16_47_3_cam55__mr.exr";
+//	string image_ref_MR_path = "../data/rgb/HDdataset/rt_16_47_3_cam11__mr.exr"; // store value in rgb channels,  channel b: metallic, channel green: roughness
+//	string image_target_MR_path = "../data/rgb/HDdataset/rt_16_47_3_cam55__mr.exr";
 
 
 	Mat image_ref_baseColor= imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
@@ -101,8 +101,9 @@ namespace DSONL{
 	Mat image_ref = imread(image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 	Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 
-	// normal map GT
-	cv::Mat normal_map_GT = cv::imread("../data/rgb/normalMap/rt_23_26_45_cam1_normdir.exr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+//	// normal map GT
+//	cv::Mat normal_map_GT = cv::imread("../data/rgb/normalMap/rt_23_26_45_cam1_normdir.exr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+	cv::Mat normal_map_GT = cv::imread("../data/rgb/normalMap/rt_20_26_27_cam11_norm.exr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
 
 
 

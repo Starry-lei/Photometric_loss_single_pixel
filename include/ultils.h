@@ -946,6 +946,10 @@ namespace DSONL{
 
 	    imshow("orig_show",orig_show);
 	    imshow("adj_show",adj_show);
+
+	    imwrite("orig_show.png",orig_show);
+	    imwrite("adj_show.png",adj_show);
+
 //	    waitKey(0);
 	}
 
@@ -1019,8 +1023,7 @@ namespace DSONL{
 //						          << " " << (*cloud_rig)[ pointIdxRadiusSearch[0] ].z
 //						          << " (squared distance: " << pointRadiusSquaredDistance[0] << ")" << std::endl;
 //
-
-					double left_intensity=Img_left.at<double>(x,y);
+					float left_intensity=Img_left.at<double>(x,y);
 					float pointCorres_x= (*cloud_rig)[ pointIdxRadiusSearch[0] ].x;
 					float pointCorres_y= (*cloud_rig)[ pointIdxRadiusSearch[0] ].y;
 					float pointCorres_z= (*cloud_rig)[ pointIdxRadiusSearch[0] ].z;
@@ -1073,7 +1076,7 @@ namespace DSONL{
 		showMinus(minus_original,minus_adjust, minus_mask);
 
 //		writer.write("PointCloud_Transformed.pcd",*cloud, false);// do we need the sensor acquisition origin?
-//		writer.write("PointCloud_right.pcd",*cloud_rig, false);// do we need the sensor acquisition origin?
+//		writer.write("PointCloud_right_HD.pcd",*cloud_rig, false);// do we need the sensor acquisition origin?
 
 		double  max_n, min_n;
 		cv::minMaxLoc(deltaMapGT, &min_n, &max_n);

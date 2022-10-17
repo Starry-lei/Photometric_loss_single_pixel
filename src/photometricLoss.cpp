@@ -62,8 +62,8 @@ int main(int argc, char **argv) {
 	Mat image_ref_roughness= ref_mr_table[1];
 
 
-//	image_ref_metallic.convertTo(image_ref_metallic, CV_32FC1,1.0 / 255.0);
-//	image_ref_roughness.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
+	image_ref_metallic.convertTo(image_ref_metallic, CV_32FC1,1.0 / 255.0);
+	image_ref_roughness.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
 // no need to convertTO
 //	image_ref_metallic.convertTo(image_ref_metallic, CV_32FC1,1.0 / 255.0);
 //	image_ref_roughness.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
@@ -78,10 +78,10 @@ int main(int argc, char **argv) {
 	split(image_target_MR,taget_mr_table);// 0: red, 1: green, 2: blue
 	Mat image_target_metallic=  taget_mr_table[2];
 	Mat image_target_roughness= taget_mr_table[1];
-//	image_target_metallic.convertTo(image_target_metallic, CV_64FC1,1.0 / 255.0);
-//	image_target_roughness.convertTo(image_target_roughness, CV_64FC1,1.0 / 255.0);
-	image_target_metallic.convertTo(image_target_metallic, CV_64FC1);
-	image_target_roughness.convertTo(image_target_roughness, CV_64FC1);
+	image_target_metallic.convertTo(image_target_metallic, CV_64FC1,1.0 / 255.0);
+	image_target_roughness.convertTo(image_target_roughness, CV_64FC1,1.0 / 255.0);
+//	image_target_metallic.convertTo(image_target_metallic, CV_64FC1);
+//	image_target_roughness.convertTo(image_target_roughness, CV_64FC1);
 //	imshow("image_ref_metallic",image_ref_metallic);
 //	imshow("image_ref_roughness",image_ref_roughness);
 //	imageInfo(image_target_MR_path, pixel_pos);
@@ -121,12 +121,13 @@ int main(int argc, char **argv) {
 
 
 
-
-
-
 	K<< 800.0, 0, 320,
 	    0, 800.0, 240,
 		0,   0,  1;
+
+//	K<< 3200.0, 0, 1280.0,
+//	    0, 3200.0, 720.0,
+//		0,   0,  1;
 
     M << 1.0/(tan(0.5*fov_y)*aspect), 0, 0, 0,
       0,  atan(0.5*fov_y), 0   ,  0,
@@ -161,75 +162,75 @@ int main(int argc, char **argv) {
 
 
 
+		double distanceThres=0.07;
 
-	double distanceThres=0.07;
+	// HD distanceThres
+//	double distanceThres=0.14;
+
 	float upper=5; // 2.09998gt   // 0.335897
 	float buttom=0.2;
-//	Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi, upper, buttom);
-//
-//
-
+	//	Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi, upper, buttom);
 	//	double mingt, maxgt;
-//	cv::minMaxLoc(deltaMapGT_res, &mingt, &maxgt);
-//	cout<<"show the deltaMapGT_res value range"<<"min:"<<mingt<<"max:"<<maxgt<<endl;
+	//	cv::minMaxLoc(deltaMapGT_res, &mingt, &maxgt);
+	//	cout<<"show the deltaMapGT_res value range"<<"min:"<<mingt<<"max:"<<maxgt<<endl;
 
 	std::vector<Eigen::Vector3d> pts;
 	cv::Mat normal_map(depth_ref.rows, depth_ref.cols, CV_64FC3);
 	double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
 
-//	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
-//	{
-//		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
-//		{
-//
-//			double d=depth_ref.at<double>(u,v);
-//			double d_x1= depth_ref.at<double>(u,v+1);
-//			double d_y1= depth_ref.at<double>(u+1, v);
-//
-//			// calculate 3D point coordinate
-//			Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
-//			Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
-//			Eigen::Vector3d p_c1=d*p_3d_no_d;
-//
-//			pts.push_back(p_c1);
-//			Eigen::Matrix<double,3,1> normal, v_x, v_y;
-//			v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
-//			v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
-//			v_x=v_x.normalized();
-//			v_y=v_y.normalized();
-//            normal=v_y.cross(v_x);
-////			normal=v_x.cross(v_y);
-//			normal=normal.normalized();
-//
-//			normal_map.at<cv::Vec3d>(u, v)[0] = normal(0);
-//			normal_map.at<cv::Vec3d>(u, v)[1] = normal(1);
-//			normal_map.at<cv::Vec3d>(u, v)[2] = normal(2);
-//
-//		}
-//	}
-//	comp_accurate_normals(pts, normal_map);
-
-//	normal_map_GT
-//
 	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
 	{
 		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
 		{
 
-			Eigen::Vector3d normal_new( normal_map_GT.at<Vec3f>(u,v)[2],  normal_map_GT.at<Vec3f>(u,v)[1], normal_map_GT.at<Vec3f>(u,v)[0]);
+			double d=depth_ref.at<double>(u,v);
+			double d_x1= depth_ref.at<double>(u,v+1);
+			double d_y1= depth_ref.at<double>(u+1, v);
 
-			Eigen::Vector3d principal_axis(0, 0, 1);
-			if(normal_new.dot(principal_axis)>0)
-			{
-				normal_new = -normal_new;
-			}
+			// calculate 3D point coordinate
+			Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
+			Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
+			Eigen::Vector3d p_c1=d*p_3d_no_d;
 
-			normal_map.at<Vec3d>(u,v)[0]=normal_new(0);
-			normal_map.at<Vec3d>(u,v)[1]=normal_new(1);
-			normal_map.at<Vec3d>(u,v)[2]=normal_new(2);
+			pts.push_back(p_c1);
+			Eigen::Matrix<double,3,1> normal, v_x, v_y;
+			v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
+			v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
+			v_x=v_x.normalized();
+			v_y=v_y.normalized();
+            normal=v_y.cross(v_x);
+//			normal=v_x.cross(v_y);
+			normal=normal.normalized();
+
+			normal_map.at<cv::Vec3d>(u, v)[0] = normal(0);
+			normal_map.at<cv::Vec3d>(u, v)[1] = normal(1);
+			normal_map.at<cv::Vec3d>(u, v)[2] = normal(2);
 
 		}
 	}
+	comp_accurate_normals(pts, normal_map);
+
+//	normal_map_GT
+////
+//	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
+//	{
+//		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
+//		{
+//
+//			Eigen::Vector3d normal_new( normal_map_GT.at<Vec3f>(u,v)[2],  -normal_map_GT.at<Vec3f>(u,v)[1], normal_map_GT.at<Vec3f>(u,v)[0]);
+//
+//			Eigen::Vector3d principal_axis(0, 0, 1);
+//			if(normal_new.dot(principal_axis)>0)
+//			{
+//				normal_new = -normal_new;
+//			}
+//
+//			normal_map.at<Vec3d>(u,v)[0]=normal_new(0);
+//			normal_map.at<Vec3d>(u,v)[1]=normal_new(1);
+//			normal_map.at<Vec3d>(u,v)[2]=normal_new(2);
+//
+//		}
+//	}
 
 
 
@@ -384,6 +385,8 @@ int main(int argc, char **argv) {
 			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
 			imshow("show GT deltaMap", showGTdeltaMap);
 			imshow("show ES deltaMap", showESdeltaMap);
+			imwrite("GT_deltaMap.png",showGTdeltaMap);
+			imwrite("ES_deltaMap.png",showESdeltaMap);
 
 			waitKey(0);
           i+=1;
