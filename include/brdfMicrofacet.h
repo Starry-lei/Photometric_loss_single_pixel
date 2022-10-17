@@ -100,6 +100,7 @@ namespace DSONL {
 
 //			brdf_value=0.299*lightingModel.val[0]+0.587*lightingModel.val[1]+0.114*lightingModel.val[2];// 0R,1G,2B
 		}
+		~BrdfMicrofacet(){};
         Vec3f D;
 		Vec3f F;
 		float G;
@@ -107,10 +108,7 @@ namespace DSONL {
 		Vec3f diffuseColorVec;
 		Vec3f brdf_value_c3;
 		Vec3f specColor_;
-//		float NdotH_GT_;
-//		float NdotL_GT_;
-//		float NdotV_GT_;
-//		float brdf_value;
+
 
 		Vec3f GGXNormalDistribution(float roughness, float NdotH);
 		Vec3f NewSchlickFresnelFunction(float ior, Vec3f Color, float LdotH, float Metallicness);

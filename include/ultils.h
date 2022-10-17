@@ -57,6 +57,84 @@ namespace DSONL{
 	};
 
 
+	void newNormal(){
+		// filtered normal map
+//	cv::Mat normal_map_sdf(480, 640, CV_32FC3);
+//	cv::Mat nx, ny, nz, med_depth;
+//	std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+//	NormalEstimator<float>* NEst;
+//	NEst = new NormalEstimator<float>(640, 480, K, cv::Size(2*5+1, 2*5+1));
+////	NEst = new NormalEstimator<float>(640, 480, K_, cv::Size(2*3+1, 2*3+1));
+//
+//	NEst->compute(depth_ref,nx, ny, nz);
+//	cv::Mat* x0_ptr = NEst->x0_ptr();
+//	cv::Mat* y0_ptr = NEst->y0_ptr();
+//	cv::Mat* n_sq_inv_ptr = NEst->n_sq_inv_ptr();
+//	const float* nx_ptr = (const float*)nx.data;
+//	const float* ny_ptr = (const float*)ny.data;
+//	const float* nz_ptr = (const float*)nz.data;
+//
+//	const float* x_hom_ptr = (const float*)x0_ptr->data;
+//	const float* y_hom_ptr = (const float*)y0_ptr->data;
+//
+//	const float* hom_inv_ptr = (const float*)n_sq_inv_ptr->data;
+//	const float* z_ptr = (const float*)depth_ref.data;
+//	const float* zm_ptr = (const float*)med_depth.data;
+//
+//	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
+//	{
+//		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
+//		{
+//			const size_t idx = u * depth_ref.cols + v;
+//			const float z = z_ptr[idx];
+//
+////	        if (z <= 0.5 || z >= 65.0 ) // z out of range or unreliable z
+////		        continue;
+//
+//			const Eigen::Vector3f  xy_hom(x_hom_ptr[idx], y_hom_ptr[idx], 1.);
+//			const Eigen::Vector3f normal(nx_ptr[idx], ny_ptr[idx], nz_ptr[idx]);
+//			if (normal.squaredNorm() < .1) {continue; }
+//			if (normal.dot(xy_hom) * normal.dot(xy_hom) * hom_inv_ptr[idx] < .25) // normal direction too far from viewing ray direction (>72.5°)
+//				continue;
+//
+////	        Vec3f d_n_rgb( normal.normalized().z()*0.5+0.5,  normal.normalized().y()*0.5+0.5,  normal.normalized().x()*0.5+0.5);
+//	        Vec3f d_n_rgb( normal.normalized().z(),  normal.normalized().y(),  normal.normalized().x());
+////			Vec3f d_n_rgb( normal.z(),  normal.y(),  normal.x());
+//			normal_map_sdf.at<Vec3f>(u,v)=d_n_rgb;
+//
+//		}
+//	}
+//	std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+//	std::chrono::duration<double> time_used =
+//			std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+//	cout << "construct the normals: " << time_used.count() << " seconds." << endl;
+//
+////	imshow("newNormalmap_sdf", normal_map_sdf);
+////
+////	waitKey(0);
+//
+//	for (int u = 0; u< depth_ref.rows; u++) // colId, cols: 0 to 480
+//	{
+//		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
+//		{
+//
+//			Eigen::Vector3d normal_new( normal_map_sdf.at<Vec3f>(u,v)[2],  normal_map_sdf.at<Vec3f>(u,v)[1], normal_map_sdf.at<Vec3f>(u,v)[0]);
+//
+//			Eigen::Vector3d principal_axis(0, 0, 1);
+//			if(normal_new.dot(principal_axis)>0)
+//			{
+//				normal_new = -normal_new;
+//			}
+//
+//			normal_map.at<Vec3d>(u,v)[0]=normal_new(0);
+//			normal_map.at<Vec3d>(u,v)[1]=normal_new(1);
+//			normal_map.at<Vec3d>(u,v)[2]=normal_new(2);
+//
+//		}
+//	}
+//
+
+	}
 
 
 
@@ -246,10 +324,10 @@ namespace DSONL{
 
 
 	// show image function
-	void imageInfo(string& img_path,  Eigen::Vector2i& position ){
+	void imageInfo(Mat im_,  Eigen::Vector2i& position ){
 
 		//position,  fst is rowIdx, snd is colIdx
-		Mat im= imread(img_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+		Mat im=im_ ;
        int img_depth= im.depth();
 		switch (img_depth) {
 			case 0:cout<<"The data type of current image is CV_8U. \n"<<endl;
