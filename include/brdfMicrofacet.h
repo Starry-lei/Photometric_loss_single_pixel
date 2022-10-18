@@ -85,9 +85,6 @@ namespace DSONL {
 			roughnessValue=roughnessValue_;
 			metallicValue=metallicValue_;
 			specColor_= specColor(baseColor, metallicValue);
-//			NdotH_GT_=NdotH_GT;
-//			NdotL_GT_=NdotL_GT;
-//			NdotV_GT_=NdotV_GT;
 //			D= GGXNormalDistribution(roughnessValue, NdotH);// calculate the normal distribution function result
 			D= GGXNormalDistribution(roughnessValue, NdotH);
 
@@ -96,7 +93,6 @@ namespace DSONL {
 			specularityVec=specularity(F,D,G, NdotL, NdotV);
 			diffuseColorVec=diffuseColor(baseColor, metallicValue);
 			brdf_value_c3= brdfMicrofacet(baseColor,metallicValue, specularityVec, NdotL);
-
 
 //			brdf_value=0.299*lightingModel.val[0]+0.587*lightingModel.val[1]+0.114*lightingModel.val[2];// 0R,1G,2B
 		}
@@ -108,10 +104,7 @@ namespace DSONL {
 		Vec3f diffuseColorVec;
 		Vec3f brdf_value_c3;
 		Vec3f specColor_;
-//		float NdotH_GT_;
-//		float NdotL_GT_;
-//		float NdotV_GT_;
-//		float brdf_value;
+
 
 		Vec3f GGXNormalDistribution(float roughness, float NdotH);
 		Vec3f NewSchlickFresnelFunction(float ior, Vec3f Color, float LdotH, float Metallicness);
@@ -192,11 +185,9 @@ namespace DSONL {
 
 	Vec3f BrdfMicrofacet:: brdfMicrofacet (  Vec3f baseColor ,float _Metallic, Vec3f specularity, float  NdotL){
 
-		Vec3f diffuseColor_=diffuseColor( baseColor ,_Metallic);
-
+		Vec3f diffuseColor_=diffuseColor(baseColor, _Metallic);
 		Vec3f brdf_Val = specularity+diffuseColor_;
 //		Vec3f brdf_Val = specularity;
-
 //		brdf_Val *= NdotL;
 
 		return brdf_Val;
@@ -242,10 +233,6 @@ namespace DSONL {
 			}
 		}
 		output=output*(1.0/(upper-buttom))+(-buttom*(1.0/(upper-buttom)));
-
-
-
-
 	}
 
 
@@ -285,31 +272,17 @@ namespace DSONL {
 //				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~
 //				cout<<"show delta:"<<deltaMap.at<double>(u,v)<<endl;
 
-//				if (depth_map.at<double>(u,v) < 1e-3 ) { continue; }//???????????????????????????????????????????????
 				Eigen::Vector2d pixelCoord((double)v,(double)u);//  u is the row id , v is col id
 				double d=depth_map.at<double>(u,v);
-//				double d_x1= depth_map.at<double>(u,v+1);
-//				double d_y1= depth_map.at<double>(u+1, v);
 				// calculate 3D point coordinate
 				Eigen::Vector3d p_3d_no_d((pixelCoord(0)-cx)/fx, (pixelCoord(1)-cy)/fy,1.0);
 				Eigen::Vector3d p_c1=d*p_3d_no_d;
 
 
-
-
 				// record point cloud
 //				cloud->push_back(pcl::PointXYZ(p_c1.x(), p_c1.y(), p_c1.z()));
-
-
 				// calculate normal for each point
-				// TODO: calculate another 5 normals for the same point
-//				Eigen::Matrix<double, 3,1> normal, v_x, v_y;
-//				v_x <<  ((d_x1-d)*(v-cx)+d_x1)/fx, (d_x1-d)*(u-cy)/fy , (d_x1-d);
-//				v_y << (d_y1-d)*(v-cx)/fx,(d_y1+ (d_y1-d)*(u-cy))/fy, (d_y1-d);
-//				v_x=v_x.normalized();
-//				v_y=v_y.normalized();
-//				normal=v_y.cross(v_x);
-//				normal=normal.normalized();
+
 
 				Eigen::Matrix<double,3,1> normal;
 				normal.x()= newNormalMap.at<Vec3d>(u,v)[0];
@@ -333,10 +306,6 @@ namespace DSONL {
 //				if ( image_baseColor.at<Vec3f>(u,v)[1]<0.01 ){ continue;}
 				Vec3f baseColor(image_baseColor.at<Vec3f>(u,v)[2],image_baseColor.at<Vec3f>(u,v)[1],image_baseColor.at<Vec3f>(u,v)[0]);
 
-				// correspondence base color
-//				Vec3f baseColor_right(image_right_baseColor.at<Vec3f>(u,v)[2],image_right_baseColor.at<Vec3f>(u,v)[1],image_right_baseColor.at<Vec3f>(u,v)[0]);
-
-
 				Vec3f L_(alpha_1(0),alpha_1(1),alpha_1(2));
 				Vec3f N_(normal(0),normal(1),normal(2));
 				Vec3f View_beta(beta(0),beta(1),beta(2));
@@ -345,19 +314,20 @@ namespace DSONL {
 
 				BrdfMicrofacet radiance_beta_vec(L_,N_,View_beta,(float )roughness,(float)metallic,baseColor);
 				Vec3f radiance_beta= radiance_beta_vec.brdf_value_c3;
-//				Vec3f checkVariable= radiance_beta_vec.specularityVec;
 
 				BrdfMicrofacet radiance_beta_prime_vec(L_,N_,View_beta_prime,(float )roughness,(float)metallic,baseColor);
 				Vec3f radiance_beta_prime= radiance_beta_prime_vec.brdf_value_c3;
-				double delta_r= radiance_beta.val[0]/ radiance_beta_prime.val[0];
-				double delta_g= radiance_beta.val[1]/ radiance_beta_prime.val[1];
-				double delta_b= radiance_beta.val[2]/ radiance_beta_prime.val[2];
+				// right intensity / left intensity
+				float delta_r= radiance_beta_prime.val[0]/radiance_beta.val[0];
+				float delta_g= radiance_beta_prime.val[1]/radiance_beta.val[1];
+				float delta_b= radiance_beta_prime.val[2]/radiance_beta.val[2];
+//				float delta_r= radiance_beta.val[0]/radiance_beta_prime.val[0];
+//				float delta_g= radiance_beta.val[1]/radiance_beta_prime.val[1];
+//				float delta_b= radiance_beta.val[2]/radiance_beta_prime.val[2];
 
 
 				deltaMap.at<float>(u,v)= delta_g;
-//				deltaMap.at<Vec3f>(u,v)[0]= delta_g;
-//				deltaMap.at<Vec3f>(u,v)[1]= delta_g;
-//				deltaMap.at<Vec3f>(u,v)[2]= delta_g;
+
 			}
 		}
 		double  max_n, min_n;
@@ -373,11 +343,6 @@ namespace DSONL {
 //		deltaMap.setTo(1.0, mask);
 
 //		deltaMap=deltaMap*(1.0/(upper_b-lower_b))+(-lower_b*(1.0/(upper_b-lower_b)));
-
-//		deltaMap=coloredDeltaMap;
-//		string ESHist="normal map ES";
-//		DrawHist(deltaMap,upper_b,lower_b, ESHist);
-
 	}
 
 

@@ -82,7 +82,7 @@ namespace DSONL{
 			double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
 			Eigen::Matrix<double,3,1> p_3d_no_d;
 			p_3d_no_d<< (pixelCoor_(0)-cx)/fx, (pixelCoor_(1)-cy)/fy,1.0;
-			T d, u_, v_, intensity_image_ref,d_x1,d_y1,delta;
+			T d, u_, v_, intensity_image_ref,d_x1,d_y1, delta;
 			u_=(T)pixelCoor_(1);
 			v_=(T)pixelCoor_(0);
 			interp_depth->Evaluate(u_,v_, &d);
@@ -91,7 +91,10 @@ namespace DSONL{
 			interp_img_ref->Evaluate(u_,v_, &intensity_image_ref);
 			Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
 
+			double delta_falg;
+
 			interp_deltaMap->Evaluate(u_,v_,&delta);
+			interp_deltaMap->Evaluate(pixelCoor_(1),pixelCoor_(0),&delta_falg);
 
 			Eigen::Matrix<T, 3, 1> p1 = Tran * p_c1 ;
 			Eigen::Matrix<T, 3, 1> pt = K_ * p1;
@@ -99,16 +102,14 @@ namespace DSONL{
 			T x = (pt[0] / pt[2]); // col id
 			T y = (pt[1] / pt[2]);// row id
 
-//			if (x< (T)0 || x> (T)640 || y<(T)0 || y>(T)480){
-//				return false;
-//			}
+			if (x> (T)0 && x< (T)640 && y>(T)0 && y<(T)480 && (!isnan(delta_falg))){
+				T pixel_gray_val_out;
+				get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out);
+				residual[0] = delta*intensity_image_ref - pixel_gray_val_out;
+				return true;
+			}
 
-			T pixel_gray_val_out;
-			get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out);
 
-			residual[0] = intensity_image_ref - delta*pixel_gray_val_out;
-
-			return true;
 		}
 
 

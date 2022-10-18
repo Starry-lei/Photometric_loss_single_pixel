@@ -855,6 +855,17 @@ namespace DSONL{
 
 	}
 
+	template<typename T>
+	T rotationErr(Eigen::Matrix<T, 3,3> rotation_gt, Eigen::Matrix<T, 3,3>rotation_rs){
+
+		T compare1= max(acos(rotation_gt.col(0).dot(rotation_rs.col(0))) , acos(rotation_gt.col(1).dot(rotation_rs.col(1))));
+		return max(compare1, acos(rotation_gt.col(2).dot(rotation_rs.col(2))) ) * 180.0/ M_PI;
+
+	}
+	template<typename T>
+	T translationErr(Eigen::Matrix<T, 3,1> translation_gt, Eigen::Matrix<T, 3,1> translation_es){
+		return (translation_gt-translation_es).norm() / translation_gt.norm() ;
+	}
 
 	Mat colorMap(Mat& deltaMap, float upper, float lower){
 		Mat deltaMap_Color(deltaMap.rows, deltaMap.cols, CV_32FC3, Scalar(0,0,0));
@@ -1108,7 +1119,7 @@ namespace DSONL{
 					float pixel_x=(fx*pointCorres_x)/pointCorres_z+cx;
 					float pixel_y= (fy*pointCorres_y)/pointCorres_z+cy;
 					float right_intensity=Img_right.at<double>(round(pixel_y), round(pixel_x));
-					float delta=left_intensity/right_intensity;
+					float delta=right_intensity/left_intensity;
                     //float delta= abs(left_intensity-right_intensity);
 
 					float diff_orig=std::abs(left_intensity-right_intensity);
@@ -1160,8 +1171,7 @@ namespace DSONL{
 		cv::minMaxLoc(deltaMapGT, &min_n, &max_n);
 //		deltaMapGT=deltaMapGT*(1.0/(upper-buttom))+(-buttom*(1.0/(upper-buttom)));
 		cout<<"\n show max and min of deltaMapGT:\n"<< max_n <<","<<min_n<<endl;
-//		imshow("DeltaMapGT", deltaMapGT);
-//		waitKey(0);
+
 
 		return deltaMapGT;
 	}

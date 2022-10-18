@@ -65,6 +65,10 @@ int main(int argc, char **argv) {
 	grayImage_ref.convertTo(grayImage_ref,CV_64FC1);
 	grayImage_target.convertTo(grayImage_target, CV_64FC1);
 
+//	showImage(grayImage_ref,"grayImage_ref");
+//	showImage(grayImage_target,"grayImage_target");
+//	waitKey(0);
+
 	depth_ref=dataLoader->depth_map_ref;
 	depth_target=dataLoader->depth_map_target;
 	image_ref_baseColor= dataLoader->image_ref_baseColor;
@@ -73,14 +77,20 @@ int main(int argc, char **argv) {
 	K=dataLoader->camera_intrinsics;
 	double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
 
-	Sophus::SE3d xi, xi_copy;
+	Sophus::SE3d xi, xi_GT;
 	Eigen::Matrix<double, 3,3> R;
 	R=dataLoader->q_12 .normalized().toRotationMatrix();
-	xi.setRotationMatrix(R);
-	xi.translation()=dataLoader->t12;
 
-	xi_copy=xi;
+	// initialize the pose xi
+//	xi.setRotationMatrix(R);
+//	xi.translation()=dataLoader->t12;
+
+	xi_GT.setRotationMatrix(R);
+	xi_GT.translation()=dataLoader->t12;
+
+
 	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
+	cout << "\n Show GT pose:\n" << xi_GT.rotationMatrix() << "\n Show GT translation:\n" << xi_GT.translation()<<endl;
 
 // ------------------------------------------------------------------------------------------Movingleast algorithm---------------------------------------------------------------
 	std::vector<Eigen::Vector3d> pts;
@@ -138,19 +148,20 @@ int main(int argc, char **argv) {
 			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
 			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap,newNormalMap,up_new, butt_new);
 
+//			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
+//			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
+//			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
+//			imshow("show GT deltaMap", showGTdeltaMap);
+//			imshow("show ES deltaMap", showESdeltaMap);
+//			imwrite("GT_deltaMap.exr",showGTdeltaMap);
+//			imwrite("ES_deltaMap.exr",showESdeltaMap);
+//
+			cout << "\n Show initial pose:\n" << xi_GT.rotationMatrix() << "\n Show translation:\n" << xi_GT.translation()<<endl;
+			cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<< endl;
+			cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(), xi.rotationMatrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), xi.translation()) <<"(%) "<<endl;
+//			waitKey(0);
 
-			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi, upper, buttom, deltaMap);
-			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
-			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
-			imshow("show GT deltaMap", showGTdeltaMap);
-			imshow("show ES deltaMap", showESdeltaMap);
-			imwrite("GT_deltaMap.exr",showGTdeltaMap);
-			imwrite("ES_deltaMap.exr",showESdeltaMap);
 
-			cout << "\n Show initial pose:\n" << xi_copy.rotationMatrix() << "\n Show translation:\n" << xi_copy.translation()<<endl;
-			cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()
-			     << endl;
-			waitKey(0);
 
 
           i+=1;

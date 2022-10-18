@@ -36,11 +36,12 @@ namespace DSONL{
 
 	struct dataOptions {
 		/// 0: big baseline, 1: small baseline, 2: other
-		int baseline = 0;
+		int baseline = 1;
 		/// is textured or not
 		bool isTextured = true;
 		/// use gree channel for testing
 		int channelIdx= 1;
+		/// should we calculate 3 channel delta map for loss function now?????????????????
 
 	};
 
@@ -148,7 +149,7 @@ namespace DSONL{
 
 				}else if (options_.baseline==1){
 
-					 image_target_path = "../data/rgb/small_baseline/rt_12_44_34_cam6_rgb.exr";
+					 image_target_path = "../data/rgb/small_baseline/rt_11_3_21_cam6_rgb.exr";
 					 image_target_baseColor ="../data/rgb/small_baseline/rt_12_44_34_cam6_rgb.exr";
 					 depth_target_path="../data/rgb/small_baseline/rt_12_44_34_cam6_depth.exr";
 					 image_target_MR_path = "../data/rgb/small_baseline/cam6_mr.png";
@@ -214,7 +215,7 @@ namespace DSONL{
 
  void showImage(Mat& image, string image_name){
 	imshow(image_name, image);
-	waitKey(0);
+
  }
 
 
