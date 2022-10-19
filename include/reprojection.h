@@ -51,7 +51,7 @@ namespace DSONL{
 						  const std::vector<double> &deltaMap
 
 		) {
-			pixel_gray_val_in_[0] = pixel_gray_val_in[0];
+//			pixel_gray_val_in_[0] = pixel_gray_val_in[0];
 			rows_ = rows;
 			cols_ = cols;
 			pixelCoor_ = pixelCoor;
@@ -116,7 +116,7 @@ namespace DSONL{
 		}
 
 
-		double pixel_gray_val_in_[1];
+//		double pixel_gray_val_in_[1];
 		int rows_, cols_;
 		Eigen::Vector2d pixelCoor_;
 		Eigen::Matrix3d K_;

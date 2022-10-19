@@ -240,7 +240,6 @@ namespace DSONL {
 			         const Sophus::SE3d& CurrentT,
 					 const Eigen::Matrix3d & K,
 					 const Mat& image_baseColor,
-//			         const Mat& image_right_baseColor,
 					 const Mat& depth_map,
 					 const Mat& image_metallic,
 					 const Mat& image_roughnes,
@@ -258,7 +257,7 @@ namespace DSONL {
 
 //		inliers_filter.emplace(173,333); //yes
 //		inliers_filter.emplace(378,268); //yes
-		inliers_filter.emplace(213,295); //ye
+		inliers_filter.emplace(213,295); //yes
 //		inliers_filter.emplace(370,488); //yes
 
 //		pcl::PLYWriter writer;

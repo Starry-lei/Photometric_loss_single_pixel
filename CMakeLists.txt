@@ -43,9 +43,9 @@ endif()
 # See comment in ./build_submodules.sh on the relation of arch=native
 # and Eigen's alignment. TLDR: Passing arch=native for all build types
 # is currently the only viable option to avoid subtle bugs with Eigen.
-#SET(CXX_MARCH native)
+SET(CXX_MARCH native)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -60,8 +60,8 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -DEIGEN_INITIALIZE_MATRICES_BY_NAN")                   # cmake default: "-g"
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -DNDEBUG -g -DEIGEN_INITIALIZE_MATRICES_BY_NAN")  # cmake default: "-O2 -g -DNDEBUG"
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")                                               # cmake default: "-O3 -DNDEBUG"
-#SET(CMAKE_CXX_FLAGS " -ftemplate-backtrace-limit=0 -Wall -Wextra ${EXTRA_WARNING_FLAGS} -march=${CXX_MARCH} ${CMAKE_CXX_FLAGS}")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+SET(CMAKE_CXX_FLAGS " -ftemplate-backtrace-limit=0 -Wall -Wextra ${EXTRA_WARNING_FLAGS} -march=${CXX_MARCH} ${CMAKE_CXX_FLAGS}")
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
 set(EIGEN3_INCLUDE_DIR_HINTS ${EIGEN_ROOT})  # for opengv / pangolin
 find_package(Eigen3 3.3.8 EXACT REQUIRED CONFIG) # find eigen with our adapted "config module", that uses our eigen source tree
