@@ -210,7 +210,7 @@ namespace DSONL{
 	}
 
 	dataLoader::~dataLoader(void ) {
-		cout<<"Data is being loaded!"<<endl;
+		cout<<"The program ends here, have a nice day!"<<endl;
 	}
 
  void showImage(Mat& image, string image_name){

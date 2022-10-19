@@ -104,8 +104,7 @@ int main(int argc, char **argv) {
 		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
 		{
 
-			Eigen::Vector3d normal_new( normal_map_GT.at<Vec3f>(u,v)[2],  -normal_map_GT.at<Vec3f>(u,v)[1], normal_map_GT.at<Vec3f>(u,v)[0]);// !!!!!!!!!!!!!!!!!!!!!!!
-
+			Eigen::Vector3d normal_new( normal_map_GT.at<Vec3f>(u,v)[2],  -normal_map_GT.at<Vec3f>(u,v)[1], normal_map_GT.at<Vec3f>(u,v)[0]);
 			normal_new= dataLoader->R1.transpose()*normal_new;
 
 			Eigen::Vector3d principal_axis(0, 0, 1);
@@ -128,7 +127,7 @@ int main(int argc, char **argv) {
 	float buttom=0.2;
 	float up_new=upper;
 	float butt_new=buttom;
-
+	Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
 	int lvl_target, lvl_ref;
 	for (int lvl = 1; lvl >= 1; lvl--)
 	{
@@ -139,14 +138,30 @@ int main(int argc, char **argv) {
 		lvl_ref = lvl;
 		downscale(grayImage_ref, depth_ref, K, lvl_ref, IRef, DRef, Klvl);
 		downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
-
 		PhotometricBAOptions options;
-		Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
+
         int i=0;
 		while ( i < 2){
 
+			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
+//			imshow("show ES deltaMap", showESdeltaMap);
+			double  max_n_, min_n_;
+			cv::minMaxLoc(deltaMap, &min_n_, &max_n_);
+			cout<<"->>>>>>>>>>>>>>>>>show max and min of estimated deltaMap:"<< max_n_ <<","<<min_n_<<endl;
+
+			Mat mask = cv::Mat(deltaMap != deltaMap);
+			deltaMap.setTo(1.0, mask);
+
+//			imshow("IRef",IRef);
+//			imshow("I_target",I);
+
+//			deltaMap.convertTo(deltaMap, CV_64FC1);
+//			IRef= IRef.mul(deltaMap);
+//			imshow("IRef_new",IRef);
+//			waitKey(0);
+
 			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
-			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source,deltaMap,newNormalMap,up_new, butt_new);
+			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
 
 //			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
 //			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
@@ -159,21 +174,16 @@ int main(int argc, char **argv) {
 			cout << "\n Show initial pose:\n" << xi_GT.rotationMatrix() << "\n Show translation:\n" << xi_GT.translation()<<endl;
 			cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<< endl;
 			cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(), xi.rotationMatrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), xi.translation()) <<"(%) "<<endl;
-//			waitKey(0);
-
-
-
-
+			waitKey(0);
           i+=1;
 
 		}
 
 
 
-		cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()
-		     << endl;
-		Eigen::Quaterniond q_opt( xi.rotationMatrix());
-		cout<<"\n Show the optimized rotation as quaternion:"<<q_opt.w()<<","<<q_opt.x()<<","<<q_opt.y()<<","<<q_opt.z()<< endl;
+//		cout << "\n Show initial pose:\n" << xi_GT.rotationMatrix() << "\n Show translation:\n" << xi_GT.translation()<<endl;
+//		cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<< endl;
+//		cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(), xi.rotationMatrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), xi.translation()) <<"(%) "<<endl;
 
 	}
 	// tidy up

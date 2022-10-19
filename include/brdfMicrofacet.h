@@ -321,18 +321,17 @@ namespace DSONL {
 				float delta_r= radiance_beta_prime.val[0]/radiance_beta.val[0];
 				float delta_g= radiance_beta_prime.val[1]/radiance_beta.val[1];
 				float delta_b= radiance_beta_prime.val[2]/radiance_beta.val[2];
-//				float delta_r= radiance_beta.val[0]/radiance_beta_prime.val[0];
-//				float delta_g= radiance_beta.val[1]/radiance_beta_prime.val[1];
-//				float delta_b= radiance_beta.val[2]/radiance_beta_prime.val[2];
 
 
 				deltaMap.at<float>(u,v)= delta_g;
+
+
 
 			}
 		}
 		double  max_n, min_n;
 		cv::minMaxLoc(deltaMap, &min_n, &max_n);
-		cout<<"show max and min of estimated deltaMap"<< max_n <<","<<min_n<<endl;
+		cout<<"------->show max and min of estimated deltaMap:"<< max_n <<","<<min_n<<endl;
 
 //		colorDeltaMap
 //		Mat coloredDeltaMap(deltaMap.rows, deltaMap.cols, CV_32FC3, Scalar(0,0,0)); // default value 1.0

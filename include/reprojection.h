@@ -102,7 +102,10 @@ namespace DSONL{
 			T x = (pt[0] / pt[2]); // col id
 			T y = (pt[1] / pt[2]);// row id
 
-			if (x> (T)0 && x< (T)640 && y>(T)0 && y<(T)480 && (!isnan(delta_falg))){
+			int idx=0;
+			if (x> (T)0 && x< (T)640 && y>(T)0 && y<(T)480 ){ //&& (!isnan(delta_falg))
+				idx+=1;
+//				if(delta_falg>1.2 || delta_falg < 0.9){cout<<"now, in the ceres loss function we show delta value:"<<delta_falg<<endl;}
 				T pixel_gray_val_out;
 				get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out);
 				residual[0] = delta*intensity_image_ref - pixel_gray_val_out;

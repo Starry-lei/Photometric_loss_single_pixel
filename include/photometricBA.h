@@ -27,7 +27,7 @@ namespace DSONL{
 	void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
 	                   Sophus::SE3d &pose,
 					   Mat &img_ref_depth,
-					   Mat & deltaMap
+					   Mat  deltaMap
 					   ) {
 
 		ceres::Problem problem;
@@ -86,7 +86,7 @@ namespace DSONL{
 													  img_deltaMap
 								)
 						),
-						new ceres::HuberLoss(1),
+						new ceres::HuberLoss(4/255.0),
 						transformation
 				);
 
