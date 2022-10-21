@@ -27,26 +27,27 @@ namespace DSONL{
 	void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
 	                   Sophus::SE3d &pose,
 					   Mat &img_ref_depth,
-					   Mat  deltaMap
+					   Mat deltaMap
 					   ) {
 
 		ceres::Problem problem;
+		double rows_= image.rows, cols_= image.cols;
 
 		deltaMap.convertTo(deltaMap, CV_64FC1);
-		cv::Mat flat_deltaMap = deltaMap.reshape(1, deltaMap.total() * deltaMap.channels());
-		std::vector<double> img_deltaMap = deltaMap.isContinuous() ? flat_deltaMap : flat_deltaMap.clone();
 
-		image_right.convertTo(image_right, CV_64FC1);
-		cv::Mat flat = image_right.reshape(1, image_right.total() * image_right.channels());
-		std::vector<double> img_gray_values = image_right.isContinuous() ? flat : flat.clone();
 
-		img_ref_depth.convertTo(img_ref_depth,CV_64FC1);
 		cv::Mat flat_depth_map = img_ref_depth.reshape(1, img_ref_depth.total() * img_ref_depth.channels());
 		std::vector<double> img_ref_depth_values=img_ref_depth.isContinuous() ? flat_depth_map : flat_depth_map.clone();
+		ceres::Grid2D<double> grid2d_depth(&img_ref_depth_values[0],0, rows_, 0, cols_);
+		ceres::BiCubicInterpolator<ceres::Grid2D<double>> interpolator_depth(grid2d_depth);
 
-		image.convertTo(image, CV_64FC1);
-		cv::Mat flat_ref = image.reshape(1, image.total() * image.channels());
-		std::vector<double> image_ref_vec = image.isContinuous() ? flat_ref : flat_ref.clone();
+
+
+
+
+		cv::Mat flat = image_right.reshape(1, image_right.total() * image_right.channels());
+		std::vector<double> grayImage_right_values = image_right.isContinuous() ? flat : flat.clone();
+		ceres::Grid2D<double> grid2d_grayImage_right(&grayImage_right_values[0],0, rows_, 0, cols_);
 
 
 		problem.AddParameterBlock(pose.data(), Sophus::SE3d::num_parameters, new Sophus::test::LocalParameterizationSE3);
@@ -59,7 +60,7 @@ namespace DSONL{
 
 		double gray_values[1]{};
 		double *transformation = pose.data();
-		// use pixels and depth to optimize pose and depth itself
+		// use pixels,depth and delta to optimize pose and depth itself
 		for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
 		{
 			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
@@ -70,20 +71,18 @@ namespace DSONL{
 
 				gray_values[0] =  image.at<double>(u, v);
 				Eigen::Vector2d pixelCoord((double)v,(double)u);
-
-
 				problem.AddResidualBlock(
 						new ceres::AutoDiffCostFunction<GetPixelGrayValue, 1, Sophus::SE3d::num_parameters>(
-								new GetPixelGrayValue(gray_values,
+								new GetPixelGrayValue(
 								                      pixelCoord,
 								                      K,
 								                      image.rows,
 								                      image.cols,
-								                      img_gray_values,
-								                      img_ref_depth_values,
-								                      image_ref_vec,
+								                      grid2d_grayImage_right,
+                                                      interpolator_depth,
+                                                      image,
 													  img_ref_depth,
-													  img_deltaMap
+													  deltaMap
 								)
 						),
 						new ceres::HuberLoss(4/255.0),

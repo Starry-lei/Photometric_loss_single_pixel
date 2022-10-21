@@ -10,8 +10,8 @@
 #include <ceres/cubic_interpolation.h>
 #include <ceres/loss_function.h>
 #include <visnav/local_parameterization_se3.hpp>
-#include <ultils.h>
-#include <brdfMicrofacet.h>
+#include "ultils.h"
+#include "brdfMicrofacet.h"
 
 #include <opencv2/core/eigen.hpp>
 
@@ -39,38 +39,31 @@ namespace DSONL{
 
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-		GetPixelGrayValue(const double pixel_gray_val_in[1],
+		GetPixelGrayValue(
 		                  const Eigen::Vector2d &pixelCoor,
 		                  const Eigen::Matrix3d & K,
 		                  const int rows,
 		                  const int cols,
-		                  const std::vector<double> &vec_pixel_gray_values,
-		                  const std::vector<double> &img_ref_depth_values,
-		                  const std::vector<double> &img_ref_vec_values,
+		                  ceres::Grid2D<double>& grid2d_grayImage_right ,
+                          ceres::BiCubicInterpolator<ceres::Grid2D<double>>& interpolator_depth,
+		                  const Mat& gray_Image_ref,
 						  const Mat& depth_map,
-						  const std::vector<double> &deltaMap
+						  const Mat& deltaMap
 
 		) {
-//			pixel_gray_val_in_[0] = pixel_gray_val_in[0];
 			rows_ = rows;
 			cols_ = cols;
 			pixelCoor_ = pixelCoor;
 			K_ = K;
 
-			grid2d_deltaMap.reset(new ceres::Grid2D<double>(&deltaMap[0],0, rows_, 0, cols_));
-			interp_deltaMap.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_deltaMap));
+			interpolator_depth.Evaluate(pixelCoor_(1),pixelCoor_(0), &depth_val);
+			delta_val=deltaMap.at<double>(pixelCoor_(1),pixelCoor_(0));
+			gray_Image_ref_val=gray_Image_ref.at<double>(pixelCoor_(1),pixelCoor_(0));
+
+			get_pixel_gray_val.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double> >(grid2d_grayImage_right));
 
 
-			grid2d_depth.reset(new ceres::Grid2D<double>(&img_ref_depth_values[0],0, rows_, 0, cols_));
-			interp_depth.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_depth));
-
-
-			grid2d_img_ref.reset(new ceres::Grid2D<double>(&img_ref_vec_values[0],0, rows_, 0, cols_));
-			interp_img_ref.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double>>(*grid2d_img_ref));
-
-
-			grid2d.reset(new ceres::Grid2D<double>(&vec_pixel_gray_values[0], 0, rows_, 0, cols_));
-			get_pixel_gray_val.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double> >(*grid2d));}
+		}
 
 		template<typename T>
 		bool operator()(
@@ -85,26 +78,24 @@ namespace DSONL{
 			T d, u_, v_, intensity_image_ref,d_x1,d_y1, delta;
 			u_=(T)pixelCoor_(1);
 			v_=(T)pixelCoor_(0);
-			interp_depth->Evaluate(u_,v_, &d);
 
+			d= (T) depth_val;
 
-			interp_img_ref->Evaluate(u_,v_, &intensity_image_ref);
+			intensity_image_ref=(T) gray_Image_ref_val;
 			Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
 
 			double delta_falg;
+			delta_falg=delta_val;
+			delta=(T)delta_val;
 
-			interp_deltaMap->Evaluate(u_,v_,&delta);
-			interp_deltaMap->Evaluate(pixelCoor_(1),pixelCoor_(0),&delta_falg);
 
 			Eigen::Matrix<T, 3, 1> p1 = Tran * p_c1 ;
 			Eigen::Matrix<T, 3, 1> pt = K_ * p1;
 
-			T x = (pt[0] / pt[2]); // col id
-			T y = (pt[1] / pt[2]);// row id
+			T x = (pt[0] / pt[2]); // col id !
+			T y = (pt[1] / pt[2]);// row id !
 
-			int idx=0;
-			if (x> (T)0 && x< (T)640 && y>(T)0 && y<(T)480 ){ //&& (!isnan(delta_falg))
-				idx+=1;
+			if (x> (T)0 && x< (T)cols_ && y>(T)0 && y<(T)rows_ ){
 //				if(delta_falg>1.2 || delta_falg < 0.9){cout<<"now, in the ceres loss function we show delta value:"<<delta_falg<<endl;}
 				T pixel_gray_val_out;
 				get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out);
@@ -116,19 +107,17 @@ namespace DSONL{
 		}
 
 
-//		double pixel_gray_val_in_[1];
 		int rows_, cols_;
 		Eigen::Vector2d pixelCoor_;
 		Eigen::Matrix3d K_;
 		Sophus::SE3<double> CurrentT_;
-		std::unique_ptr<ceres::Grid2D<double> > grid2d;
-		std::unique_ptr<ceres::Grid2D<double> > grid2d_depth;
-		std::unique_ptr<ceres::Grid2D<double> > grid2d_img_ref;
-		std::unique_ptr<ceres::Grid2D<double> > grid2d_deltaMap;
+
+		double depth_val;
+		double delta_val;
+		double gray_Image_ref_val;
+
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>>> get_pixel_gray_val;
-		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_depth;
-		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_img_ref;
-		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>> >interp_deltaMap;
+
 
 
 	};

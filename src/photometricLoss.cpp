@@ -70,6 +70,27 @@ int main(int argc, char **argv) {
 //	waitKey(0);
 
 	depth_ref=dataLoader->depth_map_ref;
+	// Add noise to depth image depth_ref_NS
+	Mat depth_ref_NS;
+	double Mean=0.0,StdDev=5.0;
+	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev);
+
+
+	// show the depth image with noise
+	//	double min_gt, max_gt;
+	//	cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
+	//	cout<<"\n show depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
+	//	Mat depth_ref_show= depth_ref*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
+	//	cv::minMaxLoc(depth_ref_NS, &min_gt, &max_gt);
+	//	cout<<"\n show depth_ref_NS min, max:\n"<<min_gt<<","<<max_gt<<endl;
+	//	Mat depth_ref_NS_show= depth_ref_NS*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
+	//
+	//	// show depth image and noise one
+	//	imshow("depth_ref",depth_ref_show);
+	//	imshow("depth_ref_NS",depth_ref_NS_show);
+	//	waitKey(0);
+
+
 	depth_target=dataLoader->depth_map_target;
 	image_ref_baseColor= dataLoader->image_ref_baseColor;
 
@@ -82,8 +103,8 @@ int main(int argc, char **argv) {
 	R=dataLoader->q_12 .normalized().toRotationMatrix();
 
 	// initialize the pose xi
-//	xi.setRotationMatrix(R);
-//	xi.translation()=dataLoader->t12;
+	//	xi.setRotationMatrix(R);
+	//	xi.translation()=dataLoader->t12;
 
 	xi_GT.setRotationMatrix(R);
 	xi_GT.translation()=dataLoader->t12;
