@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 	inliers_filter.emplace(378,268); //yes
 
 	// data loader
-	Mat grayImage_target, grayImage_ref,depth_ref,depth_target,image_ref_baseColor;
+	Mat grayImage_target, grayImage_ref,depth_ref,depth_ref_GT,depth_target,image_ref_baseColor;
 	dataLoader* dataLoader;
 	dataLoader= new DSONL::dataLoader();
 	dataLoader->Init();
@@ -70,6 +70,25 @@ int main(int argc, char **argv) {
 //	waitKey(0);
 
 	depth_ref=dataLoader->depth_map_ref;
+//	depth_ref_GT=dataLoader->depth_map_ref;
+
+	// Add noise to depth image depth_ref_NS
+	Mat depth_ref_NS;
+	double Mean=0.0,StdDev=10.0;
+	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev);
+
+	// show depth image and noise one
+	//	imshow("depth_ref",depth_ref);
+	//	imshow("depth_ref_NS",depth_ref_NS);
+	//	waitKey(0);
+
+
+
+
+
+
+
+
 	depth_target=dataLoader->depth_map_target;
 	image_ref_baseColor= dataLoader->image_ref_baseColor;
 

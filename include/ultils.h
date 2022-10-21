@@ -57,6 +57,30 @@ namespace DSONL{
 	cv::Mat normal_map;
 	};
 
+	bool AddGaussianNoise_Opencv(const Mat mSrc, Mat &mDst,double Mean=0.0, double StdDev=10.0)
+	{
+		if(mSrc.empty())
+		{
+			cout<<"[Error]! Input Image Empty!";
+			return 0;
+		}
+//		Mat mSrc_16SC;
+//		Mat mGaussian_noise = Mat(mSrc.size(),CV_16SC3);
+//		randn(mGaussian_noise,Scalar::all(Mean), Scalar::all(StdDev));
+//
+//		mSrc.convertTo(mSrc_16SC,CV_16SC3);
+//		addWeighted(mSrc_16SC, 1.0, mGaussian_noise, 1.0, 0.0, mSrc_16SC);
+//		mSrc_16SC.convertTo(mDst,mSrc.type());
+		Mat mSrc_32FC1;
+		Mat mGaussian_noise = Mat(mSrc.size(),CV_32FC1);
+		randn(mGaussian_noise,Scalar::all(Mean), Scalar::all(StdDev));
+
+		mSrc.convertTo(mSrc_32FC1,CV_32FC1);
+		addWeighted(mSrc_32FC1, 1.0, mGaussian_noise, 1.0, 0.0, mSrc_32FC1);
+		mSrc_32FC1.convertTo(mDst,mSrc.type());
+
+		return true;
+	}
 
 	void newNormal(){
 		// filtered normal map
