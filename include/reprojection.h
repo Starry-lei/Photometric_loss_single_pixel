@@ -9,6 +9,8 @@
 #include <ceres/ceres.h>
 #include <ceres/cubic_interpolation.h>
 #include <ceres/loss_function.h>
+#include <ceres/rotation.h>
+
 #include <visnav/local_parameterization_se3.hpp>
 #include "ultils.h"
 #include "brdfMicrofacet.h"
@@ -23,17 +25,44 @@ namespace DSONL{
 		int verbosity_level = 1;
 
 		/// update intrinsics or keep fixed
-		bool optimize_intrinsics = false;
+		bool optimize_depth = false;
 
 		/// use huber robust norm or squared norm
 		bool use_huber = true;
 
 		/// parameter for huber loss (in pixel)
-		float huber_parameter = 1.0;
+		float huber_parameter = 4/255.0;
 
 		/// maximum number of solver iterations
 		int max_num_iterations = 20;
 	};
+
+
+
+
+	template <typename T>
+	Eigen::Matrix<T, 2, 1> project( Eigen::Matrix<T, 3, 1> & p, const T& fx , const T& fy,const T& cx ,const T& cy  ,const T  cols, const T rows)  {
+
+		 T x = p(0);
+		 T y = p(1);
+		 T z = p(2);
+
+		Eigen::Matrix<T, 2, 1> res;
+		res.setZero();
+		if (z > T(0)) {
+
+			 T pixel_x= fx * x / z + cx;
+			 T pixel_y= fy * y / z + cy;
+
+//			if(pixel_x> T(0) && pixel_x< cols && pixel_y>T(0) && pixel_y<rows ){
+				res.x()=pixel_y;
+				res.y()=pixel_x;
+//			}
+		}
+		return res;
+	}
+
+
 
 	struct GetPixelGrayValue {
 
@@ -45,7 +74,7 @@ namespace DSONL{
 		                  const int rows,
 		                  const int cols,
 		                  ceres::Grid2D<double>& grid2d_grayImage_right ,
-                          ceres::BiCubicInterpolator<ceres::Grid2D<double>>& interpolator_depth,
+//                          ceres::BiCubicInterpolator<ceres::Grid2D<double>>& interpolator_depth,
 		                  const Mat& gray_Image_ref,
 						  const Mat& depth_map,
 						  const Mat& deltaMap
@@ -56,7 +85,8 @@ namespace DSONL{
 			pixelCoor_ = pixelCoor;
 			K_ = K;
 
-			interpolator_depth.Evaluate(pixelCoor_(1),pixelCoor_(0), &depth_val);
+//			interpolator_depth.Evaluate(pixelCoor_(1),pixelCoor_(0), &depth_val);
+
 			delta_val=deltaMap.at<double>(pixelCoor_(1),pixelCoor_(0));
 			gray_Image_ref_val=gray_Image_ref.at<double>(pixelCoor_(1),pixelCoor_(0));
 
@@ -68,46 +98,74 @@ namespace DSONL{
 		template<typename T>
 		bool operator()(
 				const T* const sT,
-//			const T* const  sd, //T const *const sd,
-				T *residual) const {
+				const T* const sd,
+				T *residual
+				) const {
 
 			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
-			double fx = K_(0, 0), cx = K_(0, 2), fy =  K_(1, 1), cy = K_(1, 2);
-			Eigen::Matrix<double,3,1> p_3d_no_d;
-			p_3d_no_d<< (pixelCoor_(0)-cx)/fx, (pixelCoor_(1)-cy)/fy,1.0;
-			T d, u_, v_, intensity_image_ref,d_x1,d_y1, delta;
-			u_=(T)pixelCoor_(1);
-			v_=(T)pixelCoor_(0);
+//			Eigen::Map<Eigen::Matrix<T,1,1> const> const depth(sd);
 
-			d= (T) depth_val;
-
+			T d, u_, v_, intensity_image_ref, delta;
 			intensity_image_ref=(T) gray_Image_ref_val;
-			Eigen::Matrix<T, 3,1> p_c1=d*p_3d_no_d;
-
 			double delta_falg;
 			delta_falg=delta_val;
 			delta=(T)delta_val;
 
 
+			u_=(T)pixelCoor_(1);
+			v_=(T)pixelCoor_(0);
+
+			// unproject
+			T fx = (T)K_(0, 0), cx = (T)K_(0, 2), fy =  (T)K_(1, 1), cy = (T)K_(1, 2);
+			Eigen::Matrix<T,3,1> p_3d_no_d;
+			p_3d_no_d.x()= (v_-cx)/fx;
+			p_3d_no_d.y()= (u_-cy)/fy;
+			p_3d_no_d.z()= (T)1.0;
+//			p_3d_no_d<< (v_-cx)/fx, (u_-cy)/fy,1.0;
+//			d= (T) depth_val;
+			d=sd[0];
+			Eigen::Matrix<T, 3,1> p_c1=sd[0]*p_3d_no_d;
+
+
+
+
+
 			Eigen::Matrix<T, 3, 1> p1 = Tran * p_c1 ;
-			Eigen::Matrix<T, 3, 1> pt = K_ * p1;
 
-			T x = (pt[0] / pt[2]); // col id !
-			T y = (pt[1] / pt[2]);// row id !
 
-			if (x> (T)0 && x< (T)cols_ && y>(T)0 && y<(T)rows_ ){
-//				if(delta_falg>1.2 || delta_falg < 0.9){cout<<"now, in the ceres loss function we show delta value:"<<delta_falg<<endl;}
+//			Eigen::Matrix<T, 3, 1> pt = K_ * p1;
+//			T x = (pt[0] / pt[2]); // col id !
+//			T y = (pt[1] / pt[2]);// row id !
+
+
+			// project
+			Eigen::Matrix<T, 2, 1> pt = project(p1,fx, fy,cx, cy, (T)cols_, (T)rows_);
+
+
+			if(pt.y()> T(0) && pt.y()<  (T)cols_ && pt.x()>T(0) && pt.x()< (T)rows_ ){
 				T pixel_gray_val_out;
-				get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out);
+				get_pixel_gray_val->Evaluate(pt.x(), pt.y(), &pixel_gray_val_out);
 				residual[0] = delta*intensity_image_ref - pixel_gray_val_out;
 				return true;
+
 			}
+
+
+
+
+
+
+			// if(delta_falg>1.2 || delta_falg < 0.9){cout<<"now, in the ceres loss function we show delta value:"<<delta_falg<<endl;}
+
+
+
+//			return true;
 
 
 		}
 
 
-		int rows_, cols_;
+		double rows_, cols_;
 		Eigen::Vector2d pixelCoor_;
 		Eigen::Matrix3d K_;
 		Sophus::SE3<double> CurrentT_;

@@ -14,8 +14,7 @@
 #include <pcl/point_types.h>
 #include <pcl/surface/mls.h>
 #include <pcl/visualization/cloud_viewer.h>
-//#include <pcl/surface/mls.h>
-//#include <pcl/surface/mls_omp.h>
+#include <pcl/surface/mls.h>
 //#include <omp.h>
 
 #include <opencv2/core/mat.hpp>

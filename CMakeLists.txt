@@ -45,7 +45,7 @@ endif()
 # is currently the only viable option to avoid subtle bugs with Eigen.
 SET(CXX_MARCH native)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -113,21 +113,24 @@ endif()
 
 #add PCL library
 
-find_package(PCL REQUIRED)
+
+find_package(PCL REQUIRED )
+
 
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 
-
+message(STATUS "show PCL-----PCL_INCLUDE_DIRS: ${PCL_INCLUDE_DIRS}")
+message(STATUS "show PCL-----PCL_LIBRARY_DIRS: ${PCL_LIBRARY_DIRS}")
+message(STATUS "show PCL-----PCL_DEFINITIONS: ${PCL_DEFINITIONS}")
 #some output:
-
 message(STATUS "show IT: ${CMAKE_CURRENT_SOURCE_DIR}")
 
 
 
-add_executable(photometricLoss src/photometricLoss.cpp src/PCLOpt.cpp )
+add_executable(photometricLoss src/photometricLoss.cpp  ) #src/PCLOpt.cpp
 target_link_libraries(photometricLoss Ceres::ceres 
 pangolin 
 TBB::tbb 

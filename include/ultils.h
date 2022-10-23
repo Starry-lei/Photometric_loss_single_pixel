@@ -488,7 +488,7 @@ namespace DSONL{
 
 	}
 
-	void downscale(Mat &image, Mat &depth, Eigen::Matrix3d &K, int &level, Mat &image_d, Mat &depth_d, Eigen::Matrix3d &K_d) {
+	void downscale(Mat &image, const Mat& depth, Eigen::Matrix3d &K, int &level, Mat &image_d, Mat &depth_d, Eigen::Matrix3d &K_d) {
 		//	imshow("depth", depth);
 		//	waitKey(0);
 		if (level <= 1) {
@@ -497,10 +497,21 @@ namespace DSONL{
 			image_d=cv::max(image_d,0.0);
 
 			depth_d = depth;
+
+//			double  min_gt,max_gt;
+//			cv::minMaxLoc(depth, &min_gt, &max_gt);
+//			cout<<"\n show depth_ref inside min, max:\n"<<min_gt<<","<<max_gt<<endl;
+//			Mat depth_ref_show= depth*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
+//			imshow("inside_downscale", depth_ref_show);
+//			waitKey(0);
 			// set all nan zero
 			Mat mask = Mat(depth_d != depth_d);
 			depth_d.setTo(0.0, mask);
 			K_d = K;
+
+
+
+
 			return;
 		}
 
@@ -1002,7 +1013,7 @@ namespace DSONL{
 //
 //
 //	}
-
+//
 
     void showMinus(Mat& minus_original, Mat& minus_adjust, Mat& minus_mask ){
 
@@ -1162,37 +1173,37 @@ namespace DSONL{
 				}
 
 
-//				double left_intensity=Img_left.at<double>(x,y);
-//				for(int x_ = 0; x_ < depth_left.rows; ++x_) {
-//					for (int y_ = 0; y_ < depth_left.cols; ++y_) {
-//
-//						double d_r= depth_right.at<double>(x_,y_);
-//						Eigen::Matrix<double,3,1> p_3d_no_d_r;
-//						p_3d_no_d_r<< (y_-cx)/fx, (x_-cy)/fy,1.0;
-//						Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
-//						cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
-//						double distance= ((point_Trans-p_c2).norm());
-//						if ( distance< thres){
-//							double rigth_intensity=Img_right.at<double>(x_,y_);
-//							deltaMapGT.at<double>(x,y)=left_intensity/rigth_intensity;
-//						}
-//					}
-//				}
+				double left_intensity=Img_left.at<double>(x,y);
+				for(int x_ = 0; x_ < depth_left.rows; ++x_) {
+					for (int y_ = 0; y_ < depth_left.cols; ++y_) {
+
+						double d_r= depth_right.at<double>(x_,y_);
+						Eigen::Matrix<double,3,1> p_3d_no_d_r;
+						p_3d_no_d_r<< (y_-cx)/fx, (x_-cy)/fy,1.0;
+						Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
+						cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
+						double distance= ((point_Trans-p_c2).norm());
+						if ( distance< thres){
+							double rigth_intensity=Img_right.at<double>(x_,y_);
+							deltaMapGT.at<double>(x,y)=left_intensity/rigth_intensity;
+						}
+					}
+				}
 
 
-//				double d_r= depth_right.at<double>(x,y);
-//				Eigen::Matrix<double,3,1> p_3d_no_d_r;
-//				p_3d_no_d_r<< (y-cx)/fx, (x-cy)/fy,1.0;
-//				Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
-//				cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
+				double d_r= depth_right.at<double>(x,y);
+				Eigen::Matrix<double,3,1> p_3d_no_d_r;
+				p_3d_no_d_r<< (y-cx)/fx, (x-cy)/fy,1.0;
+				Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
+				cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
 
 			}
 		}
 
 		showMinus(minus_original,minus_adjust, minus_mask);
 
-//		writer.write("PointCloud_Transformed.pcd",*cloud, false);// do we need the sensor acquisition origin?
-//		writer.write("PointCloud_right_HD.pcd",*cloud_rig, false);// do we need the sensor acquisition origin?
+		writer.write("PointCloud_Transformed.pcd",*cloud, false);// do we need the sensor acquisition origin?
+		writer.write("PointCloud_right_HD.pcd",*cloud_rig, false);// do we need the sensor acquisition origin?
 
 		double  max_n, min_n;
 		cv::minMaxLoc(deltaMapGT, &min_n, &max_n);

@@ -240,7 +240,7 @@ namespace DSONL {
 			         const Sophus::SE3d& CurrentT,
 					 const Eigen::Matrix3d & K,
 					 const Mat& image_baseColor,
-					 const Mat& depth_map,
+					 const Mat depth_map,
 					 const Mat& image_metallic,
 					 const Mat& image_roughnes,
 					 const Eigen::Vector3d & light_source,
