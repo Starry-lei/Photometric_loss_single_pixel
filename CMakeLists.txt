@@ -121,10 +121,10 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-
-message(STATUS "show PCL-----PCL_INCLUDE_DIRS: ${PCL_INCLUDE_DIRS}")
-message(STATUS "show PCL-----PCL_LIBRARY_DIRS: ${PCL_LIBRARY_DIRS}")
-message(STATUS "show PCL-----PCL_DEFINITIONS: ${PCL_DEFINITIONS}")
+#
+#message(STATUS "show PCL-----PCL_INCLUDE_DIRS: ${PCL_INCLUDE_DIRS}")
+#message(STATUS "show PCL-----PCL_LIBRARY_DIRS: ${PCL_LIBRARY_DIRS}")
+#message(STATUS "show PCL-----PCL_DEFINITIONS: ${PCL_DEFINITIONS}")
 #some output:
 message(STATUS "show IT: ${CMAKE_CURRENT_SOURCE_DIR}")
 

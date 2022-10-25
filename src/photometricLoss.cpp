@@ -74,12 +74,12 @@ int main(int argc, char **argv) {
 	Mat depth_mask = Mat(depth_ref != depth_ref);
 	depth_ref.setTo(0.0, depth_mask);
 	depth_ref.convertTo(depth_ref, CV_64FC1);
-	// Add noise to depth image depth_ref_NS
-	Mat depth_ref_NS;
+
 	Mat depth_ref_GT= dataLoader->depth_map_ref;
-	double Mean=0.0,StdDev=5.0;
-	AddGaussianNoise_Opencv(depth_ref_GT,depth_ref_NS,Mean,StdDev);
-	depth_ref_NS.convertTo(depth_ref_NS, CV_64FC1);
+	depth_target=dataLoader->depth_map_target;
+	image_ref_baseColor= dataLoader->image_ref_baseColor;
+
+
 
 
 	// show the depth image with noise
@@ -90,16 +90,25 @@ int main(int argc, char **argv) {
 	//	cv::minMaxLoc(depth_ref_NS, &min_gt, &max_gt);
 	//	cout<<"\n show depth_ref_NS min, max:\n"<<min_gt<<","<<max_gt<<endl;
 	//	Mat depth_ref_NS_show= depth_ref_NS*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
-	//
 	//	// show depth image and noise one
 //		depth_ref_show.convertTo(depth_ref_show, CV_32FC1);
+
+
+
+
+
+
+
 //		imshow("depth_ref",depth_ref_show);
 	//	imshow("depth_ref_NS",depth_ref_NS_show);
-	//	waitKey(0);
+//	cv::minMaxLoc(depth_target, &min_gt, &max_gt);
+//	Mat depth_target_show= depth_target*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
+//	imshow("depth_target_show",depth_target_show);
+
+//		waitKey(0);
 
 
-	depth_target=dataLoader->depth_map_target;
-	image_ref_baseColor= dataLoader->image_ref_baseColor;
+
 
 	Eigen::Matrix3d K;
 	K=dataLoader->camera_intrinsics;
@@ -109,9 +118,7 @@ int main(int argc, char **argv) {
 	Sophus::SE3d xi, xi_GT;
 	Eigen::Matrix<double, 3,3> R;
 	R=dataLoader->q_12 .normalized().toRotationMatrix();
-	// initialize the pose xi
-	//	xi.setRotationMatrix(R);
-	//	xi.translation()=dataLoader->t12;
+
 
 	xi_GT.setRotationMatrix(R);
 	xi_GT.translation()=dataLoader->t12;
@@ -119,8 +126,6 @@ int main(int argc, char **argv) {
 
 
 
-
-	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
 	cout << "\n Show GT pose:\n" << xi_GT.rotationMatrix() << "\n Show GT translation:\n" << xi_GT.translation()<<endl;
 
 // ------------------------------------------------------------------------------------------Movingleast algorithm---------------------------------------------------------------
@@ -152,6 +157,33 @@ int main(int argc, char **argv) {
 	}
 
 
+//	--------------------------------------------------------------------Data perturbation--------------------------------------------------------------------
+	double roErr;
+	Eigen::Matrix3d R_GT(xi_GT.rotationMatrix());
+	Eigen::Matrix3d perturbedRotation=rotation_pertabation(0.0,0.0,0.0,R_GT,roErr); // degree
+
+	double trErr;
+	Eigen::Vector3d T_GT(xi_GT.translation());
+	Eigen::Vector3d  perturbedTranslation=translation_pertabation(0.0, 0.00, 0.00, T_GT,trErr); // percentage
+
+
+	Eigen::Matrix<double,6,1> update_se3;
+	update_se3.setZero();
+	update_se3(0,0) = 1e-4;
+
+
+//	perturbedTranslation << -3.7, -0.05, 2.2;
+
+	// Add noise to depth image depth_ref_NS
+	Mat depth_ref_NS;
+	double Mean=0.0,StdDev=5.0;
+	AddGaussianNoise_Opencv(depth_ref_GT,depth_ref_NS,Mean,StdDev);
+	Scalar_<double> depth_Err=depthErr(depth_ref_GT, depth_ref_NS);
+    double depth_Error=depth_Err.val[0];
+
+	depth_ref_NS.convertTo(depth_ref_NS, CV_64FC1);
+
+
 	Mat newNormalMap=normal_map;
 	double distanceThres=0.07;
 	float upper=5;
@@ -160,8 +192,37 @@ int main(int argc, char **argv) {
 	float butt_new=buttom;
 	Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
 	int lvl_target, lvl_ref;
-	double depth_upper_bound =60;
-	double depth_lower_bound =20;
+	double depth_upper_bound = 60;
+	double depth_lower_bound = 20;
+	PhotometricBAOptions options;
+	options.optimize_depth = true;
+	dataLoader->options_.remove_outlier_manually= true;
+	//	Eigen::Vector3d new_translation;
+	//	new_translation << -3.7, -0.05, 2.2;
+	options.huber_parameter= 0.25* 4/255;
+
+
+
+
+	// initialize the pose xi
+	// xi.setRotationMatrix(R);
+	// xi.translation()=dataLoader->t12;
+	xi.setRotationMatrix(perturbedRotation);
+	xi.translation()=perturbedTranslation;
+	cout << "\n Show initial pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<<endl;
+	cout<<"\nShow current rotation perturbation error :"<< roErr<< "\nShow current translation perturbation error : "<< trErr<<"\nShow current depth perturbation error :"<< depth_Error<<endl;
+
+	// check outlier_mask
+	//	Mat outlier_mask= dataLoader->outlier_mask_big_baseline;
+	//	cout<<"\n show Image depth:\n"<<outlier_mask.depth()<<"\n show Image channels :\n "<< outlier_mask.channels()<<endl;
+	//	imshow("Image", outlier_mask);
+	//	double min_v, max_v;
+	//	cv::minMaxLoc(outlier_mask, &min_v, &max_v);
+	//	cout<<"\n show outlier_mask Image min, max:\n"<<min_v<<","<<max_v<<endl;
+	//	outlier_mask.convertTo(outlier_mask, CV_32FC1);
+	//	imshow("Image 2", outlier_mask);
+	//	waitKey(0);
+
 
 
 	for (int lvl = 1; lvl >= 1; lvl--)
@@ -175,23 +236,16 @@ int main(int argc, char **argv) {
 		downscale(grayImage_ref, depth_ref, K, lvl_ref, IRef, DRef, Klvl);
 		downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
 
-		PhotometricBAOptions options;
-		options.optimize_depth= true;
+
 
         int i=0;
-		Mat depth_ref_show_before= depth_ref*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
 		while ( i < 2){
-//			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
-//			imshow("show ES deltaMap", showESdeltaMap);
+
 			double  max_n_, min_n_;
 			cv::minMaxLoc(deltaMap, &min_n_, &max_n_);
 			cout<<"->>>>>>>>>>>>>>>>>show max and min of estimated deltaMap:"<< max_n_ <<","<<min_n_<<endl;
 			Mat mask = cv::Mat(deltaMap != deltaMap);
 			deltaMap.setTo(1.0, mask);
-
-//			Mat depth_ref_show_nside_while= depth_ref*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
-//			imshow("inside_while", depth_ref_show_nside_while);
-//			cout<<"1 show depth of depth_ref : "<<depth_ref.depth()<<endl;
 
 			double min_gt_special, max_gt_special;
 			cv::minMaxLoc(depth_ref, &min_gt_special, &max_gt_special);
@@ -203,7 +257,13 @@ int main(int argc, char **argv) {
 			imshow(depth_ref_name, depth_ref_for_show);
 
 
-			PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
+			if (dataLoader->options_.remove_outlier_manually){
+				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
+			} else{
+				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
+			}
+
+
 			updateDelta(xi,Klvl,image_ref_baseColor,depth_ref,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
 
 //			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
@@ -222,6 +282,8 @@ int main(int argc, char **argv) {
           i+=1;
 
 		}
+		cout<<"\nShow current rotation perturbation error :"<< roErr<< "\nShow current translation perturbation error : "<< trErr<<"\nShow current depth perturbation error :"<< depth_Error<<endl;
+
 		waitKey(0);
 
 

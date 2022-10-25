@@ -905,6 +905,71 @@ namespace DSONL{
 		return (translation_gt-translation_es).norm() / translation_gt.norm() ;
 	}
 
+
+	Scalar depthErr( const Mat& depth_gt, const Mat& depth_es ){
+
+		if (depth_es.depth()!=depth_gt.depth()){std::cerr<<"the depth image type are different!"<<endl;}
+		return cv::sum(cv::abs(depth_gt-depth_es)) / cv::sum(depth_gt);
+
+	}
+
+	template<typename T>
+	Eigen::Matrix<T,3,3> rotation_pertabation(const T pertabation_x,const T pertabation_y, const T pertabation_z, const Eigen::Matrix<T,3,3>& Rotation, double& roErr){
+
+		Eigen::Matrix<T,3,3> R;
+		R=Eigen::AngleAxis<T>(pertabation_x/180.0 *M_PI,Eigen::Matrix<T,3,1>::UnitX())
+							    * Eigen::AngleAxis<T>(pertabation_y/180.0*M_PI,   Eigen::Matrix<T,3,1>::UnitY())
+							    * Eigen::AngleAxis<T>(pertabation_z/180.0*M_PI,  Eigen::Matrix<T,3,1>::UnitZ());
+
+		Eigen::Matrix<T,3,3> updatedRotation;
+		updatedRotation.setZero();
+		updatedRotation= R*Rotation;
+		cout<<"Show the rotation loss:"<<updatedRotation<< endl;
+		roErr=rotationErr(Rotation, updatedRotation);
+
+		return R*Rotation;
+	}
+	template<typename T>
+	Eigen::Matrix<T,3,1> translation_pertabation(const T pertabation_x,const T pertabation_y, const T pertabation_z, const Eigen::Matrix<T,3,1>& translation, double& roErr){
+
+		Eigen::Matrix<T,3,1> updated_translation;
+		updated_translation.setZero();
+		updated_translation.x()= translation.x()*(1.0+pertabation_x);
+		updated_translation.y()= translation.y()*(1.0+pertabation_y);
+		updated_translation.z()= translation.z()*(1.0+pertabation_z);
+
+		roErr=translationErr(translation, updated_translation);
+		return updated_translation;
+
+
+
+	}
+
+	template<typename T>
+	Sophus::SE3<T> posePerturbation(Eigen::Matrix<T,6,1> se3, const Sophus::SE3<T>& pose_GT , double& roErr, const Eigen::Matrix<T,3,3>& Rotation, double& trErr,const Eigen::Matrix<T,3,1>& translation){
+
+		Sophus::SE3<T> SE3_updated= Sophus::SE3<T>::exp(se3)*pose_GT;
+
+
+		trErr=translationErr(translation, SE3_updated.translation());
+		roErr= rotationErr(Rotation, SE3_updated.rotationMatrix());
+
+		return SE3_updated;
+
+
+
+	}
+
+
+
+
+
+
+
+
+
+
+
 	Mat colorMap(Mat& deltaMap, float upper, float lower){
 		Mat deltaMap_Color(deltaMap.rows, deltaMap.cols, CV_32FC3, Scalar(0,0,0));
 
@@ -1173,37 +1238,38 @@ namespace DSONL{
 				}
 
 
-				double left_intensity=Img_left.at<double>(x,y);
-				for(int x_ = 0; x_ < depth_left.rows; ++x_) {
-					for (int y_ = 0; y_ < depth_left.cols; ++y_) {
-
-						double d_r= depth_right.at<double>(x_,y_);
-						Eigen::Matrix<double,3,1> p_3d_no_d_r;
-						p_3d_no_d_r<< (y_-cx)/fx, (x_-cy)/fy,1.0;
-						Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
-						cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
-						double distance= ((point_Trans-p_c2).norm());
-						if ( distance< thres){
-							double rigth_intensity=Img_right.at<double>(x_,y_);
-							deltaMapGT.at<double>(x,y)=left_intensity/rigth_intensity;
-						}
-					}
-				}
-
-
-				double d_r= depth_right.at<double>(x,y);
-				Eigen::Matrix<double,3,1> p_3d_no_d_r;
-				p_3d_no_d_r<< (y-cx)/fx, (x-cy)/fy,1.0;
-				Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
-				cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
+//				double left_intensity=Img_left.at<double>(x,y);
+//				for(int x_ = 0; x_ < depth_left.rows; ++x_) {
+//					for (int y_ = 0; y_ < depth_left.cols; ++y_) {
+//
+//						double d_r= depth_right.at<double>(x_,y_);
+//						Eigen::Matrix<double,3,1> p_3d_no_d_r;
+//						p_3d_no_d_r<< (y_-cx)/fx, (x_-cy)/fy,1.0;
+//						Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
+//						cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
+//						double distance= ((point_Trans-p_c2).norm());
+//						if ( distance< thres){
+//							double rigth_intensity=Img_right.at<double>(x_,y_);
+//							deltaMapGT.at<double>(x,y)=left_intensity/rigth_intensity;
+//						}
+//					}
+//				}
+//
+//
+//				double d_r= depth_right.at<double>(x,y);
+//				Eigen::Matrix<double,3,1> p_3d_no_d_r;
+//				p_3d_no_d_r<< (y-cx)/fx, (x-cy)/fy,1.0;
+//				Eigen::Matrix<double, 3,1> p_c2=d_r*p_3d_no_d_r;
+//				cloud_rig->push_back(pcl::PointXYZ(p_c2.x(), p_c2.y(), p_c2.z()));
 
 			}
 		}
 
+//		imwrite("red_mask.png", minus_mask); // ---------------------------------just save the red mask-------------------------
 		showMinus(minus_original,minus_adjust, minus_mask);
 
-		writer.write("PointCloud_Transformed.pcd",*cloud, false);// do we need the sensor acquisition origin?
-		writer.write("PointCloud_right_HD.pcd",*cloud_rig, false);// do we need the sensor acquisition origin?
+//		writer.write("PointCloud_Transformed.pcd",*cloud, false);//
+//		writer.write("PointCloud_right_HD.pcd",*cloud_rig, false);//
 
 		double  max_n, min_n;
 		cv::minMaxLoc(deltaMapGT, &min_n, &max_n);

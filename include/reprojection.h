@@ -31,7 +31,7 @@ namespace DSONL{
 		bool use_huber = true;
 
 		/// parameter for huber loss (in pixel)
-		float huber_parameter = 4/255.0;
+		double huber_parameter = 4/255.0;
 
 		/// maximum number of solver iterations
 		int max_num_iterations = 20;
@@ -63,21 +63,20 @@ namespace DSONL{
 	}
 
 
-
 	struct GetPixelGrayValue {
 
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 		GetPixelGrayValue(
-		                  const Eigen::Vector2d &pixelCoor,
-		                  const Eigen::Matrix3d & K,
-		                  const int rows,
-		                  const int cols,
-		                  ceres::Grid2D<double>& grid2d_grayImage_right ,
+				const Eigen::Vector2d &pixelCoor,
+				const Eigen::Matrix3d & K,
+				const int rows,
+				const int cols,
+				ceres::Grid2D<double>& grid2d_grayImage_right ,
 //                          ceres::BiCubicInterpolator<ceres::Grid2D<double>>& interpolator_depth,
-		                  const Mat& gray_Image_ref,
-						  const Mat& depth_map,
-						  const Mat& deltaMap
+				const Mat& gray_Image_ref,
+				const Mat& deltaMap
+
 
 		) {
 			rows_ = rows;
@@ -100,15 +99,15 @@ namespace DSONL{
 				const T* const sT,
 				const T* const sd,
 				T *residual
-				) const {
+		) const {
 
 			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
 //			Eigen::Map<Eigen::Matrix<T,1,1> const> const depth(sd);
 
 			T d, u_, v_, intensity_image_ref, delta;
 			intensity_image_ref=(T) gray_Image_ref_val;
-			double delta_falg;
-			delta_falg=delta_val;
+//			double delta_falg;
+//			delta_falg=delta_val;
 			delta=(T)delta_val;
 
 
@@ -118,6 +117,7 @@ namespace DSONL{
 			// unproject
 			T fx = (T)K_(0, 0), cx = (T)K_(0, 2), fy =  (T)K_(1, 1), cy = (T)K_(1, 2);
 			Eigen::Matrix<T,3,1> p_3d_no_d;
+			p_3d_no_d.setZero();
 			p_3d_no_d.x()= (v_-cx)/fx;
 			p_3d_no_d.y()= (u_-cy)/fy;
 			p_3d_no_d.z()= (T)1.0;
@@ -126,21 +126,11 @@ namespace DSONL{
 			d=sd[0];
 			Eigen::Matrix<T, 3,1> p_c1=sd[0]*p_3d_no_d;
 
-
-
-
-
 			Eigen::Matrix<T, 3, 1> p1 = Tran * p_c1 ;
-
-
-//			Eigen::Matrix<T, 3, 1> pt = K_ * p1;
-//			T x = (pt[0] / pt[2]); // col id !
-//			T y = (pt[1] / pt[2]);// row id !
 
 
 			// project
 			Eigen::Matrix<T, 2, 1> pt = project(p1,fx, fy,cx, cy, (T)cols_, (T)rows_);
-
 
 			if(pt.y()> T(0) && pt.y()<  (T)cols_ && pt.x()>T(0) && pt.x()< (T)rows_ ){
 				T pixel_gray_val_out;
@@ -151,15 +141,8 @@ namespace DSONL{
 			}
 
 
-
-
-
-
 			// if(delta_falg>1.2 || delta_falg < 0.9){cout<<"now, in the ceres loss function we show delta value:"<<delta_falg<<endl;}
 
-
-
-//			return true;
 
 
 		}
@@ -170,7 +153,7 @@ namespace DSONL{
 		Eigen::Matrix3d K_;
 		Sophus::SE3<double> CurrentT_;
 
-		double depth_val;
+//		double depth_val;
 		double delta_val;
 		double gray_Image_ref_val;
 
@@ -179,6 +162,89 @@ namespace DSONL{
 
 
 	};
+
+
+
+	struct PhotometricCostFunctor {
+
+		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+		PhotometricCostFunctor(
+				const Eigen::Vector2d &pixelCoor,
+				const Eigen::Matrix3d & K,
+				const int rows,
+				const int cols,
+				ceres::Grid2D<double>& grid2d_grayImage_right,
+				const Mat& gray_Image_ref,
+				const Mat& deltaMap
+//				double depth_gradient_x,
+//				double depth_gradient_y
+		) {
+			rows_ = rows;
+			cols_ = cols;
+			pixelCoor_ = pixelCoor;
+			K_ = K;
+//			depth_gradient_x_=depth_gradient_x;
+//			depth_gradient_y_=depth_gradient_y;
+//			interpolator_depth.Evaluate(pixelCoor_(1),pixelCoor_(0), &depth_val);
+
+			delta_val=deltaMap.at<double>(pixelCoor_(1),pixelCoor_(0));
+			gray_Image_ref_val=gray_Image_ref.at<double>(pixelCoor_(1),pixelCoor_(0));
+			get_pixel_gray_val.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double> >(grid2d_grayImage_right));
+		}
+
+		template<typename T>
+		bool operator()(
+				const T* const sT,
+				const T* const sd,
+				T *residuals
+		) const {
+
+			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
+			Eigen::Map<Eigen::Matrix<T, 1, 1>> residual(residuals);
+			T u_, v_, intensity_image_ref, delta;
+//			T d;
+			intensity_image_ref=(T) gray_Image_ref_val;
+
+			delta=(T)delta_val;
+			u_=(T)pixelCoor_(1);
+			v_=(T)pixelCoor_(0);
+
+			// unproject
+			T fx = (T)K_(0, 0), cx = (T)K_(0, 2), fy =  (T)K_(1, 1), cy = (T)K_(1, 2);
+			Eigen::Matrix<T,3,1> p_3d_no_d;
+//			p_3d_no_d.setZero();
+
+			p_3d_no_d<< (v_-cx)/fx, (u_-cy)/fy,(T)1.0;
+
+			Eigen::Matrix<T, 3,1> p_c1 = sd[0]*p_3d_no_d;
+			Eigen::Matrix<T, 3, 1> p1 = Tran * p_c1 ;
+			// project
+			Eigen::Matrix<T, 2, 1> pt = project(p1,fx, fy,cx, cy, (T)cols_, (T)rows_);
+
+
+			if(pt.y()> T(0) && pt.y()<(T)cols_ && pt.x()>T(0) && pt.x()< (T)rows_ ){
+				T pixel_gray_val_out;
+				get_pixel_gray_val->Evaluate(pt.x(), pt.y(), &pixel_gray_val_out);
+				//T diff= delta*intensity_image_ref - pixel_gray_val_out;
+				//cout<<"show diff"<<diff<< endl;
+				residual[0] =  delta*intensity_image_ref - pixel_gray_val_out;
+				cout<<"residual[0]"<<residual[0]<<endl;
+				return true;
+
+			}
+
+			int tets=0;
+		}
+		double rows_, cols_;
+		Eigen::Vector2d pixelCoor_;
+		Eigen::Matrix3d K_;
+		Sophus::SE3<double> CurrentT_;
+		double delta_val;
+		double gray_Image_ref_val;
+		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>>> get_pixel_gray_val;
+	};
+
 
 
 
