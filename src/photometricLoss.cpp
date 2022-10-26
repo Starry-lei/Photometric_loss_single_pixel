@@ -70,10 +70,29 @@ int main(int argc, char **argv) {
 //	waitKey(0);
 
 	depth_ref=dataLoader->depth_map_ref;
-	// set all nan zero
-	Mat depth_mask = Mat(depth_ref != depth_ref);
-	depth_ref.setTo(0.0, depth_mask);
+//	// set all nan zero ---------------------------------simulation data no nan-----------------------------
+//	Mat depth_mask = Mat(depth_ref != depth_ref);
+//	depth_ref.setTo(0.0, depth_mask);
+
+//	Mat One(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1));
+
+	Mat inv_depth_ref;
+	divide(Scalar(1), depth_ref, inv_depth_ref);
+
+	double min_inv, max_inv;
+	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
+	cout<<"\n show original inv_depth_ref min, max:\n"<<min_inv<<","<<max_inv<<endl;
+
+
+//	Mat inv_depth_ref_show= inv_depth_ref*(1.0/(max_inv-min_inv))+(-min_inv*(1.0/(max_inv-min_inv)));
+//	imshow("inv_depth_ref_show",inv_depth_ref_show);
+//	waitKey(0);
+
+
+
+
 	depth_ref.convertTo(depth_ref, CV_64FC1);
+	inv_depth_ref.convertTo(inv_depth_ref, CV_64FC1);
 
 	Mat depth_ref_GT= dataLoader->depth_map_ref;
 	depth_target=dataLoader->depth_map_target;
@@ -86,6 +105,8 @@ int main(int argc, char **argv) {
 		double min_gt, max_gt;
 		cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
 		cout<<"\n show original depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
+
+
 //	Mat depth_ref= depth_ref*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
 //		Mat depth_ref_show= depth_ref*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
 	//	cv::minMaxLoc(depth_ref_NS, &min_gt, &max_gt);
@@ -245,24 +266,33 @@ int main(int argc, char **argv) {
 			Mat mask = cv::Mat(deltaMap != deltaMap);
 			deltaMap.setTo(1.0, mask);
 
+//			double min_gt_special, max_gt_special;
+//			cv::minMaxLoc(depth_ref, &min_gt_special, &max_gt_special);
+//			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
+//			Mat depth_ref_for_show= depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
+
 			double min_gt_special, max_gt_special;
-			cv::minMaxLoc(depth_ref, &min_gt_special, &max_gt_special);
+			cv::minMaxLoc(inv_depth_ref, &min_gt_special, &max_gt_special);
 			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
-			Mat depth_ref_for_show= depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
-
-
-			string depth_ref_name= "depth_ref"+ to_string(i);
-			imshow(depth_ref_name, depth_ref_for_show);
+			Mat inv_depth_ref_for_show= inv_depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
+			string depth_ref_name= "inv_depth_ref"+ to_string(i);
+			imshow(depth_ref_name, inv_depth_ref_for_show);
 
 
 			if (dataLoader->options_.remove_outlier_manually){
-				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
+//				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
+
+				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
+
 			} else{
-				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
+//				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
+				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
+
 			}
 
 
 			updateDelta(xi,Klvl,image_ref_baseColor,depth_ref,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
+
 
 //			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
 //			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
