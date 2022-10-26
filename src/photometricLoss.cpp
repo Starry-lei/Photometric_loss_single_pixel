@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
 		double min_gt, max_gt;
 		cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
 		cout<<"\n show original depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
+//	Mat depth_ref= depth_ref*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
 //		Mat depth_ref_show= depth_ref*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
 	//	cv::minMaxLoc(depth_ref_NS, &min_gt, &max_gt);
 	//	cout<<"\n show depth_ref_NS min, max:\n"<<min_gt<<","<<max_gt<<endl;
@@ -160,19 +161,16 @@ int main(int argc, char **argv) {
 //	--------------------------------------------------------------------Data perturbation--------------------------------------------------------------------
 	double roErr;
 	Eigen::Matrix3d R_GT(xi_GT.rotationMatrix());
-	Eigen::Matrix3d perturbedRotation=rotation_pertabation(0.0,0.0,0.0,R_GT,roErr); // degree
+	Eigen::Matrix3d perturbedRotation=rotation_pertabation(0.00,0.00,0.00,R_GT,roErr); // degree
 
 	double trErr;
 	Eigen::Vector3d T_GT(xi_GT.translation());
-	Eigen::Vector3d  perturbedTranslation=translation_pertabation(0.0, 0.00, 0.00, T_GT,trErr); // percentage
+	Eigen::Vector3d  perturbedTranslation=translation_pertabation(0.00, 0.00, 0.00, T_GT,trErr); // percentage
 
 
 	Eigen::Matrix<double,6,1> update_se3;
 	update_se3.setZero();
 	update_se3(0,0) = 1e-4;
-
-
-//	perturbedTranslation << -3.7, -0.05, 2.2;
 
 	// Add noise to depth image depth_ref_NS
 	Mat depth_ref_NS;

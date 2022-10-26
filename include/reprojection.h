@@ -203,9 +203,8 @@ namespace DSONL{
 			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
 			Eigen::Map<Eigen::Matrix<T, 1, 1>> residual(residuals);
 			T u_, v_, intensity_image_ref, delta;
-//			T d;
-			intensity_image_ref=(T) gray_Image_ref_val;
 
+			intensity_image_ref=(T) gray_Image_ref_val;
 			delta=(T)delta_val;
 			u_=(T)pixelCoor_(1);
 			v_=(T)pixelCoor_(0);
@@ -213,12 +212,10 @@ namespace DSONL{
 			// unproject
 			T fx = (T)K_(0, 0), cx = (T)K_(0, 2), fy =  (T)K_(1, 1), cy = (T)K_(1, 2);
 			Eigen::Matrix<T,3,1> p_3d_no_d;
-//			p_3d_no_d.setZero();
-
 			p_3d_no_d<< (v_-cx)/fx, (u_-cy)/fy,(T)1.0;
-
 			Eigen::Matrix<T, 3,1> p_c1 = sd[0]*p_3d_no_d;
 			Eigen::Matrix<T, 3, 1> p1 = Tran * p_c1 ;
+
 			// project
 			Eigen::Matrix<T, 2, 1> pt = project(p1,fx, fy,cx, cy, (T)cols_, (T)rows_);
 
@@ -226,15 +223,10 @@ namespace DSONL{
 			if(pt.y()> T(0) && pt.y()<(T)cols_ && pt.x()>T(0) && pt.x()< (T)rows_ ){
 				T pixel_gray_val_out;
 				get_pixel_gray_val->Evaluate(pt.x(), pt.y(), &pixel_gray_val_out);
-				//T diff= delta*intensity_image_ref - pixel_gray_val_out;
-				//cout<<"show diff"<<diff<< endl;
 				residual[0] =  delta*intensity_image_ref - pixel_gray_val_out;
-				cout<<"residual[0]"<<residual[0]<<endl;
 				return true;
-
 			}
 
-			int tets=0;
 		}
 		double rows_, cols_;
 		Eigen::Vector2d pixelCoor_;

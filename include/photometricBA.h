@@ -148,6 +148,8 @@ namespace DSONL{
 		deltaMap.convertTo(deltaMap, CV_64FC1);
 
 
+
+
 //		cv::Mat flat_depth_map = img_ref_depth.reshape(1, img_ref_depth.total() * img_ref_depth.channels());
 //		std::vector<double> img_ref_depth_values=img_ref_depth.isContinuous() ? flat_depth_map : flat_depth_map.clone();
 //		ceres::Grid2D<double> grid2d_depth(&img_ref_depth_values[0],0, rows_, 0, cols_);
@@ -163,20 +165,7 @@ namespace DSONL{
 		int step= 50;
 		int pixelSkip=0;
 		int pixelSkip2=0;
-		for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
-		{
-			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
-			{
-//				if(pixelSkip2%step!=0){ continue;}
-//				pixelSkip2++;
 
-				if (outlier_mask.at<uchar>(u,v)==0){ continue;}
-				problem.AddParameterBlock(&depth_ref.at<double>(u,v), 1);
-				if (!options.optimize_depth) {
-					problem.SetParameterBlockConstant(&depth_ref.at<double>(u,v));
-				}
-			}
-		}
 		std::unordered_map<int, int> inliers_filter;
 		//new image
 		inliers_filter.emplace(173,333); //yes
@@ -197,10 +186,13 @@ namespace DSONL{
 //				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 //				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 
-//				if(pixelSkip%step!=0){ continue;}
+//				if(pixelSkip%step!=0){ pixelSkip++;continue; }
 //				pixelSkip++;
+
+
                 // red outlier mask
 				if (outlier_mask.at<uchar>(u,v)==0){ continue;}
+
 				gray_values[0] =  image.at<double>(u, v);
 				Eigen::Vector2d pixelCoord((double)v,(double)u);
 
@@ -222,6 +214,9 @@ namespace DSONL{
 				);
 				problem.SetParameterLowerBound(&depth_ref.at<double>(u,v), 0,   depth_lower_bound);
 				problem.SetParameterUpperBound(&depth_ref.at<double>(u,v), 0,   depth_upper_bound);
+				if (!options.optimize_depth) {
+					problem.SetParameterBlockConstant(&depth_ref.at<double>(u,v));
+				}
 			}
 		}
 		// Solve
