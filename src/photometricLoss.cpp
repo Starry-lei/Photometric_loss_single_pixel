@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
 
 	Mat inv_depth_ref;
 	divide(Scalar(1), depth_ref, inv_depth_ref);
+//	inv_depth_ref=inv_depth_ref*10;
 
 	double min_inv, max_inv;
 	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
@@ -126,8 +127,7 @@ int main(int argc, char **argv) {
 //	cv::minMaxLoc(depth_target, &min_gt, &max_gt);
 //	Mat depth_target_show= depth_target*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
 //	imshow("depth_target_show",depth_target_show);
-
-//		waitKey(0);
+//	waitKey(0);
 
 
 
@@ -211,11 +211,13 @@ int main(int argc, char **argv) {
 	float butt_new=buttom;
 	Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
 	int lvl_target, lvl_ref;
-	double depth_upper_bound = 60;
-	double depth_lower_bound = 20;
+//	double depth_upper_bound = 60; /// change it!!!!!!!!!!!!!!!!!!!!!1
+//	double depth_lower_bound = 20;
+	double depth_upper_bound = 1;
+	double depth_lower_bound = 0.0;
 	PhotometricBAOptions options;
 	options.optimize_depth = true;
-	dataLoader->options_.remove_outlier_manually= true;
+	dataLoader->options_.remove_outlier_manually= false;
 	//	Eigen::Vector3d new_translation;
 	//	new_translation << -3.7, -0.05, 2.2;
 	options.huber_parameter= 0.25* 4/255;
@@ -258,7 +260,7 @@ int main(int argc, char **argv) {
 
 
         int i=0;
-		while ( i < 2){
+		while ( i < 1){
 
 			double  max_n_, min_n_;
 			cv::minMaxLoc(deltaMap, &min_n_, &max_n_);
@@ -281,17 +283,14 @@ int main(int argc, char **argv) {
 
 			if (dataLoader->options_.remove_outlier_manually){
 //				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
-
 				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
-
 			} else{
 //				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
 				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
-
 			}
 
 
-			updateDelta(xi,Klvl,image_ref_baseColor,depth_ref,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
+//			updateDelta(xi,Klvl,image_ref_baseColor,depth_ref,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
 
 
 //			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
@@ -312,7 +311,7 @@ int main(int argc, char **argv) {
 		}
 		cout<<"\nShow current rotation perturbation error :"<< roErr<< "\nShow current translation perturbation error : "<< trErr<<"\nShow current depth perturbation error :"<< depth_Error<<endl;
 
-		waitKey(0);
+//		waitKey(0);
 
 
 //		cout << "\n Show initial pose:\n" << xi_GT.rotationMatrix() << "\n Show translation:\n" << xi_GT.translation()<<endl;

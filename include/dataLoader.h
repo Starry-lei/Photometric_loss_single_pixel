@@ -36,7 +36,7 @@ namespace DSONL{
 
 	struct dataOptions {
 		/// 0: big baseline, 1: small baseline, 2: smaller baseline
-		int baseline = 1;
+		int baseline = 2;
 		/// is textured or not
 		bool isTextured = true;
 		/// use gree channel for testing
@@ -120,6 +120,11 @@ namespace DSONL{
 				image_ref_roughness_.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
 
 				int channelIdx= options_.channelIdx;
+
+				/// TEMP  use baseColor to replace image_target!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+//				image_ref=imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+
 				extractChannel(image_ref, grayImage_ref, channelIdx);
 
 				// left map depth
@@ -154,16 +159,15 @@ namespace DSONL{
 
 
 				}else if (options_.baseline==1){
-
 					 image_target_path = "../data/rgb/small_baseline/rt_11_3_21_cam6_rgb.exr";
-					 image_target_baseColor ="../data/rgb/small_baseline/rt_12_44_34_cam6_rgb.exr";
+					 image_target_baseColor ="../data/rgb/small_baseline/rt_12_56_23_cam6_basecolor.exr";
 					 depth_target_path="../data/rgb/small_baseline/rt_12_44_34_cam6_depth.exr";
 					 image_target_MR_path = "../data/rgb/small_baseline/cam6_mr.png";
 					outlier_mask_big_baseline_path="../data/rgb/Texture_Image/red_mask.png"; // 0 means outlier
 					outlier_mask_big_baseline= imread(outlier_mask_big_baseline_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 
 
-					Eigen::Quaterniond q_2(-0.0146847,-0.0064972,-0.9994298,-0.0297027 ); //  cam5  wxyz
+					Eigen::Quaterniond q_2(-0.0146847,-0.0064972,-0.9994298,-0.0297027 ); //  cam6  wxyz
 					 Eigen::Vector3d t2(0,-16.5,28.2);
 					 R2=q_2.toRotationMatrix();
 
@@ -175,10 +179,18 @@ namespace DSONL{
 
 				}else if (options_.baseline==2){
 
-					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_23_2_30_cam7_rgb.exr";
+					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_16_33_27_cam7_rgb.exr";
 					image_target_baseColor ="../data/rgb/cam7_smaller_baseline/rt_23_4_36_cam7_basecolor.exr";
 					depth_target_path="../data/rgb/cam7_smaller_baseline/rt_23_2_30_cam7_depth.exr";
 					image_target_MR_path = "../data/rgb/cam7_smaller_baseline/cam7_mr.png";
+
+					Eigen::Quaterniond q_2(-0.0146847,-0.0064972,-0.9994298,-0.0297027 ); //  cam7  wxyz
+					Eigen::Vector3d t2(4.3,-17,26.6);
+					R2=q_2.toRotationMatrix();
+
+					R12= R2.transpose() * R1;
+					t12= R2.transpose()* (t1-t2);
+					q_12= R12;
 
 
 
@@ -197,6 +209,10 @@ namespace DSONL{
 				Mat image_target_roughness= taget_mr_table[1];
 				image_target_metallic.convertTo(image_target_metallic, CV_32FC1,1.0 / 255.0);
 				image_target_roughness.convertTo(image_target_roughness, CV_32FC1,1.0 / 255.0);
+
+				/// use baseColor to replace image_target!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//				image_target=imread(image_target_baseColor,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+
 
 				extractChannel(image_target, grayImage_target, channelIdx);
 				// right map depth
