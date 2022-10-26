@@ -219,7 +219,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 
 			problem.AddResidualBlock(
-					new ceres::AutoDiffCostFunction<PhotometricCostFunctor,8,1,Sophus::SE3d::num_parameters>(
+					new ceres::AutoDiffCostFunction<PhotometricCostFunctor,1,1,Sophus::SE3d::num_parameters>(
 							new PhotometricCostFunctor(
 									pixelCoord,
 									K,
