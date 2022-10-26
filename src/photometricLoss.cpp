@@ -266,27 +266,28 @@ int main(int argc, char **argv) {
 			Mat mask = cv::Mat(deltaMap != deltaMap);
 			deltaMap.setTo(1.0, mask);
 
-//			double min_gt_special, max_gt_special;
-//			cv::minMaxLoc(depth_ref, &min_gt_special, &max_gt_special);
-//			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
-//			Mat depth_ref_for_show= depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
-
 			double min_gt_special, max_gt_special;
-			cv::minMaxLoc(inv_depth_ref, &min_gt_special, &max_gt_special);
+			cv::minMaxLoc(depth_ref, &min_gt_special, &max_gt_special);
 			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
-			Mat inv_depth_ref_for_show= inv_depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
-			string depth_ref_name= "inv_depth_ref"+ to_string(i);
-			imshow(depth_ref_name, inv_depth_ref_for_show);
+			Mat depth_ref_for_show= depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
+
+//			double min_gt_special, max_gt_special;
+//			cv::minMaxLoc(inv_depth_ref, &min_gt_special, &max_gt_special);
+//			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
+//			Mat inv_depth_ref_for_show= inv_depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
+
+			string depth_ref_name= "depth_ref"+ to_string(i);
+			imshow(depth_ref_name, depth_ref_for_show);
 
 
 			if (dataLoader->options_.remove_outlier_manually){
-//				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
+				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
 
-				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
+//				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
 
 			} else{
-//				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
-				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
+				PhotometricBA(IRef, I, options, Klvl, xi, depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
+//				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound);
 
 			}
 
