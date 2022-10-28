@@ -74,10 +74,10 @@ namespace DSONL{
 //		addWeighted(mSrc_16SC, 1.0, mGaussian_noise, 1.0, 0.0, mSrc_16SC);
 //		mSrc_16SC.convertTo(mDst,mSrc.type());
 		Mat mSrc_32FC1;
-		Mat mGaussian_noise = Mat(mSrc.size(),CV_32FC1);
+		Mat mGaussian_noise = Mat(mSrc.size(),CV_64FC1);
 		randn(mGaussian_noise,Scalar::all(Mean), Scalar::all(StdDev));
 
-		mSrc.convertTo(mSrc_32FC1,CV_32FC1);
+		mSrc.convertTo(mSrc_32FC1,CV_64FC1);
 		addWeighted(mSrc_32FC1, 1.0, mGaussian_noise, 1.0, 0.0, mSrc_32FC1);
 		mSrc_32FC1.convertTo(mDst,mSrc.type());
 
@@ -1079,6 +1079,30 @@ namespace DSONL{
 //
 //	}
 //
+
+ void showScaledImage(const Mat & GT, const Mat& ES){
+
+	 double max_orig, min_orig;
+	 cv::minMaxLoc(GT, &min_orig,&max_orig);
+	 double max_adj, min_adj;
+	 cv::minMaxLoc(ES, &min_adj,&max_adj);
+
+	 double max_real= max(max_adj, max_orig);
+	 double min_real=min(min_adj, min_orig);
+
+
+
+	 Mat GT_for_show= 25*GT*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+	 Mat ES_for_show= 25*ES*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+
+	 imshow("GT_for_show", GT_for_show);
+	 imshow("ES_for_show", ES_for_show);
+
+	 waitKey(0);
+
+
+
+	}
 
     void showMinus(Mat& minus_original, Mat& minus_adjust, Mat& minus_mask ){
 

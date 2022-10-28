@@ -36,7 +36,7 @@ namespace DSONL{
 
 	struct dataOptions {
 		/// 0: big baseline, 1: small baseline, 2: smaller baseline
-		int baseline = 2;
+		int baseline = 1;
 		/// is textured or not
 		bool isTextured = true;
 		/// use gree channel for testing
@@ -49,7 +49,6 @@ namespace DSONL{
 
 	class dataLoader{
 
-//		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 	public:
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -100,6 +99,24 @@ namespace DSONL{
 				string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
 				// Depth map
 				string depth_ref_path = "../data/depth/cam1_depth.exr";
+//				string depth_ref_path = "../data/depth/test_inv_depth.exr";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 				//normal map GT
 				string normal_GT_path="../data/rgb/normalMap/rt_23_26_45_cam1_normdir.exr";
 

@@ -28,6 +28,8 @@ namespace DSONL{
 		/// update intrinsics or keep fixed
 		bool optimize_depth = false;
 
+		bool optimize_pose = true;
+
 		/// use huber robust norm or squared norm
 		bool use_huber = true;
 
@@ -190,9 +192,8 @@ namespace DSONL{
 
 		template<typename T>
 		bool operator()(
-
-				const T* const sd,
 				const T* const sT,
+				const T* const sd,
 				T *residual
 		) const {
 

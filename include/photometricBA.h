@@ -82,8 +82,6 @@ namespace DSONL{
 //				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 
 
-
-
 				gray_values[0] =  image.at<double>(u, v);
 				Eigen::Vector2d pixelCoord((double)v,(double)u);
 				problem.AddResidualBlock(
@@ -268,7 +266,10 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 
 	//  ----------------------------------------------overload PhotometricBA-------------------------------------------------
-	void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
+	void PhotometricBA
+					(Mat &image, Mat &image_right,
+					 const PhotometricBAOptions &options,
+					 const Eigen::Matrix3d &K,
 	                   Sophus::SE3d& pose,
 	                   Mat&         depth_ref,
 	                   Mat deltaMap,
@@ -308,10 +309,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 		std::unordered_map<int, int> inliers_filter;
 		//new image
-		inliers_filter.emplace(173,333); //yes
-		inliers_filter.emplace(378,268); //yes
-
-
+		inliers_filter.emplace(321,296); //yes
 		double intensity_ref;
 		double deltaMap_val;
 		double *transformation = pose.data();
@@ -349,27 +347,58 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 				p_c1 <<  p_3d_no_d.x() /depth_ref.at<double>(u,v),  p_3d_no_d.y() /depth_ref.at<double>(u,v) ,p_3d_no_d.z() /depth_ref.at<double>(u,v);
 				Eigen::Matrix<double, 3, 1> p1 = pose * p_c1 ;
 				Eigen::Matrix<double, 2, 1> pt = project(p1,fx, fy,cx, cy);
-				if(pt.y()< 0.0 && pt.y()>image.cols && pt.x() <0.0 && pt.x()> image.rows ){ continue;}
+				if(pt.y()< 0.0 && pt.y()>image.cols && pt.x() <0.0 && pt.x()> image.rows ){
+				 int a=0;
+					continue;
+				}
 
 
-				problem.AddResidualBlock(
-						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 1, Sophus::SE3d::num_parameters,1>(
-								new PhotometricCostFunctor(
-										pixelCoord,
-										K,
-										image.rows,
-										image.cols,
-										grayImage_right_values,
-										intensity_ref,
-										deltaMap_val
-								)
-						),
-						NULL, //new ceres::HuberLoss(options.huber_parameter),
-						transformation,
-						&depth_ref.at<double>(u,v)
-				);
+				if (options.use_huber){
+					problem.AddResidualBlock(
+							new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 1, Sophus::SE3d::num_parameters,1>(
+									new PhotometricCostFunctor(
+											pixelCoord,
+											K,
+											image.rows,
+											image.cols,
+											grayImage_right_values,
+											intensity_ref,
+											deltaMap_val
+									)
+							),
+							new ceres::HuberLoss(options.huber_parameter),
+							transformation,
+							&depth_ref.at<double>(u,v)
+					);
+				} else{
+					problem.AddResidualBlock(
+							new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 1, Sophus::SE3d::num_parameters,1>(
+									new PhotometricCostFunctor(
+											pixelCoord,
+											K,
+											image.rows,
+											image.cols,
+											grayImage_right_values,
+											intensity_ref,
+											deltaMap_val
+									)
+							),
+							NULL, //new ceres::HuberLoss(options.huber_parameter),
+							transformation,
+							&depth_ref.at<double>(u,v)
+					);
+
+
+				}
+
+
+
+
 				problem.SetParameterLowerBound(&depth_ref.at<double>(u,v), 0,   depth_lower_bound);
 				problem.SetParameterUpperBound(&depth_ref.at<double>(u,v), 0,   depth_upper_bound);
+				if (!options.optimize_pose){
+					problem.SetParameterBlockConstant(transformation);
+				}
 				if (!options.optimize_depth) {
 					problem.SetParameterBlockConstant(&depth_ref.at<double>(u,v));
 				}
