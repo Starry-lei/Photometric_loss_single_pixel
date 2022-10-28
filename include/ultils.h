@@ -1098,6 +1098,11 @@ namespace DSONL{
 	 imshow("GT_for_show", GT_for_show);
 	 imshow("ES_for_show", ES_for_show);
 
+	 GT_for_show.convertTo(GT_for_show, CV_32FC1);
+	 ES_for_show.convertTo(ES_for_show, CV_32FC1);
+	 imwrite("GT_for_show.exr",GT_for_show); //inv_depth_ref
+	 imwrite("ES_for_show.exr",ES_for_show);
+
 	 waitKey(0);
 
 

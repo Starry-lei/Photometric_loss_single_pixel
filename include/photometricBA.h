@@ -181,6 +181,8 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	double *transformation = pose.data();
 
 
+
+
 	int step= 50;
 	int pixelSkip=0;
 
@@ -200,6 +202,34 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 			// red outlier mask
 //			if (outlier_mask.at<uchar>(u,v)==0){ continue;}
 			// remove way far points
+
+			double gray_values[9]{};
+			double delta_values[9]{};
+
+//				gray_values[0]=intensity_ref;
+//				gray_values[1]=image.at<double>(u, v);
+
+			int k=0;
+			for (int i = -1; i <= 1; i++)
+			{
+				for (int j = -1; j <= 1; j++)
+				{
+					int rowId=u+i;
+					int colId=v+j;
+					if (colId< 0.0 && colId>image.cols && rowId <0.0 && rowId> image.rows ){
+						gray_values[k]= image.at<double>(rowId,colId);
+						delta_values[k]=deltaMap.at<double>(rowId,colId);
+					}else{
+						gray_values[k]=image.at<double>(u, v);
+						delta_values[k]=deltaMap.at<double>(u, v);
+					}
+					k++;
+
+				}
+			}
+
+
+
 			if (depth_ref.at<double>(u,v)< 0) { continue;}
 
 			intensity_ref=  image.at<double>(u, v);
@@ -217,15 +247,15 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 
 			problem.AddResidualBlock(
-					new ceres::AutoDiffCostFunction<PhotometricCostFunctor,1,1,Sophus::SE3d::num_parameters>(
+					new ceres::AutoDiffCostFunction<PhotometricCostFunctor,9,1,Sophus::SE3d::num_parameters>(
 							new PhotometricCostFunctor(
 									pixelCoord,
 									K,
 									image.rows,
 									image.cols,
 									grayImage_right_values,
-									intensity_ref,
-									deltaMap_val
+									gray_values,
+									delta_values
 							)
 					),
 					NULL, //new ceres::HuberLoss(options.huber_parameter),
@@ -271,7 +301,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 					 const PhotometricBAOptions &options,
 					 const Eigen::Matrix3d &K,
 	                   Sophus::SE3d& pose,
-	                   Mat&         depth_ref,
+	                   Mat&       depth_ref,
 	                   Mat deltaMap,
 	                   const double& depth_upper_bound,
 	                   const double& depth_lower_bound,
@@ -296,13 +326,6 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 		std::vector<double> grayImage_right_values = image_right.isContinuous() ? flat : flat.clone();
 
 
-
-
-
-
-//		ceres::Grid2D<double> grid2d_grayImage_right(&grayImage_right_values[0],0, rows_, 0, cols_);
-
-
 		problem.AddParameterBlock(pose.data(), Sophus::SE3d::num_parameters, new Sophus::test::LocalParameterizationSE3);
 
 
@@ -310,6 +333,22 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 		std::unordered_map<int, int> inliers_filter;
 		//new image
 		inliers_filter.emplace(321,296); //yes
+
+		inliers_filter.emplace(102,136);
+		inliers_filter.emplace(241,33);
+		inliers_filter.emplace(340,107);
+		inliers_filter.emplace(242,6);
+
+		inliers_filter.emplace(113,94);
+		inliers_filter.emplace(393,37);
+		inliers_filter.emplace(112,93);
+		inliers_filter.emplace(255,564);
+
+
+
+
+
+
 		double intensity_ref;
 		double deltaMap_val;
 		double *transformation = pose.data();
@@ -326,7 +365,6 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 				// use the inlier filter
 //				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 //				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-
 //				if(pixelSkip%step!=0){ pixelSkip++;continue; }
 //				pixelSkip++;
 
@@ -336,7 +374,43 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 				// remove way far points
 				if (depth_ref.at<double>(u,v)< 0) { continue;}
 
+
+
+
 				intensity_ref=  image.at<double>(u, v);
+				double gray_values[9]{};
+				double delta_values[9]{};
+
+//				gray_values[0]=intensity_ref;
+//				gray_values[1]=image.at<double>(u, v);
+
+				int k=0;
+				for (int i = -1; i <= 1; i++)
+				{
+					for (int j = -1; j <= 1; j++)
+					{
+						int rowId=u+i;
+						int colId=v+j;
+						if (colId >0.0 && colId<image.cols && rowId >0.0 && rowId <image.rows ){
+							gray_values[k]= image.at<double>(rowId,colId);
+
+//							cout<<"show gray_values:"<<gray_values[k]<<endl;
+							delta_values[k]=deltaMap.at<double>(rowId,colId);
+						}else{
+							gray_values[k]=image.at<double>(u, v);
+							delta_values[k]=deltaMap.at<double>(u, v);
+						}
+						k++;
+
+					}
+				}
+
+//int a=0;
+
+
+
+
+
 				deltaMap_val=  deltaMap.at<double>(u, v);
 				Eigen::Vector2d pixelCoord((double)v,(double)u);
 
@@ -344,10 +418,12 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 				Eigen::Matrix<double,3,1> p_3d_no_d;
 				p_3d_no_d<< (v-cx)/fx, (u-cy)/fy,(double )1.0;
 				Eigen::Matrix<double, 3,1> p_c1 ;
+				double cur_detph=depth_ref.at<double>(u,v);
 				p_c1 <<  p_3d_no_d.x() /depth_ref.at<double>(u,v),  p_3d_no_d.y() /depth_ref.at<double>(u,v) ,p_3d_no_d.z() /depth_ref.at<double>(u,v);
 				Eigen::Matrix<double, 3, 1> p1 = pose * p_c1 ;
 				Eigen::Matrix<double, 2, 1> pt = project(p1,fx, fy,cx, cy);
 				if(pt.y()< 0.0 && pt.y()>image.cols && pt.x() <0.0 && pt.x()> image.rows ){
+					cout<<"show outside points:"<<pt.x()<<","<<pt.y()<<endl;
 				 int a=0;
 					continue;
 				}
@@ -355,15 +431,15 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 				if (options.use_huber){
 					problem.AddResidualBlock(
-							new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 1, Sophus::SE3d::num_parameters,1>(
+							new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SE3d::num_parameters,1>(
 									new PhotometricCostFunctor(
 											pixelCoord,
 											K,
 											image.rows,
 											image.cols,
 											grayImage_right_values,
-											intensity_ref,
-											deltaMap_val
+											gray_values,
+											delta_values
 									)
 							),
 							new ceres::HuberLoss(options.huber_parameter),
@@ -372,23 +448,21 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 					);
 				} else{
 					problem.AddResidualBlock(
-							new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 1, Sophus::SE3d::num_parameters,1>(
+							new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SE3d::num_parameters,1>(
 									new PhotometricCostFunctor(
 											pixelCoord,
 											K,
 											image.rows,
 											image.cols,
 											grayImage_right_values,
-											intensity_ref,
-											deltaMap_val
+											gray_values,
+											delta_values
 									)
 							),
 							NULL, //new ceres::HuberLoss(options.huber_parameter),
 							transformation,
 							&depth_ref.at<double>(u,v)
 					);
-
-
 				}
 
 

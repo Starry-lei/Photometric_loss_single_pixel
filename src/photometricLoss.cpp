@@ -42,7 +42,7 @@ using namespace std;
 using namespace DSONL;
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv){
 
 
 	Eigen::Vector2i pixel_pos(213,295);
@@ -65,47 +65,37 @@ int main(int argc, char **argv) {
 	grayImage_ref.convertTo(grayImage_ref,CV_64FC1);
 	grayImage_target.convertTo(grayImage_target, CV_64FC1);
 
-//	showImage(grayImage_ref,"grayImage_ref");
-//	showImage(grayImage_target,"grayImage_target");
-//	waitKey(0);
+												//	showImage(grayImage_ref,"grayImage_ref");
+												//	showImage(grayImage_target,"grayImage_target");
+												//	waitKey(0);
 
 	depth_ref=dataLoader->depth_map_ref;
-//	// set all nan zero ---------------------------------simulation data no nan-----------------------------
-//	Mat depth_mask = Mat(depth_ref != depth_ref);
-//	depth_ref.setTo(0.0, depth_mask);
+												//	// set all nan zero ---------------------------------simulation data no nan-----------------------------
+												//	Mat depth_mask = Mat(depth_ref != depth_ref);
+												//	depth_ref.setTo(0.0, depth_mask);
 
-//	Mat One(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1));
-
+//	-------------------------------get inverse depth------------------------------------------------
 	cout<<"depth type:"<< depth_ref.depth()<<endl;
 	Mat inv_depth_ref, depth_ref_gt;
 	divide(Scalar(1), depth_ref, inv_depth_ref);
-	depth_ref_gt=inv_depth_ref;
+	depth_ref_gt=inv_depth_ref.clone();
 	cout<<"!!!!!!!!!!!!!!!!!!!depth_ref_gt at(321,296)"<<depth_ref_gt.at<double>(321,296)<<endl;
-
 
 	double min_inv, max_inv;
 	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
 	cout<<"\n show original inv_depth_ref min, max:\n"<<min_inv<<","<<max_inv<<endl;
-
-
 	cout<<"show inv_depth_ref type:"<<inv_depth_ref.type()<<endl;
 
 //	string inv_depth_ref_path = "../data/depth/test_inv_depth.exr";
 //	Mat inv_depth_ref_snd = imread(inv_depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 //	inv_depth_ref_snd.convertTo(inv_depth_ref_snd,CV_64FC1);
-
-//	showScaledImage(depth_ref_gt, inv_depth_ref_snd);
-
-
-//		inv_depth_ref=inv_depth_ref_snd;
-//		cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
-//		cout<<"\n !!!!!!!!!!!!!!!!!!!!!!show changed inv_depth_ref min, max:!!!!!!!!!!!!!!!!!!!!!!!!!!\n"<<min_inv<<","<<max_inv<<endl;
-//
+////	showScaledImage(depth_ref_gt, inv_depth_ref_snd);
+//	inv_depth_ref=inv_depth_ref_snd.clone();
+//	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
+//	cout<<"\n !!!!!!!!!!!!!!!!!!!!!!show changed inv_depth_ref min, max:!!!!!!!!!!!!!!!!!!!!!!!!!!\n"<<min_inv<<","<<max_inv<<endl;
 //	imshow("inv_depth_ref",inv_depth_ref);
 //	waitKey(0);
 
-
-//	waitKey(0);
 
 
 
@@ -211,8 +201,7 @@ int main(int argc, char **argv) {
 	float butt_new=buttom;
 	Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
 	int lvl_target, lvl_ref;
-//	double depth_upper_bound = 60; /// change it!!!!!!!!!!!!!!!!!!!!!1
-//	double depth_lower_bound = 20;
+
 	double depth_upper_bound = 1;
 	double depth_lower_bound = 0.0;
 	PhotometricBAOptions options;
@@ -246,7 +235,8 @@ int main(int argc, char **argv) {
 	//	imshow("Image 2", outlier_mask);
 	//	waitKey(0);
 
-
+    // use noised depth data to test if depth can be optimised well
+	//  inv_depth_ref=depth_ref_NS.clone();
 
 	for (int lvl = 1; lvl >= 1; lvl--)
 	{
@@ -258,7 +248,6 @@ int main(int argc, char **argv) {
 
 		downscale(grayImage_ref, depth_ref, K, lvl_ref, IRef, DRef, Klvl);
 		downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
-
 		double min_gt_special, max_gt_special;
 
         int i=0;
@@ -270,13 +259,12 @@ int main(int argc, char **argv) {
 			Mat mask = cv::Mat(deltaMap != deltaMap);
 			deltaMap.setTo(1.0, mask);
 
-//			double min_gt_special, max_gt_special;
-//			cv::minMaxLoc(depth_ref, &min_gt_special, &max_gt_special);
-//			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
-//			Mat depth_ref_for_show= depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
 
+			if (i==1){
+				cout<<"depthErr(depth_ref_gt, inv_depth_ref).val[0]:"<<depthErr(depth_ref_gt, inv_depth_ref).val[0]<<endl;
+				showScaledImage(depth_ref_gt,inv_depth_ref);
+			}
 
-//			double min_gt_special, max_gt_special;
 			cv::minMaxLoc(inv_depth_ref, &min_gt_special, &max_gt_special);
 			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
 			Mat inv_depth_ref_for_show= inv_depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
@@ -290,6 +278,7 @@ int main(int argc, char **argv) {
 
 //				inv_depth_ref.convertTo(inv_depth_ref, CV_32FC1);
 //				imwrite("test_inv_depth.exr",inv_depth_ref);
+//				showScaledImage(depth_ref_gt, inv_depth_ref);
 //				waitKey(0);
 
 
@@ -321,13 +310,7 @@ int main(int argc, char **argv) {
 
 		}
 		cout<<"\nShow current rotation perturbation error :"<< roErr<< "\nShow current translation perturbation error : "<< trErr<<"\nShow current depth perturbation error :"<< depth_Error<<endl;
-
 		waitKey(0);
-
-
-//		cout << "\n Show initial pose:\n" << xi_GT.rotationMatrix() << "\n Show translation:\n" << xi_GT.translation()<<endl;
-//		cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<< endl;
-//		cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(), xi.rotationMatrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), xi.translation()) <<"(%) "<<endl;
 
 	}
 	// tidy up

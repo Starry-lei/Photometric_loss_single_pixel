@@ -172,10 +172,8 @@ namespace DSONL{
 				const int rows,
 				const int cols,
 				const std::vector<double> &vec_pixel_gray_values,
-				const double & intensity_ref,
-				const double & deltaMap_val
-//				double depth_gradient_x,
-//				double depth_gradient_y
+				const double pixel_gray_val_in[9],
+				const double delta_val_in[9]
 		) {
 			rows_ = rows;
 			cols_ = cols;
@@ -183,8 +181,11 @@ namespace DSONL{
 			K_ = K;
 
 
-			delta_val=deltaMap_val;
-			gray_Image_ref_val=intensity_ref;
+			for (int i = 0; i < 9; ++i) {
+				gray_Image_ref_val[i]=pixel_gray_val_in[i];
+				delta_val[i]=delta_val_in[i];
+			}
+
 
 			grid2d.reset(new ceres::Grid2D<double>(&vec_pixel_gray_values[0], 0, rows_, 0, cols_));
 			get_pixel_gray_val.reset(new ceres::BiCubicInterpolator<ceres::Grid2D<double> >(*grid2d));
@@ -200,9 +201,9 @@ namespace DSONL{
 			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
 
 
-			T u_, v_, intensity_image_ref, delta;
-			intensity_image_ref=(T) gray_Image_ref_val;
-			delta=(T)delta_val;
+			T u_, v_;// delta; //intensity_image_ref
+//			intensity_image_ref=(T) gray_Image_ref_val;
+//			delta=(T)delta_val;
 			u_=(T)pixelCoor_(1);
 			v_=(T)pixelCoor_(0);
 
@@ -219,10 +220,27 @@ namespace DSONL{
 			// project
 			Eigen::Matrix<T, 2, 1> pt = project(p1,fx, fy,cx, cy);
 
-			T pixel_gray_val_out;
-			get_pixel_gray_val->Evaluate(pt.x(), pt.y(), &pixel_gray_val_out);
-			residual[0] =  delta*intensity_image_ref - pixel_gray_val_out;
+			T res1;
+			T pixel_gray_val_out1;
+
+			for (int i = 0; i < 9; ++i) {
+
+				int m = i / 3;
+				int n = i % 3;
+
+				T pixel_gray_val_out, u_l, v_l;
+
+				u_l=pt.x()+T(m-1);
+				v_l=pt.y()+T(n-1);
+				get_pixel_gray_val->Evaluate(u_l, v_l, &pixel_gray_val_out);
+//				pixel_gray_val_out1=pixel_gray_val_out;
+				residual[i] =  T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
+//				res1=T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
+//				cout<<"show residual:"<<residual[i]<< endl;
+			}
 			return true;
+
+
 
 
 
@@ -233,8 +251,8 @@ namespace DSONL{
 		Eigen::Vector2d pixelCoor_;
 		Eigen::Matrix3d K_;
 		Sophus::SE3<double> CurrentT_;
-		double delta_val;
-		double gray_Image_ref_val;
+		double delta_val[9];
+		double gray_Image_ref_val[9];
 		std::unique_ptr<ceres::Grid2D<double> > grid2d;
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>>> get_pixel_gray_val;
 	};
