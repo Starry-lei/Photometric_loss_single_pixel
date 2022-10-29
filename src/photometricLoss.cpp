@@ -65,9 +65,9 @@ int main(int argc, char **argv){
 	grayImage_ref.convertTo(grayImage_ref,CV_64FC1);
 	grayImage_target.convertTo(grayImage_target, CV_64FC1);
 
-												//	showImage(grayImage_ref,"grayImage_ref");
-												//	showImage(grayImage_target,"grayImage_target");
-												//	waitKey(0);
+													showImage(grayImage_ref,"grayImage_ref");
+													showImage(grayImage_target,"grayImage_target");
+													waitKey(0);
 
 	depth_ref=dataLoader->depth_map_ref;
 												//	// set all nan zero ---------------------------------simulation data no nan-----------------------------
@@ -202,15 +202,13 @@ int main(int argc, char **argv){
 	Mat deltaMap(depth_ref.rows, depth_ref.cols, CV_32FC1, Scalar(1)); // storing delta
 	int lvl_target, lvl_ref;
 
-	double depth_upper_bound = 1;
-	double depth_lower_bound = 0.0;
+	double depth_upper_bound = 0.1;  // 0.5; 1
+	double depth_lower_bound = 0.001;  // 0.001
 	PhotometricBAOptions options;
 	options.optimize_depth = true;
 	options.optimize_pose= false;
-	options.use_huber= false;
-	dataLoader->options_.remove_outlier_manually= true;
-	//	Eigen::Vector3d new_translation;
-	//	new_translation << -3.7, -0.05, 2.2;
+	options.use_huber= true;
+	dataLoader->options_.remove_outlier_manually= false;
 	options.huber_parameter= 0.25* 4/255;
 
 
@@ -236,7 +234,7 @@ int main(int argc, char **argv){
 	//	waitKey(0);
 
     // use noised depth data to test if depth can be optimised well
-	//  inv_depth_ref=depth_ref_NS.clone();
+	  inv_depth_ref=depth_ref_NS.clone();
 
 	for (int lvl = 1; lvl >= 1; lvl--)
 	{
@@ -262,7 +260,7 @@ int main(int argc, char **argv){
 
 			if (i==1){
 				cout<<"depthErr(depth_ref_gt, inv_depth_ref).val[0]:"<<depthErr(depth_ref_gt, inv_depth_ref).val[0]<<endl;
-				showScaledImage(depth_ref_gt,inv_depth_ref);
+				showScaledImage(depth_ref_NS,depth_ref_gt,inv_depth_ref);
 			}
 
 			cv::minMaxLoc(inv_depth_ref, &min_gt_special, &max_gt_special);

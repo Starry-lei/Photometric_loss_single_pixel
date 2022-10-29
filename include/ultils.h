@@ -1080,28 +1080,38 @@ namespace DSONL{
 //	}
 //
 
- void showScaledImage(const Mat & GT, const Mat& ES){
+ void showScaledImage(const Mat & org_GT, const Mat & GT, const Mat& ES){
 
 	 double max_orig, min_orig;
 	 cv::minMaxLoc(GT, &min_orig,&max_orig);
 	 double max_adj, min_adj;
 	 cv::minMaxLoc(ES, &min_adj,&max_adj);
 
-	 double max_real= max(max_adj, max_orig);
-	 double min_real=min(min_adj, min_orig);
+//	 double max_real= max(max_adj, max_orig);
+//	 double min_real=min(min_adj, min_orig);
+	 double max_real=0.1;
+	 double min_real=0.001;
 
 
 
-	 Mat GT_for_show= 25*GT*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
-	 Mat ES_for_show= 25*ES*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+//	 Mat GT_for_show= 25*GT*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+//	 Mat ES_for_show= 25*ES*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+	 Mat GT_for_show= GT*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+	 Mat ES_for_show= ES*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
+	 Mat GT_orig_for_show= org_GT*(1.0/(max_real-min_real))+(-min_real*(1.0/(max_real-min_real)));
 
+	 //org_GT
+
+
+	 imshow("GT_orig_for_show", GT_orig_for_show);
 	 imshow("GT_for_show", GT_for_show);
 	 imshow("ES_for_show", ES_for_show);
 
-	 GT_for_show.convertTo(GT_for_show, CV_32FC1);
-	 ES_for_show.convertTo(ES_for_show, CV_32FC1);
-	 imwrite("GT_for_show.exr",GT_for_show); //inv_depth_ref
-	 imwrite("ES_for_show.exr",ES_for_show);
+//	 GT_for_show.convertTo(GT_for_show, CV_32FC1);
+//	 ES_for_show.convertTo(ES_for_show, CV_32FC1);
+//
+//	 imwrite("GT_for_show.exr",GT_for_show); //inv_depth_ref
+//	 imwrite("ES_for_show.exr",ES_for_show);
 
 	 waitKey(0);
 

@@ -36,7 +36,7 @@ namespace DSONL{
 
 	struct dataOptions {
 		/// 0: big baseline, 1: small baseline, 2: smaller baseline
-		int baseline = 1;
+		int baseline = 2;
 		/// is textured or not
 		bool isTextured = true;
 		/// use gree channel for testing
@@ -92,14 +92,20 @@ namespace DSONL{
 
 			if(options_.isTextured){
 				// RGB image with texture
-				string image_ref_path =            "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";
+//				string image_ref_path =            "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";//rt_13_53_33_cam1_rgb
+//				string image_ref_path = "../data/rgb/Texture_Image/rt_13_53_33_cam1_rgb.exr";//rt_16_18_41_cam1_rgb
+				string image_ref_path = "../data/rgb/Texture_Image/rt_16_18_41_cam1_rgb.exr";//
+
 				// BaseColor Image with texture
-				string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam1_texture_basecolor.exr";
-				//	// Metallic and Roughness
-				string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
+//				string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam1_texture_basecolor.exr";//rt_13_56_28_cam1_basecolor
+				string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_13_56_28_cam1_basecolor.exr";
+
+				//	// Metallic and Roughness------------------------not replaced!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
+//				string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
+				string image_ref_MR_path = "../data/rgb/cam1_mr16h29m.png";//cam1_mr16h29m.png
 				// Depth map
-				string depth_ref_path = "../data/depth/cam1_depth.exr";
-//				string depth_ref_path = "../data/depth/test_inv_depth.exr";
+//				string depth_ref_path = "../data/depth/cam1_depth.exr";
+				string depth_ref_path = "../data/depth/rt_13_54_33_cam1_depth.exr";
 
 
 
@@ -176,10 +182,21 @@ namespace DSONL{
 
 
 				}else if (options_.baseline==1){
-					 image_target_path = "../data/rgb/small_baseline/rt_11_3_21_cam6_rgb.exr";
-					 image_target_baseColor ="../data/rgb/small_baseline/rt_12_56_23_cam6_basecolor.exr";
-					 depth_target_path="../data/rgb/small_baseline/rt_12_44_34_cam6_depth.exr";
-					 image_target_MR_path = "../data/rgb/small_baseline/cam6_mr.png";
+//					 image_target_path = "../data/rgb/small_baseline/rt_11_3_21_cam6_rgb.exr";//rt_13_53_33_cam6_rgb
+//					image_target_path = "../data/rgb/small_baseline/rt_13_53_33_cam6_rgb.exr"; //rt_16_18_41_cam6_rgb
+					image_target_path = "../data/rgb/small_baseline/rt_16_18_41_cam6_rgb.exr"; //
+
+
+//					image_target_baseColor ="../data/rgb/small_baseline/rt_12_56_23_cam6_basecolor.exr";//rt_13_56_28_cam6_basecolor
+					image_target_baseColor ="../data/rgb/small_baseline/rt_13_56_28_cam6_basecolor.exr";//
+
+//					depth_target_path="../data/rgb/small_baseline/rt_12_44_34_cam6_depth.exr";//rt_13_54_33_cam6_depth
+					depth_target_path="../data/rgb/small_baseline/rt_13_54_33_cam6_depth.exr";//
+
+//					image_target_MR_path = "../data/rgb/small_baseline/cam6_mr.png";//cam6_mr16h30m
+					image_target_MR_path = "../data/rgb/small_baseline/cam6_mr16h30m.png";//
+
+
 					outlier_mask_big_baseline_path="../data/rgb/Texture_Image/red_mask.png"; // 0 means outlier
 					outlier_mask_big_baseline= imread(outlier_mask_big_baseline_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 
@@ -196,10 +213,22 @@ namespace DSONL{
 
 				}else if (options_.baseline==2){
 
-					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_16_33_27_cam7_rgb.exr";
-					image_target_baseColor ="../data/rgb/cam7_smaller_baseline/rt_23_4_36_cam7_basecolor.exr";
-					depth_target_path="../data/rgb/cam7_smaller_baseline/rt_23_2_30_cam7_depth.exr";
-					image_target_MR_path = "../data/rgb/cam7_smaller_baseline/cam7_mr.png";
+//					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_16_33_27_cam7_rgb.exr";//rt_13_53_33_cam7_rgb
+//					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_13_53_33_cam7_rgb.exr";//rt_16_18_41_cam7_rgb
+					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_16_18_41_cam7_rgb.exr";//
+
+
+
+
+//					image_target_baseColor ="../data/rgb/cam7_smaller_baseline/rt_23_4_36_cam7_basecolor.exr";//rt_13_56_28_cam7_basecolor
+					image_target_baseColor ="../data/rgb/cam7_smaller_baseline/rt_13_56_28_cam7_basecolor.exr";//
+
+
+//					depth_target_path="../data/rgb/cam7_smaller_baseline/rt_23_2_30_cam7_depth.exr";//rt_13_54_33_cam7_depth
+					depth_target_path="../data/rgb/cam7_smaller_baseline/rt_13_54_33_cam7_depth.exr";//
+
+//					image_target_MR_path = "../data/rgb/cam7_smaller_baseline/cam7_mr.png";//cam7_mr16h30m
+					image_target_MR_path = "../data/rgb/cam7_smaller_baseline/cam7_mr16h30m.png";//
 
 					Eigen::Quaterniond q_2(-0.0146847,-0.0064972,-0.9994298,-0.0297027 ); //  cam7  wxyz
 					Eigen::Vector3d t2(4.3,-17,26.6);
