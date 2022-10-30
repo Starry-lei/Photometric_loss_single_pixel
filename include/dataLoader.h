@@ -35,8 +35,12 @@ namespace DSONL{
 
 
 	struct dataOptions {
-		/// 0: big baseline, 1: small baseline, 2: smaller baseline
-		int baseline = 2;
+		/// 0: big baseline
+		/// 1: small baseline
+		/// 2: smaller baseline(no specular light on the wall, i.e, lower metallic on wall)
+		/// 3: MicroBaseline
+
+		int baseline = 3;
 		/// is textured or not
 		bool isTextured = true;
 		/// use gree channel for testing
@@ -91,21 +95,43 @@ namespace DSONL{
 //					0,  0,   -1,    0;
 
 			if(options_.isTextured){
+
 				// RGB image with texture
 //				string image_ref_path =            "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";//rt_13_53_33_cam1_rgb
 //				string image_ref_path = "../data/rgb/Texture_Image/rt_13_53_33_cam1_rgb.exr";//rt_16_18_41_cam1_rgb
-				string image_ref_path = "../data/rgb/Texture_Image/rt_16_18_41_cam1_rgb.exr";//
+
 
 				// BaseColor Image with texture
 //				string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam1_texture_basecolor.exr";//rt_13_56_28_cam1_basecolor
-				string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_13_56_28_cam1_basecolor.exr";
+
 
 				//	// Metallic and Roughness------------------------not replaced!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
 //				string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
-				string image_ref_MR_path = "../data/rgb/cam1_mr16h29m.png";//cam1_mr16h29m.png
+
 				// Depth map
 //				string depth_ref_path = "../data/depth/cam1_depth.exr";
-				string depth_ref_path = "../data/depth/rt_13_54_33_cam1_depth.exr";
+				string image_ref_path;
+				string image_ref_baseColor_path;
+				string image_ref_MR_path;
+				string depth_ref_path;
+
+
+				if (options_.baseline==2){
+					 image_ref_path = "../data/rgb/Texture_Image/rt_16_18_41_cam1_rgb.exr";
+					 image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_13_56_28_cam1_basecolor.exr";
+					 image_ref_MR_path = "../data/rgb/cam1_mr16h29m.png";
+					 depth_ref_path = "../data/depth/rt_13_54_33_cam1_depth.exr";
+
+				}else if(options_.baseline==3){
+					image_ref_path = "../data/rgb/Texture_Image/rt_7_55_54_cam1_rgb.exr";
+					image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_7_56_53_cam1_basecolor.exr";
+					image_ref_MR_path="../data/rgb/Texture_Image/mr_data/cam1_mr07h59m.png";
+					depth_ref_path = "../data/depth/rt_8_0_9_cam1_depth.exr";
+
+
+
+
+				}
 
 
 
@@ -143,10 +169,6 @@ namespace DSONL{
 				image_ref_roughness_.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
 
 				int channelIdx= options_.channelIdx;
-
-				/// TEMP  use baseColor to replace image_target!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-//				image_ref=imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 
 				extractChannel(image_ref, grayImage_ref, channelIdx);
 
@@ -217,9 +239,6 @@ namespace DSONL{
 //					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_13_53_33_cam7_rgb.exr";//rt_16_18_41_cam7_rgb
 					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_16_18_41_cam7_rgb.exr";//
 
-
-
-
 //					image_target_baseColor ="../data/rgb/cam7_smaller_baseline/rt_23_4_36_cam7_basecolor.exr";//rt_13_56_28_cam7_basecolor
 					image_target_baseColor ="../data/rgb/cam7_smaller_baseline/rt_13_56_28_cam7_basecolor.exr";//
 
@@ -238,6 +257,23 @@ namespace DSONL{
 					t12= R2.transpose()* (t1-t2);
 					q_12= R12;
 
+				}else if (options_.baseline==3){
+
+					/// micro baseline
+					image_target_path = "../data/rgb/microBaseline/rt_7_55_54_cam5_rgb.exr";
+					image_target_baseColor = "../data/rgb/microBaseline/rt_7_56_53_cam5_basecolor.exr";
+					depth_target_path="../data/rgb/microBaseline/rt_5_36_57_cam5_depth.exr";
+					image_target_MR_path="../data/rgb/microBaseline/cam5_mr07h58m.exr";
+
+					// w:-0.004485924; x:-0.0061938; y:-0.9995276;z:-0.0297675 X:3.3 Y:-16.6 Z:26
+
+					Eigen::Quaterniond q_2(-0.004485924,-0.0061938,-0.9995276,-0.0297675 ); //  cam7  wxyz
+					Eigen::Vector3d t2(3.3,-16.6,26);
+					R2=q_2.toRotationMatrix();
+
+					R12= R2.transpose() * R1;
+					t12= R2.transpose()* (t1-t2);
+					q_12= R12;
 
 
 

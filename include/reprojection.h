@@ -174,6 +174,8 @@ namespace DSONL{
 				const std::vector<double> &vec_pixel_gray_values,
 				const double pixel_gray_val_in[9],
 				const double delta_val_in[9]
+//				const double pixel_gray_val_in[16],
+//				const double delta_val_in[16]
 		) {
 			rows_ = rows;
 			cols_ = cols;
@@ -185,6 +187,10 @@ namespace DSONL{
 				gray_Image_ref_val[i]=pixel_gray_val_in[i];
 				delta_val[i]=delta_val_in[i];
 			}
+//			for (int i = 0; i < 16; ++i) {
+//				gray_Image_ref_val[i]=pixel_gray_val_in[i];
+//				delta_val[i]=delta_val_in[i];
+//			}
 
 
 			grid2d.reset(new ceres::Grid2D<double>(&vec_pixel_gray_values[0], 0, rows_, 0, cols_));
@@ -233,11 +239,23 @@ namespace DSONL{
 				u_l=pt.x()+T(m-1);
 				v_l=pt.y()+T(n-1);
 				get_pixel_gray_val->Evaluate(u_l, v_l, &pixel_gray_val_out);
-//				pixel_gray_val_out1=pixel_gray_val_out;
 				residual[i] =  T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
-//				res1=T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
-//				cout<<"show residual:"<<residual[i]<< endl;
 			}
+//			for (int i = 0; i < 16; ++i) {
+//
+//				int m = i / 4;
+//				int n = i % 4;
+//
+//				T pixel_gray_val_out, u_l, v_l;
+//
+//				u_l=pt.x()+T(m-2);
+//				v_l=pt.y()+T(n-2);
+//				get_pixel_gray_val->Evaluate(u_l, v_l, &pixel_gray_val_out);
+//				residual[i] =  T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
+//			}
+
+
+
 			return true;
 
 
@@ -253,6 +271,10 @@ namespace DSONL{
 		Sophus::SE3<double> CurrentT_;
 		double delta_val[9];
 		double gray_Image_ref_val[9];
+//		double delta_val[16];
+//		double gray_Image_ref_val[16];
+
+
 		std::unique_ptr<ceres::Grid2D<double> > grid2d;
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>>> get_pixel_gray_val;
 	};

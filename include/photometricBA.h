@@ -146,24 +146,9 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	deltaMap.convertTo(deltaMap, CV_64FC1);
 
 
-
-
-//		cv::Mat flat_depth_map = img_ref_depth.reshape(1, img_ref_depth.total() * img_ref_depth.channels());
-//		std::vector<double> img_ref_depth_values=img_ref_depth.isContinuous() ? flat_depth_map : flat_depth_map.clone();
-//		ceres::Grid2D<double> grid2d_depth(&img_ref_depth_values[0],0, rows_, 0, cols_);
-//		ceres::BiCubicInterpolator<ceres::Grid2D<double>> interpolator_depth(grid2d_depth);
-
-
-
 	cv::Mat flat = image_right.reshape(1, image_right.total() * image_right.channels());
 	std::vector<double> grayImage_right_values = image_right.isContinuous() ? flat : flat.clone();
 
-
-
-
-
-
-//		ceres::Grid2D<double> grid2d_grayImage_right(&grayImage_right_values[0],0, rows_, 0, cols_);
 
 
 	problem.AddParameterBlock(pose.data(), Sophus::SE3d::num_parameters, new Sophus::test::LocalParameterizationSE3);
@@ -199,16 +184,20 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 //				pixelSkip++;
 
 
-			// red outlier mask
-//			if (outlier_mask.at<uchar>(u,v)==0){ continue;}
+
+
+
+
+
 			// remove way far points
 			double gray_values[9]{};
 			double delta_values[9]{};
-
-//				gray_values[0]=intensity_ref;
-//				gray_values[1]=image.at<double>(u, v);
+//			double gray_values[16]{};
+//			double delta_values[16]{};
 
 			int k=0;
+
+			// size: 9
 			for (int i = -1; i <= 1; i++)
 			{
 				for (int j = -1; j <= 1; j++)
@@ -228,6 +217,27 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 				}
 			}
+
+//            // size 16
+//			for (int i = -2; i <= 2; i++)
+//			{
+//				for (int j = -2; j <= 2; j++)
+//				{
+//					int rowId=u+i;
+//					int colId=v+j;
+//					if (colId >0.0 && colId<image.cols && rowId >0.0 && rowId <image.rows ){
+//						gray_values[k]= image.at<double>(rowId,colId);
+//
+////							cout<<"show gray_values:"<<gray_values[k]<<endl;
+//						delta_values[k]=deltaMap.at<double>(rowId,colId);
+//					}else{
+//						gray_values[k]=image.at<double>(u, v);
+//						delta_values[k]=deltaMap.at<double>(u, v);
+//					}
+//					k++;
+//
+//				}
+//			}
 
 
 			if (depth_ref.at<double>(u,v)< 0) { continue;}
@@ -259,13 +269,36 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 										delta_values
 								)
 						),
+
+//						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 16, Sophus::SE3d::num_parameters,1>(
+//								new PhotometricCostFunctor(
+//										pixelCoord,
+//										K,
+//										image.rows,
+//										image.cols,
+//										grayImage_right_values,
+//										gray_values,
+//										delta_values
+//								)
+//						),
 						new ceres::HuberLoss(options.huber_parameter),
 						transformation,
 						&depth_ref.at<double>(u,v)
 				);
 			} else{
 				problem.AddResidualBlock(
-						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SE3d::num_parameters,1>(
+//						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SE3d::num_parameters,1>(
+//								new PhotometricCostFunctor(
+//										pixelCoord,
+//										K,
+//										image.rows,
+//										image.cols,
+//										grayImage_right_values,
+//										gray_values,
+//										delta_values
+//								)
+//						),
+						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 16, Sophus::SE3d::num_parameters,1>(
 								new PhotometricCostFunctor(
 										pixelCoord,
 										K,
@@ -276,6 +309,10 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 										delta_values
 								)
 						),
+
+
+
+
 						NULL, //new ceres::HuberLoss(options.huber_parameter),
 						transformation,
 						&depth_ref.at<double>(u,v)
@@ -285,6 +322,9 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 			problem.SetParameterLowerBound(&depth_ref.at<double>(u,v), 0,   depth_lower_bound);
 			problem.SetParameterUpperBound(&depth_ref.at<double>(u,v), 0,   depth_upper_bound);
+			if (!options.optimize_pose){
+				problem.SetParameterBlockConstant(transformation);
+			}
 			if (!options.optimize_depth) {
 				problem.SetParameterBlockConstant(&depth_ref.at<double>(u,v));
 			}
@@ -484,8 +524,6 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 							&depth_ref.at<double>(u,v)
 					);
 				}
-
-
 
 
 				problem.SetParameterLowerBound(&depth_ref.at<double>(u,v), 0,   depth_lower_bound);

@@ -76,6 +76,7 @@ namespace DSONL{
 		Mat mSrc_32FC1;
 		Mat mGaussian_noise = Mat(mSrc.size(),CV_64FC1);
 		randn(mGaussian_noise,Scalar::all(Mean), Scalar::all(StdDev));
+//		cout<<"StdDev";
 
 		mSrc.convertTo(mSrc_32FC1,CV_64FC1);
 		addWeighted(mSrc_32FC1, 1.0, mGaussian_noise, 1.0, 0.0, mSrc_32FC1);
@@ -924,6 +925,8 @@ namespace DSONL{
 		Eigen::Matrix<T,3,3> updatedRotation;
 		updatedRotation.setZero();
 		updatedRotation= R*Rotation;
+		cout<<" ----------------R------------:"<< R<< endl;
+		cout<<" ----------------Eigen::Matrix<T,3,1>::UnitX()-----------:"<< Eigen::Matrix<T,3,1>::UnitX()<< endl;
 		cout<<"Show the rotation loss:"<<updatedRotation<< endl;
 		roErr=rotationErr(Rotation, updatedRotation);
 
@@ -1103,7 +1106,7 @@ namespace DSONL{
 	 //org_GT
 
 
-	 imshow("GT_orig_for_show", GT_orig_for_show);
+	 imshow("GT_NS_for_show", GT_orig_for_show);
 	 imshow("GT_for_show", GT_for_show);
 	 imshow("ES_for_show", ES_for_show);
 
