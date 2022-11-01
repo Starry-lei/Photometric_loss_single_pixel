@@ -42,7 +42,7 @@ namespace DSONL{
 		/// 3: MicroBaseline
 		/// 4:  Control Experiment for Lambertian Data  Non-Lambertian Data
 
-		int baseline = 3;
+		int baseline = 4;
 		/// is textured or not
 		bool isTextured = true;
 		/// use gree channel for testing
@@ -72,6 +72,7 @@ namespace DSONL{
 		Eigen::Matrix4d M_matrix;
 		Mat normal_map_GT;
 		Mat image_ref_baseColor;
+		Mat image_target_baseColor;
 		Eigen::Matrix3d R12;
 		Eigen::Vector3d t12;
 		Eigen::Quaterniond q_12;
@@ -166,7 +167,7 @@ namespace DSONL{
 				depth_ref.convertTo(depth_map_ref, CV_64FC1);
 
 				string image_target_path;
-				string image_target_baseColor;
+				string image_target_baseColor_path;
 				string depth_target_path;
 				string image_target_MR_path;
 				string outlier_mask_big_baseline_path;
@@ -176,7 +177,7 @@ namespace DSONL{
 
 				if(options_.baseline==0){
 					 image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
-					 image_target_baseColor = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
+					image_target_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
 					 depth_target_path = "../data/depth/cam5_depth.exr";
 					 image_target_MR_path = "../data/rgb/vp5_mr.png";
 
@@ -197,7 +198,7 @@ namespace DSONL{
 
 
 //					image_target_baseColor ="../data/rgb/small_baseline/rt_12_56_23_cam6_basecolor.exr";//rt_13_56_28_cam6_basecolor
-					image_target_baseColor ="../data/rgb/small_baseline/rt_13_56_28_cam6_basecolor.exr";//
+					image_target_baseColor_path ="../data/rgb/small_baseline/rt_13_56_28_cam6_basecolor.exr";//
 
 //					depth_target_path="../data/rgb/small_baseline/rt_12_44_34_cam6_depth.exr";//rt_13_54_33_cam6_depth
 					depth_target_path="../data/rgb/small_baseline/rt_13_54_33_cam6_depth.exr";//
@@ -227,7 +228,7 @@ namespace DSONL{
 					image_target_path = "../data/rgb/cam7_smaller_baseline/rt_16_18_41_cam7_rgb.exr";//
 
 //					image_target_baseColor ="../data/rgb/cam7_smaller_baseline/rt_23_4_36_cam7_basecolor.exr";//rt_13_56_28_cam7_basecolor
-					image_target_baseColor ="../data/rgb/cam7_smaller_baseline/rt_13_56_28_cam7_basecolor.exr";//
+					image_target_baseColor_path ="../data/rgb/cam7_smaller_baseline/rt_13_56_28_cam7_basecolor.exr";//
 
 
 //					depth_target_path="../data/rgb/cam7_smaller_baseline/rt_23_2_30_cam7_depth.exr";//rt_13_54_33_cam7_depth
@@ -248,7 +249,7 @@ namespace DSONL{
 
 					/// micro baseline
 					image_target_path = "../data/rgb/microBaseline/rt_7_55_54_cam5_rgb.exr";
-					image_target_baseColor = "../data/rgb/microBaseline/rt_7_56_53_cam5_basecolor.exr";
+					image_target_baseColor_path = "../data/rgb/microBaseline/rt_7_56_53_cam5_basecolor.exr";
 					depth_target_path="../data/rgb/microBaseline/rt_5_36_57_cam5_depth.exr";
 					image_target_MR_path="../data/rgb/microBaseline/cam5_mr07h58m.exr";
 					Eigen::Quaterniond q_2(-0.004485924,-0.0061938,-0.9995276,-0.0297675 ); //  cam7  wxyz
@@ -259,7 +260,7 @@ namespace DSONL{
 					q_12= R12;
 				}else if (options_.baseline==4){
 					image_target_path = "../data/rgb/ControlExperiment/rightCamera/rt_18_40_2_cam4_rgb.exr";
-					image_target_baseColor = "../data/rgb/ControlExperiment/rightCamera/rt_18_41_19_cam4_basecolor.exr";
+					image_target_baseColor_path = "../data/rgb/ControlExperiment/rightCamera/rt_18_41_19_cam4_basecolor.exr";
 					depth_target_path = "../data/rgb/ControlExperiment/rightCamera/rt_17_51_15_cam4_depth.exr";
 					image_target_MR_path = "../data/rgb/ControlExperiment/rightCamera/cam4_mr18h44m.png";
 					//w:0.02374156;x:-0.0053507;y:-0.9992557;z:-0.0299305 X:4 Y:-16.4 Z:26
@@ -281,7 +282,7 @@ namespace DSONL{
 
 				Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 				Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-				Mat image_right_baseColor= imread(image_target_baseColor,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+				image_target_baseColor= imread(image_target_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 				Mat image_target_MR= imread(image_target_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 
 
@@ -292,8 +293,6 @@ namespace DSONL{
 				image_target_metallic.convertTo(image_target_metallic, CV_32FC1,1.0 / 255.0);
 				image_target_roughness.convertTo(image_target_roughness, CV_32FC1,1.0 / 255.0);
 
-				/// use baseColor to replace image_target!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//				image_target=imread(image_target_baseColor,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 
 
 				extractChannel(image_target, grayImage_target, channelIdx);

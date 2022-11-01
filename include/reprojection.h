@@ -36,6 +36,10 @@ namespace DSONL{
 		/// parameter for huber loss (in pixel)
 		double huber_parameter = 4/255.0;
 
+		bool lambertianCase= false;
+
+		bool usePixelSelector= false;
+
 		/// maximum number of solver iterations
 		int max_num_iterations = 20;
 	};

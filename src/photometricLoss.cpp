@@ -52,11 +52,10 @@ int main(int argc, char **argv){
 	inliers_filter.emplace(378,268); //yes
 
 	// =======================================================data loader========================================
-	Mat grayImage_target, grayImage_ref,depth_ref,depth_target,image_ref_baseColor;
+	Mat grayImage_target, grayImage_ref,depth_ref,depth_target,image_ref_baseColor,image_target_baseColor;
 	dataLoader* dataLoader;
 	dataLoader= new DSONL::dataLoader();
 	dataLoader->Init();
-
 
 	Mat image_ref_metallic = dataLoader->image_ref_metallic;
 	Mat image_ref_roughness= dataLoader->image_ref_roughness;
@@ -70,111 +69,19 @@ int main(int argc, char **argv){
 	Mat depth_ref_GT= dataLoader->depth_map_ref;
 	depth_target=dataLoader->depth_map_target;
 	image_ref_baseColor= dataLoader->image_ref_baseColor;
+	image_target_baseColor= dataLoader->image_target_baseColor;
 
 
 	// show the depth image with noise
-	double min_gt, max_gt;
-	cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
-	cout<<"\n show original depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
+	//	double min_gt, max_gt;
+	//	cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
+	//	cout<<"\n show original depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
 
 
 	Eigen::Matrix3f K;
 	K=dataLoader->camera_intrinsics;
-	float fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
+//	float fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
 
-	// =========================================================Pixel Selector(left image)==============================================================
-
-
-	// using float type in PixelSelector
-	PixelSelector* pixelSelector;
-	pixelSelector= new PixelSelector(wG[0],hG[0]);
-	double min_gray,max_gray;
-
-	Mat grayImage_ref_CV8U;
-	grayImage_ref.convertTo(grayImage_ref_CV8U,CV_8UC1,255.0);
-	cv::minMaxLoc(grayImage_ref_CV8U, &min_gray, &max_gray);
-//	cout<<"\n show min, max values of grayImage_ref_CV8U:\n"<<min_gray<<","<<max_gray<<endl;
-
-//	string TEMPimage_ref_path = "../data/rgb/1305031102.175304.png";
-//	Mat TEMPimage_ref = imread(TEMPimage_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
-//	imshow("TEMPimage_ref", TEMPimage_ref);
-//	imageInfo(TEMPimage_ref, pixel_pos);
-//	imshow("grayImage_ref", grayImage_ref);
-//	imshow("grayImage_ref_CV8U", grayImage_ref_CV8U);
-
-
-	FrameHessian* newFrame= new FrameHessian();
-
-	float* color= new float[wG[0]*hG[0]];
-
-	for (int row = 0; row < hG[0]; ++row) {
-		uchar *pixel=grayImage_ref_CV8U.ptr<uchar>(row);
-		for (int col = 0; col < wG[0]; ++col) {
-			color[row*wG[0]+col]= pixel[col];
-		}
-	}
-
-	newFrame->makeImages(color);
-
-//	for (int i = 700; i < 750; ++i) {
-//		cout<<"dIp:"<<newFrame->dIp[0][i]<<endl;
-//		cout<<"Di-----:"<<newFrame->dI[i]<<endl;
-//		cout<<"absSquaredGrad:"<<newFrame->absSquaredGrad[0][i]<<endl;
-//	}
-
-	float* statusMap= new float[wG[0]*hG[0]];
-	bool* statusMapB = new bool[wG[0]*hG[0]];
-
-	cout<<"Start looking for robust points:"<<endl;
-	int setting_desiredImmatureDensity=1500;
-	float densities[] = {0.03,0.05,0.15,0.5,1}; // 不同层取得点密度
-//	int npts; // 选择的像素数目
-//	pixelSelector->allowFast = true;
-//	pixelSelector->currentPotential=3;
-//	npts= pixelSelector->makeMaps(newFrame,statusMap, densities[0]*wG[0]*hG[0],1, true,2 );
-//	cout<<"npts:"<<npts;
-
-	int count=0;
-	for(int lvl=0; lvl<3; lvl++) {
-		pixelSelector->currentPotential= 3;
-		int npts;
-		if (lvl == 0)
-			npts =pixelSelector->makeMaps(newFrame, statusMap, densities[lvl] * wG[0] * hG[0], 1, false, 2);
-		else
-			npts = makePixelStatus(newFrame->dIp[lvl], statusMapB, wG[lvl], hG[lvl], densities[lvl] * wG[0] * hG[0]);
-
-
-		int wl = wG[lvl], hl = hG[lvl]; // 每一层的图像大小
-		int nl = 0;
-		for(int y=patternPadding+1;y<hl-patternPadding-2;y++)
-			for(int x=patternPadding+1;x<wl-patternPadding-2;x++)
-			{
-				if((lvl!=0 && statusMapB[x+y*wl]) || (lvl==0 && statusMap[x+y*wl] != 0)){
-					cout<<"show map_out index:"<<x+y*wl<<endl;
-					count++;
-				}
-
-
-			}
-
-	}
-
-	int npts2 =pixelSelector->makeMaps(newFrame, statusMap, densities[0] * wG[0] * hG[0], 1, true, 2);
-
-
-//		for (int i = 0; i < 100; ++i) {
-//		if (statusMap[i]==1 || statusMap[i]==2||statusMap[i]==4){
-//			cout<<"show map_out index:"<<i<<endl;
-//		}
-//	}
-
-
-
-
-
-
-	waitKey(0);
-	// =========================================================Pixel Selector(end here)==============================================================
 
 
 
@@ -186,27 +93,6 @@ int main(int argc, char **argv){
 													waitKey(0);
 
 
-												//	// set all nan zero ---------------------------------simulation data no nan-----------------------------
-												//	Mat depth_mask = Mat(depth_ref != depth_ref);
-												//	depth_ref.setTo(0.0, depth_mask);
-
-//	-------------------------------get inverse depth------------------------------------------------
-//	cout<<"\ndepth type:"<< depth_ref.depth()<<endl;
-//	Mat inv_depth_ref, depth_ref_gt;
-//	divide(Scalar(1), depth_ref, inv_depth_ref);
-//	depth_ref_gt=inv_depth_ref.clone();
-//	cout<<"!!!!!!!!!!!!!!!!!!!depth_ref_gt at(321,296)"<<depth_ref_gt.at<double>(321,296)<<endl;
-
-
-//	string inv_depth_ref_path = "../data/depth/test_inv_depth.exr";
-//	Mat inv_depth_ref_snd = imread(inv_depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-//	inv_depth_ref_snd.convertTo(inv_depth_ref_snd,CV_64FC1);
-//	showScaledImage(depth_ref_gt, inv_depth_ref_snd);
-//	inv_depth_ref=inv_depth_ref_snd.clone();
-//	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
-//	cout<<"\n !!!!!!!!!!!!!!!!!!!!!!show changed inv_depth_ref min, max:!!!!!!!!!!!!!!!!!!!!!!!!!!\n"<<min_inv<<","<<max_inv<<endl;
-//	imshow("inv_depth_ref",inv_depth_ref);
-//	waitKey(0);
 
 
 
@@ -229,9 +115,6 @@ int main(int argc, char **argv){
 	xi_GT.setRotationMatrix(R);
 	xi_GT.translation()=dataLoader->t12;
 	// ----------------------------------------optimization variable: depth --------------------------------------
-
-
-
 	cout << "\n Show GT rotation:\n" << xi_GT.rotationMatrix() << "\n Show GT translation:\n" << xi_GT.translation()<<endl;
 
 // ------------------------------------------------------------------------------------------Movingleast algorithm---------------------------------------------------------------
@@ -283,7 +166,6 @@ int main(int argc, char **argv){
 	divide(Scalar(1), depth_ref_NS, inv_depth_ref);
 	Mat depth_ref_NS_before=inv_depth_ref.clone();
 //	depth_ref_gt=inv_depth_ref.clone();
-	cout<<"!!!!!!!!!!!!!!!!!!!depth_ref_gt at(321,296)"<<depth_ref_gt.at<double>(321,296)<<endl;
 	double min_inv, max_inv;
 	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
 	cout<<"\n show original inv_depth_ref min, max:\n"<<min_inv<<","<<max_inv<<endl;
@@ -295,17 +177,8 @@ int main(int argc, char **argv){
 	Scalar_<double> depth_Err=depthErr(depth_ref_gt, depth_ref_NS);
     double depth_Error=depth_Err.val[0];
 
-													// compare noised idepth image and gt idepth
-													//	double max_ns, min_ns;
-													//	cv::minMaxLoc(depth_ref_NS, &min_ns, &max_ns);
-													//	cout<<"\n show depth_ref_NS min, max:\n"<<min_ns<<","<<max_ns<<endl;
-													//	Mat depth_ref_NS_show= depth_ref_NS*(1.0/(max_ns-min_ns))+(-min_ns*(1.0/(max_ns-min_ns)));
-													//	imshow("depth_ref_NS",depth_ref_NS_show);
-													//	Mat inv_depth_ref_show= inv_depth_ref*(1.0/(max_inv-min_inv))+(-min_inv*(1.0/(max_inv-min_inv)));
-													//	imshow("inv_depth_ref_show",inv_depth_ref_show);
-													//	waitKey(0);
 
-
+	PhotometricBAOptions options;
 	Mat newNormalMap=normal_map;
 	double distanceThres=0.07;
 	float upper=5;
@@ -317,10 +190,12 @@ int main(int argc, char **argv){
 
 	double depth_upper_bound = 0.1;  // 0.5; 1
 	double depth_lower_bound = 0.0001;  // 0.001
-	PhotometricBAOptions options;
+
 	options.optimize_depth = true;
 	options.optimize_pose= true;
 	options.use_huber= true;
+	options.lambertianCase=false;
+	options.usePixelSelector=false;
 	dataLoader->options_.remove_outlier_manually= false;
 	options.huber_parameter= 0.25*0.25*4.0/255.0;   /// 0.25*4/255 :   or 4/255
 
@@ -337,19 +212,117 @@ int main(int argc, char **argv){
 	cout << "\n Show initial rotation:\n" << xi.rotationMatrix() << "\n Show initial translation:\n" << xi.translation()<<endl;
 	cout<<"\nShow current rotation perturbation error :"<< roErr<< "\n Show current translation perturbation error : "<< trErr<<"\nShow current depth perturbation error :"<< depth_Error<<endl;
 
-	// check outlier_mask
-	//	Mat outlier_mask= dataLoader->outlier_mask_big_baseline;
-	//	cout<<"\n show Image depth:\n"<<outlier_mask.depth()<<"\n show Image channels :\n "<< outlier_mask.channels()<<endl;
-	//	imshow("Image", outlier_mask);
-	//	double min_v, max_v;
-	//	cv::minMaxLoc(outlier_mask, &min_v, &max_v);
-	//	cout<<"\n show outlier_mask Image min, max:\n"<<min_v<<","<<max_v<<endl;
-	//	outlier_mask.convertTo(outlier_mask, CV_32FC1);
-	//	imshow("Image 2", outlier_mask);
-	//	waitKey(0);
+
 
     // use noised depth data to test if depth can be optimised well
 //	  inv_depth_ref=depth_ref_NS.clone();
+
+
+	if (options.lambertianCase){
+		grayImage_ref=image_ref_baseColor.clone();
+		grayImage_target=image_target_baseColor.clone();
+
+	}
+	PixelSelector* pixelSelector;
+	FrameHessian* newFrame;
+	float* color;
+	float* statusMap;
+	bool* statusMapB;
+	if (options.usePixelSelector){
+
+
+		// =========================================================Pixel Selector(left image)==============================================================
+		// using float type in PixelSelector
+
+		pixelSelector= new PixelSelector(wG[0],hG[0]);
+		double min_gray,max_gray;
+
+		Mat grayImage_ref_CV8U;
+		grayImage_ref.convertTo(grayImage_ref_CV8U,CV_8UC1,255.0);
+		cv::minMaxLoc(grayImage_ref_CV8U, &min_gray, &max_gray);
+//	cout<<"\n show min, max values of grayImage_ref_CV8U:\n"<<min_gray<<","<<max_gray<<endl;
+
+//	string TEMPimage_ref_path = "../data/rgb/1305031102.175304.png";
+//	Mat TEMPimage_ref = imread(TEMPimage_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+//	imshow("TEMPimage_ref", TEMPimage_ref);
+//	imageInfo(TEMPimage_ref, pixel_pos);
+//	imshow("grayImage_ref", grayImage_ref);
+//	imshow("grayImage_ref_CV8U", grayImage_ref_CV8U);
+
+
+		newFrame= new FrameHessian();
+
+		color= new float[wG[0]*hG[0]];
+
+		for (int row = 0; row < hG[0]; ++row) {
+			uchar *pixel=grayImage_ref_CV8U.ptr<uchar>(row);
+			for (int col = 0; col < wG[0]; ++col) {
+				color[row*wG[0]+col]= pixel[col];
+			}
+		}
+
+		newFrame->makeImages(color);
+
+//	for (int i = 700; i < 750; ++i) {
+//		cout<<"dIp:"<<newFrame->dIp[0][i]<<endl;
+//		cout<<"Di-----:"<<newFrame->dI[i]<<endl;
+//		cout<<"absSquaredGrad:"<<newFrame->absSquaredGrad[0][i]<<endl;
+//	}
+
+		 statusMap= new float[wG[0]*hG[0]];
+		 statusMapB = new bool[wG[0]*hG[0]];
+
+//	cout<<"Start looking for robust points:"<<endl;
+		int setting_desiredImmatureDensity=1500;
+		float densities[] = {0.03,0.05,0.15,0.5,1}; // 不同层取得点密度
+//	int npts; // 选择的像素数目
+//	pixelSelector->allowFast = true;
+//	pixelSelector->currentPotential=3;
+//	npts= pixelSelector->makeMaps(newFrame,statusMap, densities[0]*wG[0]*hG[0],1, true,2 );
+//	cout<<"npts:"<<npts;
+
+		int count=0;
+		for(int lvl=0; lvl<3; lvl++) {
+			pixelSelector->currentPotential= 3;
+			int npts;
+			if (lvl == 0)
+				npts =pixelSelector->makeMaps(newFrame, statusMap, densities[lvl] * wG[0] * hG[0], 1, false, 2);
+			else
+				npts = makePixelStatus(newFrame->dIp[lvl], statusMapB, wG[lvl], hG[lvl], densities[lvl] * wG[0] * hG[0]);
+
+
+			int wl = wG[lvl], hl = hG[lvl]; // 每一层的图像大小
+			int nl = 0;
+			for(int y=patternPadding+1;y<hl-patternPadding-2;y++)
+				for(int x=patternPadding+1;x<wl-patternPadding-2;x++)
+				{
+					if((lvl!=0 && statusMapB[x+y*wl]) || (lvl==0 && statusMap[x+y*wl] != 0)){
+//					cout<<"show map_out index:"<<x+y*wl<<endl;
+						count++;
+					}
+
+
+				}
+
+		}
+
+//	int npts2 =pixelSelector->makeMaps(newFrame, statusMap, densities[0] * wG[0] * hG[0], 1, true, 2);
+
+
+//		for (int i = 0; i < 100; ++i) {
+//		if (statusMap[i]==1 || statusMap[i]==2||statusMap[i]==4){
+//			cout<<"show map_out index:"<<i<<endl;
+//		}
+//	}
+//	waitKey(0);
+		// =========================================================Pixel Selector(end here)==============================================================
+
+
+
+	}
+
+
+
 
 	for (int lvl = 1; lvl >= 1; lvl--)
 	{
@@ -428,9 +401,17 @@ int main(int argc, char **argv){
 	}
 	// tidy up
 	delete dataLoader;
-	delete pixelSelector;
-	delete newFrame;
-	delete[] statusMap;
+
+	if (options.usePixelSelector){
+		delete pixelSelector;
+		delete newFrame;
+		delete[] statusMap;
+		delete[] color;
+		delete[] statusMap;
+		delete[] statusMapB;
+
+	}
+
 
 	return 0;
 }

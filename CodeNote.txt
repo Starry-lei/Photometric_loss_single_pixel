@@ -1,0 +1,52 @@
+
+	// check outlier_mask
+	//	Mat outlier_mask= dataLoader->outlier_mask_big_baseline;
+	//	cout<<"\n show Image depth:\n"<<outlier_mask.depth()<<"\n show Image channels :\n "<< outlier_mask.channels()<<endl;
+	//	imshow("Image", outlier_mask);
+	//	double min_v, max_v;
+	//	cv::minMaxLoc(outlier_mask, &min_v, &max_v);
+	//	cout<<"\n show outlier_mask Image min, max:\n"<<min_v<<","<<max_v<<endl;
+	//	outlier_mask.convertTo(outlier_mask, CV_32FC1);
+	//	imshow("Image 2", outlier_mask);
+	//	waitKey(0);
+
+
+
+// compare noised idepth image and gt idepth
+//	double max_ns, min_ns;
+//	cv::minMaxLoc(depth_ref_NS, &min_ns, &max_ns);
+//	cout<<"\n show depth_ref_NS min, max:\n"<<min_ns<<","<<max_ns<<endl;
+//	Mat depth_ref_NS_show= depth_ref_NS*(1.0/(max_ns-min_ns))+(-min_ns*(1.0/(max_ns-min_ns)));
+//	imshow("depth_ref_NS",depth_ref_NS_show);
+//	Mat inv_depth_ref_show= inv_depth_ref*(1.0/(max_inv-min_inv))+(-min_inv*(1.0/(max_inv-min_inv)));
+//	imshow("inv_depth_ref_show",inv_depth_ref_show);
+//	waitKey(0);
+
+
+
+
+//	// set all nan zero ---------------------------------simulation data no nan-----------------------------
+//	Mat depth_mask = Mat(depth_ref != depth_ref);
+//	depth_ref.setTo(0.0, depth_mask);
+
+
+
+
+
+//	-------------------------------get inverse depth------------------------------------------------
+//	cout<<"\ndepth type:"<< depth_ref.depth()<<endl;
+//	Mat inv_depth_ref, depth_ref_gt;
+//	divide(Scalar(1), depth_ref, inv_depth_ref);
+//	depth_ref_gt=inv_depth_ref.clone();
+//	cout<<"!!!!!!!!!!!!!!!!!!!depth_ref_gt at(321,296)"<<depth_ref_gt.at<double>(321,296)<<endl;
+
+
+//	string inv_depth_ref_path = "../data/depth/test_inv_depth.exr";
+//	Mat inv_depth_ref_snd = imread(inv_depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+//	inv_depth_ref_snd.convertTo(inv_depth_ref_snd,CV_64FC1);
+//	showScaledImage(depth_ref_gt, inv_depth_ref_snd);
+//	inv_depth_ref=inv_depth_ref_snd.clone();
+//	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
+//	cout<<"\n !!!!!!!!!!!!!!!!!!!!!!show changed inv_depth_ref min, max:!!!!!!!!!!!!!!!!!!!!!!!!!!\n"<<min_inv<<","<<max_inv<<endl;
+//	imshow("inv_depth_ref",inv_depth_ref);
+//	waitKey(0);
