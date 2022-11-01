@@ -489,22 +489,13 @@ namespace DSONL{
 
 	}
 
-	void downscale(Mat &image, const Mat& depth, Eigen::Matrix3d &K, int &level, Mat &image_d, Mat &depth_d, Eigen::Matrix3d &K_d) {
-		//	imshow("depth", depth);
-		//	waitKey(0);
+	void downscale(Mat &image, const Mat& depth, Eigen::Matrix3f &K, int &level, Mat &image_d, Mat &depth_d, Eigen::Matrix3f &K_d) {
+
 		if (level <= 1) {
 			image_d = image;
 			// remove negative gray values
 			image_d=cv::max(image_d,0.0);
-
 			depth_d = depth;
-
-//			double  min_gt,max_gt;
-//			cv::minMaxLoc(depth, &min_gt, &max_gt);
-//			cout<<"\n show depth_ref inside min, max:\n"<<min_gt<<","<<max_gt<<endl;
-//			Mat depth_ref_show= depth*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
-//			imshow("inside_downscale", depth_ref_show);
-//			waitKey(0);
 			// set all nan zero
 			Mat mask = Mat(depth_d != depth_d);
 			depth_d.setTo(0.0, mask);

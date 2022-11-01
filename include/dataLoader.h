@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "setting.h"
+
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -13,7 +15,6 @@
 
 #include <unordered_map>
 #include <Eigen/Dense>
-#include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
 
@@ -39,6 +40,7 @@ namespace DSONL{
 		/// 1: small baseline
 		/// 2: smaller baseline(no specular light on the wall, i.e, lower metallic on wall)
 		/// 3: MicroBaseline
+		/// 4:  Control Experiment for Lambertian Data  Non-Lambertian Data
 
 		int baseline = 3;
 		/// is textured or not
@@ -65,10 +67,8 @@ namespace DSONL{
 		Mat grayImage_target;
 		Mat depth_map_ref;
 		Mat depth_map_target;
-
 		Mat outlier_mask_big_baseline;
-
-		Eigen::Matrix3d camera_intrinsics;
+		Eigen::Matrix3f camera_intrinsics;
 		Eigen::Matrix4d M_matrix;
 		Mat normal_map_GT;
 		Mat image_ref_baseColor;
@@ -77,6 +77,8 @@ namespace DSONL{
 		Eigen::Quaterniond q_12;
 		Eigen::Matrix3d R1;
 		Eigen::Matrix3d R2;
+		int rows;
+		int cols;
 
 		void Init(){
 
@@ -84,15 +86,6 @@ namespace DSONL{
 			camera_intrinsics<< 800.0, 0, 320,
 								0, 800.0, 240,
 								0,   0,  1;
-//			double fov_y= 33.398;
-//			double near= 0.01;
-//			double far= 60.0;
-//			double aspect= 1.333;
-//
-//			M_matrix << 1.0/(tan(0.5*fov_y)*aspect), 0, 0, 0,
-//					0,  atan(0.5*fov_y), 0   ,  0,
-//					0,0, (far+near)/(near-far), 2*far*near/(near-far),
-//					0,  0,   -1,    0;
 
 			if(options_.isTextured){
 
@@ -128,23 +121,13 @@ namespace DSONL{
 					image_ref_MR_path="../data/rgb/Texture_Image/mr_data/cam1_mr07h59m.png";
 					depth_ref_path = "../data/depth/rt_8_0_9_cam1_depth.exr";
 
-
-
+				} else if (options_.baseline==4){
+					image_ref_path= "../data/rgb/ControlExperiment/leftCamera/rt_18_40_2_cam1_rgb.exr";
+					image_ref_baseColor_path="../data/rgb/ControlExperiment/leftCamera/rt_18_41_19_cam1_basecolor.exr";
+					image_ref_MR_path="../data/rgb/ControlExperiment/leftCamera/cam1_mr18h43m.png";
+					depth_ref_path="../data/rgb/ControlExperiment/leftCamera/rt_17_51_15_cam1_depth.exr";
 
 				}
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -169,8 +152,12 @@ namespace DSONL{
 				image_ref_roughness_.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
 
 				int channelIdx= options_.channelIdx;
-
 				extractChannel(image_ref, grayImage_ref, channelIdx);
+
+				rows=image_ref.rows;
+				cols=image_ref.cols;
+				setGlobalCalib(cols,rows,camera_intrinsics);
+
 
 				// left map depth
 				Mat channel[3],depth_ref_render, channel_tar[3], depth_tar_render;
@@ -264,20 +251,33 @@ namespace DSONL{
 					image_target_baseColor = "../data/rgb/microBaseline/rt_7_56_53_cam5_basecolor.exr";
 					depth_target_path="../data/rgb/microBaseline/rt_5_36_57_cam5_depth.exr";
 					image_target_MR_path="../data/rgb/microBaseline/cam5_mr07h58m.exr";
-
-					// w:-0.004485924; x:-0.0061938; y:-0.9995276;z:-0.0297675 X:3.3 Y:-16.6 Z:26
-
 					Eigen::Quaterniond q_2(-0.004485924,-0.0061938,-0.9995276,-0.0297675 ); //  cam7  wxyz
 					Eigen::Vector3d t2(3.3,-16.6,26);
 					R2=q_2.toRotationMatrix();
+					R12= R2.transpose() * R1;
+					t12= R2.transpose()* (t1-t2);
+					q_12= R12;
+				}else if (options_.baseline==4){
+					image_target_path = "../data/rgb/ControlExperiment/rightCamera/rt_18_40_2_cam4_rgb.exr";
+					image_target_baseColor = "../data/rgb/ControlExperiment/rightCamera/rt_18_41_19_cam4_basecolor.exr";
+					depth_target_path = "../data/rgb/ControlExperiment/rightCamera/rt_17_51_15_cam4_depth.exr";
+					image_target_MR_path = "../data/rgb/ControlExperiment/rightCamera/cam4_mr18h44m.png";
+					//w:0.02374156;x:-0.0053507;y:-0.9992557;z:-0.0299305 X:4 Y:-16.4 Z:26
 
+					Eigen::Quaterniond q_2(0.02374156,-0.0053507,-0.9992557,-0.0299305 ); //  wxyz
+					Eigen::Vector3d t2(4,-16.4,26);
+					R2=q_2.toRotationMatrix();
 					R12= R2.transpose() * R1;
 					t12= R2.transpose()* (t1-t2);
 					q_12= R12;
 
 
 
+
 				}
+
+
+
 
 				Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 				Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
@@ -439,3 +439,13 @@ namespace DSONL{
 
 //	depth_target.convertTo(depth_tar_render,CV_64FC1);
 //	depth_target=depth_tar_render *(60.0-0.01) + 0.01;
+
+//			double fov_y= 33.398;
+//			double near= 0.01;
+//			double far= 60.0;
+//			double aspect= 1.333;
+//
+//			M_matrix << 1.0/(tan(0.5*fov_y)*aspect), 0, 0, 0,
+//					0,  atan(0.5*fov_y), 0   ,  0,
+//					0,0, (far+near)/(near-far), 2*far*near/(near-far),
+//					0,  0,   -1,    0;

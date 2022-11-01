@@ -133,7 +133,8 @@ namespace DSONL{
 
 
 
-void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
+void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options,
+				   const Eigen::Matrix3f &K,
                    Sophus::SE3d& pose,
                    Mat&         depth_ref,
                    Mat deltaMap,
@@ -359,7 +360,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	void PhotometricBA
 					(Mat &image, Mat &image_right,
 					 const PhotometricBAOptions &options,
-					 const Eigen::Matrix3d &K,
+					 const Eigen::Matrix3f &K,
 	                   Sophus::SE3d& pose,
 	                   Mat&       depth_ref,
 	                   Mat deltaMap,

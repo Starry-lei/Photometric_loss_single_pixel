@@ -168,7 +168,7 @@ namespace DSONL{
 
 		PhotometricCostFunctor(
 				const Eigen::Vector2d &pixelCoor,
-				const Eigen::Matrix3d & K,
+				const Eigen::Matrix3f & K,
 				const int rows,
 				const int cols,
 				const std::vector<double> &vec_pixel_gray_values,
@@ -267,7 +267,7 @@ namespace DSONL{
 		Mat gray_Image_ref_;
 		double rows_, cols_;
 		Eigen::Vector2d pixelCoor_;
-		Eigen::Matrix3d K_;
+		Eigen::Matrix3f K_;
 		Sophus::SE3<double> CurrentT_;
 		double delta_val[9];
 		double gray_Image_ref_val[9];

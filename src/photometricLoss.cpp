@@ -10,6 +10,7 @@
 #include "ultils.h"
 #include "PCLOpt.h"
 #include "dataLoader.h"
+#include "pixelSelector.h"
 
 //#include <algorithm>
 //#include <atomic>
@@ -50,32 +51,147 @@ int main(int argc, char **argv){
 	inliers_filter.emplace(173,333); //yes
 	inliers_filter.emplace(378,268); //yes
 
-	// data loader
+	// =======================================================data loader========================================
 	Mat grayImage_target, grayImage_ref,depth_ref,depth_target,image_ref_baseColor;
 	dataLoader* dataLoader;
 	dataLoader= new DSONL::dataLoader();
 	dataLoader->Init();
 
-	Mat image_ref_metallic =dataLoader->image_ref_metallic;
-	Mat image_ref_roughness=dataLoader->image_ref_roughness;
+
+	Mat image_ref_metallic = dataLoader->image_ref_metallic;
+	Mat image_ref_roughness= dataLoader->image_ref_roughness;
 
 	grayImage_ref=dataLoader->grayImage_ref;
 	grayImage_target=dataLoader->grayImage_target;
-
 	grayImage_ref.convertTo(grayImage_ref,CV_64FC1);
 	grayImage_target.convertTo(grayImage_target, CV_64FC1);
 
-//													showImage(grayImage_ref,"grayImage_ref");
-//													showImage(grayImage_target,"grayImage_target");
-//													waitKey(0);
-
 	depth_ref=dataLoader->depth_map_ref;
+	Mat depth_ref_GT= dataLoader->depth_map_ref;
+	depth_target=dataLoader->depth_map_target;
+	image_ref_baseColor= dataLoader->image_ref_baseColor;
+
+
+	// show the depth image with noise
+	double min_gt, max_gt;
+	cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
+	cout<<"\n show original depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
+
+
+	Eigen::Matrix3f K;
+	K=dataLoader->camera_intrinsics;
+	float fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
+
+	// =========================================================Pixel Selector(left image)==============================================================
+
+
+	// using float type in PixelSelector
+	PixelSelector* pixelSelector;
+	pixelSelector= new PixelSelector(wG[0],hG[0]);
+	double min_gray,max_gray;
+
+	Mat grayImage_ref_CV8U;
+	grayImage_ref.convertTo(grayImage_ref_CV8U,CV_8UC1,255.0);
+	cv::minMaxLoc(grayImage_ref_CV8U, &min_gray, &max_gray);
+//	cout<<"\n show min, max values of grayImage_ref_CV8U:\n"<<min_gray<<","<<max_gray<<endl;
+
+//	string TEMPimage_ref_path = "../data/rgb/1305031102.175304.png";
+//	Mat TEMPimage_ref = imread(TEMPimage_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+//	imshow("TEMPimage_ref", TEMPimage_ref);
+//	imageInfo(TEMPimage_ref, pixel_pos);
+//	imshow("grayImage_ref", grayImage_ref);
+//	imshow("grayImage_ref_CV8U", grayImage_ref_CV8U);
+
+
+	FrameHessian* newFrame= new FrameHessian();
+
+	float* color= new float[wG[0]*hG[0]];
+
+	for (int row = 0; row < hG[0]; ++row) {
+		uchar *pixel=grayImage_ref_CV8U.ptr<uchar>(row);
+		for (int col = 0; col < wG[0]; ++col) {
+			color[row*wG[0]+col]= pixel[col];
+		}
+	}
+
+	newFrame->makeImages(color);
+
+//	for (int i = 700; i < 750; ++i) {
+//		cout<<"dIp:"<<newFrame->dIp[0][i]<<endl;
+//		cout<<"Di-----:"<<newFrame->dI[i]<<endl;
+//		cout<<"absSquaredGrad:"<<newFrame->absSquaredGrad[0][i]<<endl;
+//	}
+
+	float* statusMap= new float[wG[0]*hG[0]];
+	bool* statusMapB = new bool[wG[0]*hG[0]];
+
+	cout<<"Start looking for robust points:"<<endl;
+	int setting_desiredImmatureDensity=1500;
+	float densities[] = {0.03,0.05,0.15,0.5,1}; // 不同层取得点密度
+//	int npts; // 选择的像素数目
+//	pixelSelector->allowFast = true;
+//	pixelSelector->currentPotential=3;
+//	npts= pixelSelector->makeMaps(newFrame,statusMap, densities[0]*wG[0]*hG[0],1, true,2 );
+//	cout<<"npts:"<<npts;
+
+	int count=0;
+	for(int lvl=0; lvl<3; lvl++) {
+		pixelSelector->currentPotential= 3;
+		int npts;
+		if (lvl == 0)
+			npts =pixelSelector->makeMaps(newFrame, statusMap, densities[lvl] * wG[0] * hG[0], 1, false, 2);
+		else
+			npts = makePixelStatus(newFrame->dIp[lvl], statusMapB, wG[lvl], hG[lvl], densities[lvl] * wG[0] * hG[0]);
+
+
+		int wl = wG[lvl], hl = hG[lvl]; // 每一层的图像大小
+		int nl = 0;
+		for(int y=patternPadding+1;y<hl-patternPadding-2;y++)
+			for(int x=patternPadding+1;x<wl-patternPadding-2;x++)
+			{
+				if((lvl!=0 && statusMapB[x+y*wl]) || (lvl==0 && statusMap[x+y*wl] != 0)){
+					cout<<"show map_out index:"<<x+y*wl<<endl;
+					count++;
+				}
+
+
+			}
+
+	}
+
+	int npts2 =pixelSelector->makeMaps(newFrame, statusMap, densities[0] * wG[0] * hG[0], 1, true, 2);
+
+
+//		for (int i = 0; i < 100; ++i) {
+//		if (statusMap[i]==1 || statusMap[i]==2||statusMap[i]==4){
+//			cout<<"show map_out index:"<<i<<endl;
+//		}
+//	}
+
+
+
+
+
+
+	waitKey(0);
+	// =========================================================Pixel Selector(end here)==============================================================
+
+
+
+
+
+
+													showImage(grayImage_ref,"grayImage_ref");
+													showImage(grayImage_target,"grayImage_target");
+													waitKey(0);
+
+
 												//	// set all nan zero ---------------------------------simulation data no nan-----------------------------
 												//	Mat depth_mask = Mat(depth_ref != depth_ref);
 												//	depth_ref.setTo(0.0, depth_mask);
 
 //	-------------------------------get inverse depth------------------------------------------------
-	cout<<"depth type:"<< depth_ref.depth()<<endl;
+//	cout<<"\ndepth type:"<< depth_ref.depth()<<endl;
 //	Mat inv_depth_ref, depth_ref_gt;
 //	divide(Scalar(1), depth_ref, inv_depth_ref);
 //	depth_ref_gt=inv_depth_ref.clone();
@@ -85,7 +201,7 @@ int main(int argc, char **argv){
 //	string inv_depth_ref_path = "../data/depth/test_inv_depth.exr";
 //	Mat inv_depth_ref_snd = imread(inv_depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 //	inv_depth_ref_snd.convertTo(inv_depth_ref_snd,CV_64FC1);
-////	showScaledImage(depth_ref_gt, inv_depth_ref_snd);
+//	showScaledImage(depth_ref_gt, inv_depth_ref_snd);
 //	inv_depth_ref=inv_depth_ref_snd.clone();
 //	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
 //	cout<<"\n !!!!!!!!!!!!!!!!!!!!!!show changed inv_depth_ref min, max:!!!!!!!!!!!!!!!!!!!!!!!!!!\n"<<min_inv<<","<<max_inv<<endl;
@@ -97,22 +213,12 @@ int main(int argc, char **argv){
 
 
 
-	Mat depth_ref_GT= dataLoader->depth_map_ref;
-	depth_target=dataLoader->depth_map_target;
-	image_ref_baseColor= dataLoader->image_ref_baseColor;
 
 
 
 
-	// show the depth image with noise
-	double min_gt, max_gt;
-	cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
-	cout<<"\n show original depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
 
 
-	Eigen::Matrix3d K;
-	K=dataLoader->camera_intrinsics;
-	double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
 
 	// ----------------------------------------optimization variable: R, t--------------------------------------
 	Sophus::SE3d xi, xi_GT;
@@ -140,7 +246,7 @@ int main(int argc, char **argv){
 		for (int v = 0; v < depth_ref.cols; v++) // rowId,  rows: 0 to 640
 		{
 
-			Eigen::Vector3d normal_new( normal_map_GT.at<Vec3f>(u,v)[2],  -normal_map_GT.at<Vec3f>(u,v)[1], normal_map_GT.at<Vec3f>(u,v)[0]);
+			Eigen::Vector3d normal_new( normal_map_GT.at<cv::Vec3f>(u,v)[2],  -normal_map_GT.at<cv::Vec3f>(u,v)[1], normal_map_GT.at<cv::Vec3f>(u,v)[0]);
 			normal_new= dataLoader->R1.transpose()*normal_new;
 
 			Eigen::Vector3d principal_axis(0, 0, 1);
@@ -160,21 +266,17 @@ int main(int argc, char **argv){
 //	--------------------------------------------------------------------Data perturbation--------------------------------------------------------------------
 	double roErr;
 	Eigen::Matrix3d R_GT(xi_GT.rotationMatrix());
-	Eigen::Matrix3d perturbedRotation=rotation_pertabation(0.02,0.02,0.02,R_GT,roErr); // degree
+	Eigen::Matrix3d perturbedRotation=rotation_pertabation(0.0,0.0,0.0,R_GT,roErr); // degree
 
 	double trErr;
 	Eigen::Vector3d T_GT(xi_GT.translation());
-	Eigen::Vector3d  perturbedTranslation=translation_pertabation(0.05, 0.05, 0.05, T_GT,trErr); // percentage
+	Eigen::Vector3d  perturbedTranslation=translation_pertabation(0.00, 0.00, 0.00, T_GT,trErr); // percentage
 
-
-	Eigen::Matrix<double,6,1> update_se3;
-	update_se3.setZero();
-	update_se3(0,0) = 1e-4;
 
 	// Add noise to original depth image, depth_ref_NS
 	Mat inv_depth_ref, depth_ref_gt;
 	Mat depth_ref_NS;
-	double Mean=0.0,StdDev=1;
+	double Mean=0.0,StdDev=0;
 
 	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev);
 	divide(Scalar(1), depth_ref, depth_ref_gt);
@@ -253,7 +355,7 @@ int main(int argc, char **argv){
 	{
 		cout << "\n Show the value of lvl:" << lvl << endl;
 		Mat IRef, DRef, I, D;
-		Eigen::Matrix3d Klvl, Klvl_ignore;
+		Eigen::Matrix3f Klvl, Klvl_ignore;
 		lvl_target = lvl;
 		lvl_ref = lvl;
 
@@ -326,5 +428,9 @@ int main(int argc, char **argv){
 	}
 	// tidy up
 	delete dataLoader;
+	delete pixelSelector;
+	delete newFrame;
+	delete[] statusMap;
+
 	return 0;
 }
