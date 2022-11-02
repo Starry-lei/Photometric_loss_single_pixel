@@ -1,4 +1,36 @@
 
+
+
+intrinsics
+//	float fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy = K(1, 2), f=30.0;
+
+
+//	int npts2 =pixelSelector->makeMaps(newFrame, statusMap, densities[0] * wG[0] * hG[0], 1, true, 2);
+
+
+//		for (int i = 0; i < 100; ++i) {
+//		if (statusMap[i]==1 || statusMap[i]==2||statusMap[i]==4){
+//			cout<<"show map_out index:"<<i<<endl;
+//		}
+//	}
+//	waitKey(0);
+
+
+
+	cv::minMaxLoc(grayImage_ref_CV8U, &min_gray, &max_gray);
+
+
+
+
+//	cout<<"\n show min, max values of grayImage_ref_CV8U:\n"<<min_gray<<","<<max_gray<<endl;
+//	string TEMPimage_ref_path = "../data/rgb/1305031102.175304.png";
+//	Mat TEMPimage_ref = imread(TEMPimage_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+//	imshow("TEMPimage_ref", TEMPimage_ref);
+//	imageInfo(TEMPimage_ref, pixel_pos);
+//	imshow("grayImage_ref", grayImage_ref);
+//	imshow("grayImage_ref_CV8U", grayImage_ref_CV8U);
+
+
 	// check outlier_mask
 	//	Mat outlier_mask= dataLoader->outlier_mask_big_baseline;
 	//	cout<<"\n show Image depth:\n"<<outlier_mask.depth()<<"\n show Image channels :\n "<< outlier_mask.channels()<<endl;

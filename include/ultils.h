@@ -909,19 +909,31 @@ namespace DSONL{
 	Eigen::Matrix<T,3,3> rotation_pertabation(const T pertabation_x,const T pertabation_y, const T pertabation_z, const Eigen::Matrix<T,3,3>& Rotation, double& roErr){
 
 		Eigen::Matrix<T,3,3> R;
-		R=Eigen::AngleAxis<T>(pertabation_x/180.0 *M_PI,Eigen::Matrix<T,3,1>::UnitX())
-							    * Eigen::AngleAxis<T>(pertabation_y/180.0*M_PI,   Eigen::Matrix<T,3,1>::UnitY())
-							    * Eigen::AngleAxis<T>(pertabation_z/180.0*M_PI,  Eigen::Matrix<T,3,1>::UnitZ());
+
+		T roll= pertabation_x/180.0 *M_PI;
+		T yaw=pertabation_y /180.0 *M_PI;
+		T pitch= pertabation_z/180.0 *M_PI;
+
+
+		Eigen::AngleAxis<T> rollAngle(roll, Eigen::Matrix<T,3,1>::UnitZ());
+		Eigen::AngleAxis<T> yawAngle(yaw, Eigen::Matrix<T,3,1>::UnitY());
+		Eigen::AngleAxis<T> pitchAngle(pitch, Eigen::Matrix<T,3,1>::UnitX());
+		Eigen::Quaternion<T> q = rollAngle * yawAngle * pitchAngle;
+
+		R=q.matrix();
+//		R=Eigen::AngleAxis<T>(pertabation_x/180.0 *M_PI,Eigen::Matrix<T,3,1>::UnitX())
+//							    * Eigen::AngleAxis<T>(pertabation_y/180.0*M_PI,   Eigen::Matrix<T,3,1>::UnitY())
+//							    * Eigen::AngleAxis<T>(pertabation_z/180.0*M_PI,  Eigen::Matrix<T,3,1>::UnitZ());
 
 		Eigen::Matrix<T,3,3> updatedRotation;
 		updatedRotation.setZero();
 		updatedRotation= R*Rotation;
-		cout<<" ----------------R------------:"<< R<< endl;
-		cout<<" ----------------Eigen::Matrix<T,3,1>::UnitX()-----------:"<< Eigen::Matrix<T,3,1>::UnitX()<< endl;
-		cout<<"Show the rotation loss:"<<updatedRotation<< endl;
+//		cout<<" ----------------R------------:"<< R<< endl;
+//		cout<<" ----------------Eigen::Matrix<T,3,1>::UnitX()-----------:"<< Eigen::Matrix<T,3,1>::UnitX()<< endl;
+//		cout<<"Show the rotation loss:"<<updatedRotation<< endl;
 		roErr=rotationErr(Rotation, updatedRotation);
 
-		return R*Rotation;
+		return updatedRotation;
 	}
 	template<typename T>
 	Eigen::Matrix<T,3,1> translation_pertabation(const T pertabation_x,const T pertabation_y, const T pertabation_z, const Eigen::Matrix<T,3,1>& translation, double& roErr){

@@ -48,6 +48,8 @@ namespace DSONL{
 		/// use gree channel for testing
 		int channelIdx= 1;
 
+		bool lambertian= true;
+
 		bool remove_outlier_manually= true;
 		/// should we calculate 3 channel delta map for loss function now?????????????????
 
@@ -105,8 +107,10 @@ namespace DSONL{
 				// Depth map
 //				string depth_ref_path = "../data/depth/cam1_depth.exr";
 				string image_ref_path;
+				string lambertian_image_ref_path;
 				string image_ref_baseColor_path;
 				string image_ref_MR_path;
+				string lambertian_image_ref_MR_path;
 				string depth_ref_path;
 
 
@@ -123,10 +127,14 @@ namespace DSONL{
 					depth_ref_path = "../data/depth/rt_8_0_9_cam1_depth.exr";
 
 				} else if (options_.baseline==4){
-					image_ref_path= "../data/rgb/ControlExperiment/leftCamera/rt_18_40_2_cam1_rgb.exr";
+					image_ref_path ="../data/rgb/ControlExperiment/leftCamera/nonlambertian/specular_rt_18_41_46_cam1_rgb.exr";
+					lambertian_image_ref_path= "../data/rgb/ControlExperiment/leftCamera/rt_18_40_2_cam1_rgb.exr";
+
 					image_ref_baseColor_path="../data/rgb/ControlExperiment/leftCamera/rt_18_41_19_cam1_basecolor.exr";
-					image_ref_MR_path="../data/rgb/ControlExperiment/leftCamera/cam1_mr18h43m.png";
 					depth_ref_path="../data/rgb/ControlExperiment/leftCamera/rt_17_51_15_cam1_depth.exr";
+
+					image_ref_MR_path="../data/rgb/ControlExperiment/leftCamera/nonlambertian/cam1_mr18h46m.png";
+					lambertian_image_ref_MR_path="../data/rgb/ControlExperiment/leftCamera/cam1_mr18h43m.png";
 
 				}
 
@@ -136,15 +144,30 @@ namespace DSONL{
 				//normal map GT
 				string normal_GT_path="../data/rgb/normalMap/rt_23_26_45_cam1_normdir.exr";
 
+
 				Mat image_ref = imread(image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+				Mat lambertian_image_ref = imread(lambertian_image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+
 				Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 				image_ref_baseColor= imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 				// create a metallic and roughness table for reference image
-				Mat image_ref_MR= imread(image_ref_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+				Mat image_ref_MR= imread( image_ref_MR_path ,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+				Mat lambertian__image_ref_MR= imread(lambertian_image_ref_MR_path ,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 				normal_map_GT = imread(normal_GT_path, cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
 
 
+
 				Mat ref_mr_table[3];
+
+//				imshow("image_ref",image_ref);
+//				imshow("lambertian_image_ref",lambertian_image_ref);
+//				waitKey(0);
+
+				if (options_.lambertian){
+					image_ref=lambertian_image_ref.clone();
+					image_ref_MR=lambertian__image_ref_MR.clone();
+				}
+
 				split(image_ref_MR,ref_mr_table);// 0: red, 1: green, 2: blue
 				Mat image_ref_metallic_=  ref_mr_table[2];
 				image_ref_metallic_.convertTo(image_ref_metallic, CV_32FC1,1.0 / 255.0);
@@ -153,6 +176,7 @@ namespace DSONL{
 				image_ref_roughness_.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
 
 				int channelIdx= options_.channelIdx;
+
 				extractChannel(image_ref, grayImage_ref, channelIdx);
 
 				rows=image_ref.rows;
@@ -167,9 +191,11 @@ namespace DSONL{
 				depth_ref.convertTo(depth_map_ref, CV_64FC1);
 
 				string image_target_path;
+				string lambertian_image_target_path;
 				string image_target_baseColor_path;
 				string depth_target_path;
 				string image_target_MR_path;
+				string lambertian_image_target_MR_path;
 				string outlier_mask_big_baseline_path;
 				Eigen::Quaterniond q_1(0.009445649,-0.0003128,-0.9994076,-0.0330920); //  cam1  wxyz
 				Eigen::Vector3d t1( 3.8, -16.5, 26.1);
@@ -246,7 +272,6 @@ namespace DSONL{
 					q_12= R12;
 
 				}else if (options_.baseline==3){
-
 					/// micro baseline
 					image_target_path = "../data/rgb/microBaseline/rt_7_55_54_cam5_rgb.exr";
 					image_target_baseColor_path = "../data/rgb/microBaseline/rt_7_56_53_cam5_basecolor.exr";
@@ -259,10 +284,16 @@ namespace DSONL{
 					t12= R2.transpose()* (t1-t2);
 					q_12= R12;
 				}else if (options_.baseline==4){
-					image_target_path = "../data/rgb/ControlExperiment/rightCamera/rt_18_40_2_cam4_rgb.exr";
+					image_target_path ="../data/rgb/ControlExperiment/rightCamera/nonlambertian/specular_rt_18_41_46_cam4_rgb.exr";
+					lambertian_image_target_path="../data/rgb/ControlExperiment/rightCamera/rt_18_40_2_cam4_rgb.exr";
+
 					image_target_baseColor_path = "../data/rgb/ControlExperiment/rightCamera/rt_18_41_19_cam4_basecolor.exr";
 					depth_target_path = "../data/rgb/ControlExperiment/rightCamera/rt_17_51_15_cam4_depth.exr";
-					image_target_MR_path = "../data/rgb/ControlExperiment/rightCamera/cam4_mr18h44m.png";
+
+					image_target_MR_path = "../data/rgb/ControlExperiment/rightCamera/nonlambertian/cam4_mr18h45m.png";
+					lambertian_image_target_MR_path="../data/rgb/ControlExperiment/rightCamera/cam4_mr18h44m.png";
+
+
 					//w:0.02374156;x:-0.0053507;y:-0.9992557;z:-0.0299305 X:4 Y:-16.4 Z:26
 
 					Eigen::Quaterniond q_2(0.02374156,-0.0053507,-0.9992557,-0.0299305 ); //  wxyz
@@ -281,9 +312,13 @@ namespace DSONL{
 
 
 				Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+				Mat lambertian_image_target=imread(lambertian_image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+
 				Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 				image_target_baseColor= imread(image_target_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+
 				Mat image_target_MR= imread(image_target_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+				Mat lambertian_image_target_MR=imread(lambertian_image_target_MR_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 
 
 				Mat taget_mr_table[3];
@@ -295,6 +330,10 @@ namespace DSONL{
 
 
 
+				if (options_.lambertian){
+					image_target=lambertian_image_target.clone();// !!!!!!!!!!!!!!!!!!!!
+					image_target_MR=lambertian_image_target_MR.clone();// !!!!!!!!!!!!!!!!
+				}
 				extractChannel(image_target, grayImage_target, channelIdx);
 				// right map depth
 				split(depth_target, channel_tar);

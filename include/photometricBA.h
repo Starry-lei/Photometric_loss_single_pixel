@@ -139,7 +139,9 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
                    Mat&         depth_ref,
                    Mat deltaMap,
                    const double& depth_upper_bound,
-                   const double& depth_lower_bound
+                   const double& depth_lower_bound,
+				   float* statusMap,
+				   bool* statusMapB
 
 ) {
 	ceres::Problem problem;
@@ -177,6 +179,11 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	{
 		for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
 		{
+
+			// use DSO pixel selector
+
+			if (statusMap[u*image.cols+v]==0 ){ continue;}
+
 			// use the inlier filter
 //				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 //				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
