@@ -36,7 +36,7 @@ namespace DSONL{
 
 	struct dataOptions {
 		/// 0: big baseline, 1: small baseline, 2: other
-		int baseline = 1;
+		int baseline = 0;
 		/// is textured or not
 		bool isTextured = true;
 		/// use gree channel for testing

@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
 	R=dataLoader->q_12 .normalized().toRotationMatrix();
 
 	// initialize the pose xi
-//	xi.setRotationMatrix(R);
+//	xi.setRotationMatrix(R);//---------------------------------------------GT pose-----------------------------------------------------------------
 //	xi.translation()=dataLoader->t12;
 
 	xi_GT.setRotationMatrix(R);
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
         int i=0;
 		while ( i < 2){
 
-			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
+//			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
 //			imshow("show ES deltaMap", showESdeltaMap);
 			double  max_n_, min_n_;
 			cv::minMaxLoc(deltaMap, &min_n_, &max_n_);
@@ -178,13 +178,13 @@ int main(int argc, char **argv) {
 			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
 			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
 
-//			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
-//			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
-//			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
-//			imshow("show GT deltaMap", showGTdeltaMap);
-//			imshow("show ES deltaMap", showESdeltaMap);
-//			imwrite("GT_deltaMap.exr",showGTdeltaMap);
-//			imwrite("ES_deltaMap.exr",showESdeltaMap);
+			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
+			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
+			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
+			imshow("show GT deltaMap", showGTdeltaMap);
+			imshow("show ES deltaMap", showESdeltaMap);
+			imwrite("GT_deltaMap.exr",showGTdeltaMap);
+			imwrite("ES_deltaMap.exr",showESdeltaMap);
 //
 			cout << "\n Show initial pose:\n" << xi_GT.rotationMatrix() << "\n Show translation:\n" << xi_GT.translation()<<endl;
 			cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<< endl;

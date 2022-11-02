@@ -109,6 +109,7 @@ namespace DSONL{
 				T pixel_gray_val_out;
 				get_pixel_gray_val->Evaluate(y, x, &pixel_gray_val_out);
 				residual[0] = delta*intensity_image_ref - pixel_gray_val_out;
+//				residual[0] = intensity_image_ref - delta*pixel_gray_val_out;
 				return true;
 			}
 
