@@ -14,6 +14,7 @@ namespace DSONL{
 
 	const float minUseGrad_pixsel = 10;
 	enum PixelSelectorStatus {PIXSEL_VOID=0, PIXSEL_1, PIXSEL_2, PIXSEL_3};
+
 	// Image  constant info & pre-calculated values
 	struct FrameHessian{
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -27,6 +28,7 @@ namespace DSONL{
 		Eigen::Vector3f* dI;				//!< 图像导数  // trace, fine tracking. Used for direction select (not for gradient histograms etc.)
 		Eigen::Vector3f* dIp[PYR_LEVELS];	//!< 各金字塔层的图像导数  // coarse tracking / coarse initializer. NAN in [0] only.
 		float* absSquaredGrad[PYR_LEVELS];  //!< x,y 方向梯度的平方和 // only used for pixel select (histograms etc.). no NAN.
+		float* img_pyr[PYR_LEVELS];  // !!!!! not needed???????????????????????????
 
 
 
@@ -36,6 +38,7 @@ namespace DSONL{
 			{
 				delete[] dIp[i];
 				delete[]  absSquaredGrad[i];
+				delete[] img_pyr[i];
 			}
 //			    delete[] selectionMap;
 		};
@@ -43,13 +46,12 @@ namespace DSONL{
 
 		void makeImages(float* color) {
 
-//			std::cout<<"shwo colorImg_"<<colorImg_.size()<<std::endl;
-//			float *color = colorImg_.data();
 			// 每一层创建图像值, 和图像梯度的存储空间
 			for(int i=0;i<pyrLevelsUsed;i++)
 			{
 				dIp[i] = new Eigen::Vector3f[wG[i]*hG[i]];
 				absSquaredGrad[i] = new float[wG[i]*hG[i]];
+				img_pyr[i] = new float[wG[i]*hG[i]];
 			}
 			dI = dIp[0]; // 原来他们指向同一个地方
 
@@ -57,8 +59,11 @@ namespace DSONL{
 			// make d0
 			int w=wG[0]; // 零层weight
 			int h=hG[0]; // 零层height
-			for(int i=0;i<w*h;i++)
+			for(int i=0;i<w*h;i++){
 				dI[i][0] = color[i];
+				img_pyr[0][i] = color[i];
+			}
+
 
 			for(int lvl=0; lvl<pyrLevelsUsed; lvl++)
 			{
@@ -82,6 +87,7 @@ namespace DSONL{
 							                             dI_lm[2*x+1 + 2*y*wlm1][0] +
 							                             dI_lm[2*x   + 2*y*wlm1+wlm1][0] +
 							                             dI_lm[2*x+1 + 2*y*wlm1+wlm1][0]);
+							img_pyr[lvl][x + y*wl] = dI_l[x + y*wl][0];
 						}
 				}
 
@@ -116,7 +122,9 @@ namespace DSONL{
 
 	};
 
+	void plot_img_pyramid( FrameHessian* fh, float * map_out , int idx);
 
+	void plotImPyr(FrameHessian* fh,int i, std::string ImgName );
 
 	class PixelSelector
 	{
@@ -388,6 +396,22 @@ namespace DSONL{
 		void closeAllWindows();
 
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }
 

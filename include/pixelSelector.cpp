@@ -11,7 +11,52 @@ namespace DSONL{
 
 	using namespace dso;
 
+	void plot_img_pyramid( FrameHessian* fh, float * map_out , int idx)
+	{
+		int w = wG[idx];
+		int h = hG[idx];
 
+
+		MinimalImageB3 img(w,h);
+
+
+		for(int i=0;i<w*h;i++)
+		{
+			float c = fh->img_pyr[idx][i]*0.7; // 像素值   fh->dI[i][0] *0.7
+			if(c>255) c=255;
+			img.at(i) = Vec3b(c,c,c);
+		}
+		char name = idx;
+
+		IOWrap::displayImage("Selector Image "+ name, &img);
+
+		// 安照不同层数的像素, 画上不同颜色
+		for(int y=0; y<h;y++)
+			for(int x=0;x<w;x++)
+			{
+				int i=x+y*w;
+				if(map_out[i] == 1)
+					img.setPixelCirc(x,y,Vec3b(0,255,0));// green
+				else if(map_out[i] == 2)
+					img.setPixelCirc(x,y,Vec3b(255,0,0));//red
+				else if(map_out[i] == 4)
+					img.setPixelCirc(x,y,Vec3b(0,0,255));// blue
+			}
+
+		IOWrap::displayImage("Selector Pixels "+ name, &img);
+
+//			IOWrap::waitKey(5000);
+	}
+
+
+	void plotImPyr(FrameHessian* fh, int i, std::string ImgName )
+{
+	cv::Mat img_pyr_show(hG[i], wG[i], CV_32F);
+	memcpy(img_pyr_show.data, fh->img_pyr[i], wG[i]*hG[i]*sizeof(float));//
+	img_pyr_show.convertTo(img_pyr_show, CV_8UC1);
+	std::string name = ImgName+ std::to_string(i);
+	cv::imshow( name, img_pyr_show);
+}
 
 	void showImage(const FrameHessian * fh,const float* map_out){
 

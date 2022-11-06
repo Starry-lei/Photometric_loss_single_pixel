@@ -40,10 +40,12 @@ namespace DSONL{
 			ownData=false;
 		}
 
+
 		inline ~MinimalImage()
 		{
 			if(ownData) delete [] data;
 		}
+
 
 		inline MinimalImage* getClone()
 		{

@@ -7,7 +7,7 @@
 
 namespace DSONL{
 
-    #define PYR_LEVELS 5
+	#define PYR_LEVELS 5
 	#define patternPadding 2
 	extern int pyrLevelsUsed;
 	extern bool disableAllDisplay;
@@ -25,7 +25,25 @@ namespace DSONL{
 	extern float wM3G;
 	extern float hM3G;
 
+
+	extern Eigen::Matrix<float,3,3> K[PYR_LEVELS];			//!< camera参数
+	extern Eigen::Matrix<float,3,3> Ki[PYR_LEVELS];
+	extern double fx[PYR_LEVELS];
+	extern double fy[PYR_LEVELS];
+	extern double fxi[PYR_LEVELS];
+	extern double fyi[PYR_LEVELS];
+	extern double cx[PYR_LEVELS];
+	extern double cy[PYR_LEVELS];
+	extern double cxi[PYR_LEVELS];
+	extern double cyi[PYR_LEVELS];
+
+
+
+
+
+
 	void setGlobalCalib(int w, int h, const Eigen::Matrix3f &K );
+//	void makeK( Eigen::Matrix<float, 3,3>& K);
 
 
 	// parameters controlling pixel selection

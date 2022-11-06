@@ -40,6 +40,8 @@ namespace DSONL{
 
 		bool usePixelSelector= false;
 
+		bool useFilterController= true;
+
 		/// maximum number of solver iterations
 		int max_num_iterations = 20;
 	};
@@ -67,6 +69,44 @@ namespace DSONL{
 //			}
 		}
 		return res;
+	}
+
+
+	// This function transforms a pixel from the reference image to a new one.
+	// It also checks image boundaries and inverse depth consistency even if
+	// its values is < 0.
+	//
+	// in - uj: pixel x coordinate
+	// in - vj: pixel y coordinate
+	// in - iDepth: pixel inverse depth
+	// in - width, height: image dimensions
+	// in - KRKinv: K*rotation*inv(K) from reference to new image
+	// in - Kt: K*translation from reference to new image
+	// out - pt2d: projected point in new image
+	// return: if successfully projected or not due to OOB
+	template<typename T>
+	bool projectRT(T uj, T vj, T iDepth, int width, int height,
+	             const Eigen::Matrix<T, 3, 3>& KRKinv, const Eigen::Matrix<T, 3, 1>& Kt,
+	             Eigen::Matrix<T, 2, 1>& pt2d)
+	{
+		// transform and project
+		const Eigen::Matrix<T, 3, 1> pt = KRKinv * Eigen::Matrix<T, 3, 1>(uj, vj, 1) + Kt*iDepth;
+
+		// rescale factor
+		const T rescale = 1 / pt[2];
+
+		// if the point was in the range [0, Inf] in camera1
+		// it has to be also in the same range in camera2
+		// This allows using negative inverse depth values
+		// i.e. same iDepth sign in both cameras
+		if (!(rescale > 0)) return false;
+
+		// normalize
+		pt2d[0] = pt[0] * rescale;
+		pt2d[1] = pt[1] * rescale;
+
+		// check image boundaries
+		return checkImageBoundaries(pt2d, width, height);
 	}
 
 
@@ -173,6 +213,7 @@ namespace DSONL{
 		PhotometricCostFunctor(
 				const Eigen::Vector2d &pixelCoor,
 				const Eigen::Matrix3f & K,
+				const Eigen::Matrix3f & Kinv,
 				const int rows,
 				const int cols,
 				const std::vector<double> &vec_pixel_gray_values,
@@ -184,7 +225,8 @@ namespace DSONL{
 			rows_ = rows;
 			cols_ = cols;
 			pixelCoor_ = pixelCoor;
-			K_ = K;
+			K_ = K.cast<double>();
+			Kinv_=Kinv.cast<double>();
 
 
 			for (int i = 0; i < 9; ++i) {
@@ -203,13 +245,18 @@ namespace DSONL{
 
 		template<typename T>
 		bool operator()(
-				const T* const sT,
+				const T* const sRotation,
+				const T* const sTranslation,
 				const T* const sd,
 				T *residual
 		) const {
 
-			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
+//			Eigen::Map<Eigen::Matrix<T,3,3> const> const Rotation(sRotation);
+			Eigen::Map<Sophus::SO3<T> const> const Rotation(sRotation);
 
+//			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
+
+			Eigen::Map<Eigen::Matrix<T,3,1> const> const Translation(sTranslation);
 
 			T u_, v_;// delta; //intensity_image_ref
 //			intensity_image_ref=(T) gray_Image_ref_val;
@@ -217,21 +264,35 @@ namespace DSONL{
 			u_=(T)pixelCoor_(1);
 			v_=(T)pixelCoor_(0);
 
-			// unproject
-			T fx = (T)K_(0, 0), cx = (T)K_(0, 2), fy =  (T)K_(1, 1), cy = (T)K_(1, 2);
-			Eigen::Matrix<T,3,1> p_3d_no_d;
-			p_3d_no_d<< (v_-cx)/fx, (u_-cy)/fy,(T)1.0;
+			Eigen::Matrix<T, 2, 1> pt2d;
+			// transform and project
+			Eigen::Matrix<T, 3, 1> ptd1= Kinv_* Eigen::Matrix<T, 3, 1>(v_, u_, T(1));
+
+			Eigen::Matrix<T, 3, 1> pt = K_*(Rotation*ptd1 + Translation *sd[0]); // convert K into  T type?
+
+			// rescale factor
+			 T rescale = T(1) / pt[2];
+
+			// normalize
+			pt2d[0] = pt[0] * rescale;
+			pt2d[1] = pt[1] * rescale;
 
 
 
-			Eigen::Matrix<T, 3,1> p_c1 ;
-			p_c1 <<  p_3d_no_d.x() /sd[0],  p_3d_no_d.y() /sd[0] ,p_3d_no_d.z() /sd[0];
-			Eigen::Matrix<T, 3, 1> p1 = Tran * p_c1 ;
-			// project
-			Eigen::Matrix<T, 2, 1> pt = project(p1,fx, fy,cx, cy);
 
-			T res1;
-			T pixel_gray_val_out1;
+//			// unproject
+//			T fx = (T)K_(0, 0), cx = (T)K_(0, 2), fy =  (T)K_(1, 1), cy = (T)K_(1, 2);
+//			Eigen::Matrix<T,3,1> p_3d_no_d;
+//			p_3d_no_d<< (v_-cx)/fx, (u_-cy)/fy,(T)1.0;
+//
+//			Eigen::Matrix<T, 3,1> p_c1 ;
+//			p_c1 <<  p_3d_no_d.x() /sd[0],  p_3d_no_d.y() /sd[0] ,p_3d_no_d.z() /sd[0];
+//			Eigen::Matrix<T, 3, 1> p1 = Rotation * p_c1+Translation ;
+//			// project
+//			Eigen::Matrix<T, 2, 1> pt = project(p1,fx, fy,cx, cy);
+
+//			T res1;
+//			T pixel_gray_val_out1;
 
 			for (int i = 0; i < 9; ++i) {
 
@@ -240,8 +301,10 @@ namespace DSONL{
 
 				T pixel_gray_val_out, u_l, v_l;
 
-				u_l=pt.x()+T(m-1);
-				v_l=pt.y()+T(n-1);
+				u_l=pt2d.y()+T(m-1);
+				v_l=pt2d.x()+T(n-1);
+//				u_l=pt.x()+T(m-1);
+//				v_l=pt.y()+T(n-1);
 				get_pixel_gray_val->Evaluate(u_l, v_l, &pixel_gray_val_out);
 				residual[i] =  T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
 			}
@@ -257,28 +320,19 @@ namespace DSONL{
 //				get_pixel_gray_val->Evaluate(u_l, v_l, &pixel_gray_val_out);
 //				residual[i] =  T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
 //			}
-
-
-
 			return true;
-
-
-
-
-
 		}
 		Mat deltaMap_;
 		Mat gray_Image_ref_;
 		double rows_, cols_;
 		Eigen::Vector2d pixelCoor_;
-		Eigen::Matrix3f K_;
+		Eigen::Matrix3d K_;
+		Eigen::Matrix3d Kinv_;
 		Sophus::SE3<double> CurrentT_;
 		double delta_val[9];
 		double gray_Image_ref_val[9];
 //		double delta_val[16];
 //		double gray_Image_ref_val[16];
-
-
 		std::unique_ptr<ceres::Grid2D<double> > grid2d;
 		std::unique_ptr<ceres::BiCubicInterpolator<ceres::Grid2D<double>>> get_pixel_gray_val;
 	};

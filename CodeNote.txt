@@ -1,3 +1,64 @@
+The optimization in DSO:
+
+
+		SE3 hostToNew = fh->PRE_worldToCam * host->PRE_camToWorld;
+		Mat33f KRKi = K * hostToNew.rotationMatrix().cast<float>() * K.inverse();
+		Vec3f Kt = K * hostToNew.translation().cast<float>();
+
+
+
+		// depth derivatives.
+		float dxInterp = hitColor[1]*HCalib->fxl();
+		float dyInterp = hitColor[2]*HCalib->fyl();
+		float d_idepth = derive_idepth(PRE_tTll, u, v, dx, dy, dxInterp, dyInterp, drescale); // 对逆深度的导数
+
+void EnergyFunctional::solveSystemF(int iteration, double lambda, CalibHessian* HCalib)
+
+	//* 针对新的残差, 使用的当前残差, 没有逆深度的部分
+	accumulateAF_MT(HA_top, bA_top,multiThreading);
+
+	//* 关于逆深度的Schur部分
+	accumulateSCF_MT(H_sc, b_sc,multiThreading);
+
+
+MatXX HFinal_top;
+	VecX bFinal_top;
+//[ ***step 2*** ] 如果是设置求解正交系统, 则把相对应的零空间部分Jacobian设置为0, 否则正常计算schur
+	if(setting_solverMode & SOLVER_ORTHOGONALIZE_SYSTEM)
+	{
+		// have a look if prior is there.
+		bool haveFirstFrame = false;
+		for(EFFrame* f : frames) if(f->frameID==0) haveFirstFrame=true;
+
+
+
+		// 计算Schur之后的
+		// MatXX HT_act =  HL_top + HA_top - H_sc;
+		MatXX HT_act =  HA_top - H_sc;
+		// VecX bT_act =   bL_top + bA_top - b_sc;
+		VecX bT_act =   bA_top - b_sc;
+
+		//! 包含第一帧则不减去零空间
+		//! 不包含第一帧, 因为要固定第一帧, 和第一帧统一, 减去零空间, 防止在零空间乱飘
+		if(!haveFirstFrame)
+			orthogonalize(&bT_act, &HT_act);
+
+		HFinal_top = HT_act + HM;
+		bFinal_top = bT_act + bM_top;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

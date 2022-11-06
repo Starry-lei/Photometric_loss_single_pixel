@@ -98,6 +98,36 @@ namespace DSONL{
 		}
 	}
 
+//	void makeK( Eigen::Matrix<float, 3,3>& K)
+//	{
+//		w[0] = wG[0];
+//		h[0] = hG[0];
+//
+//		fx[0] = HCalib->fxl();
+//		fy[0] = HCalib->fyl();
+//		cx[0] = HCalib->cxl();
+//		cy[0] = HCalib->cyl();
+//
+//		for (int level = 1; level < pyrLevelsUsed; ++ level)
+//		{
+//			w[level] = w[0] >> level;
+//			h[level] = h[0] >> level;
+//			fx[level] = fx[level-1] * 0.5;
+//			fy[level] = fy[level-1] * 0.5;
+//			cx[level] = (cx[0] + 0.5) / ((int)1<<level) - 0.5;
+//			cy[level] = (cy[0] + 0.5) / ((int)1<<level) - 0.5;
+//		}
+//
+//		for (int level = 0; level < pyrLevelsUsed; ++ level)
+//		{
+//			K[level]  << fx[level], 0.0, cx[level], 0.0, fy[level], cy[level], 0.0, 0.0, 1.0;
+//			Ki[level] = K[level].inverse();
+//			fxi[level] = Ki[level](0,0);
+//			fyi[level] = Ki[level](1,1);
+//			cxi[level] = Ki[level](0,2);
+//			cyi[level] = Ki[level](1,2);
+//		}
+//	}
 
 
 }

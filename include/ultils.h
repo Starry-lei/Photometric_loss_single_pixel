@@ -52,10 +52,63 @@ namespace DSONL{
 	const double DEG_TO_ARC = 0.0174532925199433;
 
 
+//	void 1dTo2d(){
+//	cv::Mat image_ref(hG[i], wG[i], CV_64FC1);
+//	memcpy(image_ref.data, newFrame_ref->img_pyr[i], wG[i]*hG[i]*sizeof(float));
+//	}
+
+
 	template<typename T>struct ptsNormal{
 	std::vector<Eigen::Matrix<T,3,1>> pts;
 	cv::Mat normal_map;
 	};
+
+	template<typename T>
+	 bool checkImageBoundaries(const Eigen::Matrix<T, 2, 1>& pixel, int width, int height)
+	{
+		return (pixel[0] > 1.1 && pixel[0] < width - 2.1 && pixel[1] > 1.1 && pixel[1] < height - 2.1);
+	}
+
+	// This function transforms a pixel from the reference image to a new one.
+	// It also checks image boundaries and inverse depth consistency even if
+	// its values is < 0.
+	//
+	// in - uj: pixel x coordinate
+	// in - vj: pixel y coordinate
+	// in - iDepth: pixel inverse depth
+	// in - width, height: image dimensions
+	// in - KRKinv: K*rotation*inv(K) from reference to new image
+	// in - Kt: K*translation from reference to new image
+	// out - pt2d: projected point in new image
+	// out - newIDepth: inverse depth in new image
+	// return: if successfully projected or not due to OOB
+	template<typename T>
+	bool project(T uj, T vj, T iDepth, int width, int height,
+	             const Eigen::Matrix<T, 3, 3>& KRKinv, const Eigen::Matrix<T, 3, 1>& Kt,
+	             Eigen::Matrix<T, 2, 1>& pt2d, T& newIDepth)
+	{
+		// transform and project
+		const Eigen::Matrix<T, 3, 1> pt = KRKinv * Eigen::Matrix<T, 3, 1>(uj, vj, 1) + Kt*iDepth;
+
+		// rescale factor
+		const T rescale = 1 / pt[2];
+
+		// if the point was in the range [0, Inf] in camera1
+		// it has to be also in the same range in camera2
+		// This allows using negative inverse depth values
+		// i.e. same iDepth sign in both cameras
+		if (!(rescale > 0)) return false;
+
+		// inverse depth in new image
+		newIDepth = iDepth*rescale;
+
+		// normalize
+		pt2d[0] = pt[0] * rescale;
+		pt2d[1] = pt[1] * rescale;
+
+		// check image boundaries
+		return checkImageBoundaries(pt2d, width, height);
+	}
 
 
 
@@ -80,6 +133,34 @@ namespace DSONL{
 
 		mSrc.convertTo(mSrc_32FC1,CV_64FC1);
 		addWeighted(mSrc_32FC1, 1.0, mGaussian_noise, 1.0, 0.0, mSrc_32FC1);
+		mSrc_32FC1.convertTo(mDst,mSrc.type());
+
+		return true;
+	}
+
+	bool AddGaussianNoise_Opencv(const Mat mSrc, Mat &mDst,double Mean, double StdDev,  float* statusMap)
+	{
+		if(mSrc.empty())
+		{
+			cout<<"[Error]! Input Image Empty!";
+			return 0;
+		}
+
+		Mat mSrc_32FC1;
+		Mat mGaussian_noise = Mat(mSrc.size(),CV_64FC1);
+		randn(mGaussian_noise,Scalar::all(Mean), Scalar::all(StdDev));
+		mSrc.convertTo(mSrc_32FC1,CV_64FC1);
+		for (int u = 0; u< mSrc.rows; u++) // colId, cols: 0 to 480
+		{
+			for (int v = 0; v < mSrc.cols; v++) // rowId,  rows: 0 to 640
+			{
+				if (statusMap!=NULL && statusMap[u*mSrc.cols+v]!=0 ){
+					mSrc_32FC1.at<double>(u,v)+=mGaussian_noise.at<double>(u,v);
+
+				}
+			}
+		}
+//		addWeighted(mSrc_32FC1, 1.0, mGaussian_noise, 1.0, 0.0, mSrc_32FC1);
 		mSrc_32FC1.convertTo(mDst,mSrc.type());
 
 		return true;
@@ -418,7 +499,6 @@ namespace DSONL{
 
 
 
-
 	template<typename T> Eigen::Matrix<T,3,1> backProjection(const Eigen::Matrix<T,2,1> &pixelCoord, const Eigen::Matrix<T,3,3> & K, const Mat& depthMap ){
         // convert depth map into grid2D table
 		cv::Mat flat_depth_map = depthMap.reshape(1, depthMap.total() * depthMap.channels());
@@ -500,10 +580,6 @@ namespace DSONL{
 			Mat mask = Mat(depth_d != depth_d);
 			depth_d.setTo(0.0, mask);
 			K_d = K;
-
-
-
-
 			return;
 		}
 
@@ -886,10 +962,12 @@ namespace DSONL{
 	}
 
 	template<typename T>
-	T rotationErr(Eigen::Matrix<T, 3,3> rotation_gt, Eigen::Matrix<T, 3,3>rotation_rs){
+	T rotationErr(Eigen::Matrix<T, 3,3> rotation_gt, Eigen::Matrix<T, 3,3> rotation_rs){
 
-		T compare1= max(acos(rotation_gt.col(0).dot(rotation_rs.col(0))) , acos(rotation_gt.col(1).dot(rotation_rs.col(1))));
-		return max(compare1, acos(rotation_gt.col(2).dot(rotation_rs.col(2))) ) * 180.0/ M_PI;
+
+		T compare1= max( acos(  std::min(std::max(rotation_gt.col(0).dot(rotation_rs.col(0)), -1.0), 1.0) ) , acos( std::min(std::max(rotation_gt.col(1).dot(rotation_rs.col(1)), -1.0), 1.0)  ) );
+
+		return max(compare1, acos( std::min(std::max(rotation_gt.col(2).dot(rotation_rs.col(2)), -1.0), 1.0)  ) ) * 180.0/ M_PI;
 
 	}
 	template<typename T>
