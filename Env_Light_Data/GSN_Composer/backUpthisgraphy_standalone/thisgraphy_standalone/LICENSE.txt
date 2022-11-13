@@ -1,0 +1,18 @@
+GSN Composer (Version 0.8.17) export of project "thisgraphy"
+
+Copyright (C) Thorsten Thormaehlen, Marburg, 2014
+
+Permission is granted to use this stand-alone web-application for 
+any purpose, including commercial applications. The most common usage scenario
+is the inclusion of the application into an existing website but any other usage is 
+permitted as well.
+
+All files can be redistributed freely, subject to the restriction that 
+the JavaScript file "gsn_lib_packed_ver0_8_17.js" and its copyright notice should 
+not be altered. All other files can be modified freely.
+
+There is no warranty or other guarantee of fitness for this software,
+it is provided solely "as is".
+
+Please contact the author if you have questions, requests, or suggestions for improvement.
+Your feedback is very much appreciated.

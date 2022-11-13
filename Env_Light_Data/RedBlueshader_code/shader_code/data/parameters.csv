@@ -1,0 +1,5 @@
+NodeClassName,Text,ImageShaderPluginNode
+NodeName,Text,BrdfIntegrationMap
+width,Integer,128
+height,Integer,128
+samples,Integer,256

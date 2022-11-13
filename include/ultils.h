@@ -82,6 +82,113 @@ namespace DSONL{
 	// out - pt2d: projected point in new image
 	// out - newIDepth: inverse depth in new image
 	// return: if successfully projected or not due to OOB
+
+	template<typename T>
+	bool project(T uj, T vj, T iDepth, int width, int height,const Eigen::Matrix<T, 4, 4>& M,
+	             Eigen::Matrix<T, 2, 1>& pt2d,  Sophus::SO3d& Rotation,
+	             Eigen::Vector3d& Translation)
+	{
+		// clear up data
+
+
+		double fov_y= 20;
+		double near= 0.5;
+		double far= 15.0;
+		double aspect= 1.333333;
+		double coeA= 2*far*near/(near-far);
+		double coeB= (far+near)/(near-far);
+		double f= 1.0/(tan(0.5*fov_y* M_PI/180.0)*aspect);
+
+		Eigen::Matrix<double, 4,4> M_new;
+		M_new << 1.0/(tan(0.5*fov_y * M_PI/180.0)*aspect), 0, 0, 0,
+				0,  1.0/tan(0.5*fov_y * M_PI/180.0), 0,  0,
+				0,0, (far+near)/(near-far), 2*far*near/(near-far),
+				0,  0,   -1,    0;
+
+		Eigen::Matrix<double,3,3> K;
+		K<<1361.1, 0, 320,
+				0, 1361.1, 240,
+				0,   0,  1;;
+
+
+		// transform and project
+		double d_mapped= 2.0 *iDepth-1.0;
+		double x_mapped= 2.0* uj/ width -1.0;
+		double y_mapped= 2.0* vj/ height -1.0;
+
+
+
+
+		Eigen::Matrix<double,4,1> p_3d, p_2d;
+		p_2d.x()=x_mapped;
+		p_2d.y()=y_mapped;
+		p_2d.z()=d_mapped;
+		p_2d.w()=1.0;
+
+
+
+		Eigen::Matrix<double,4,1> p_3d_transformed;
+//		p_3d.z()=-coeA/(d_mapped+coeB);
+//		p_3d.x()=x_mapped*(-p_3d.z())*aspect/f;
+//		p_3d.y()=y_mapped*(-p_3d.z())/f;
+		p_3d=M_new.inverse()*p_2d;
+		p_3d_transformed= p_3d   ;//Rotation*p_3d+Translation;
+
+		Eigen::Matrix<double, 4,1> projectedPoint;
+		Eigen::Matrix<double, 4,1> newpoint3D;
+		newpoint3D.x()=p_3d_transformed.x();
+		newpoint3D.y()=p_3d_transformed.y();
+		newpoint3D.z()=p_3d_transformed.z();
+		newpoint3D.w()=1.0;
+
+
+		projectedPoint=M_new * newpoint3D;
+
+//		pt2d.x()= projectedPoint.x()/projectedPoint.w();
+//		pt2d.x()= (pt2d.x()+1.0)/2.0* width;
+//		pt2d.y()= projectedPoint.y()/projectedPoint.w();
+//		pt2d.y()=(pt2d.y()+1.0)/2.0*height;
+
+																//		pt2d.x()=(-f/aspect)*(p_3d_transformed.x()/p_3d_transformed.z());
+																//		pt2d.y()=((-f*(p_3d_transformed.y()/p_3d_transformed.z())) +1.0)* (height/2.0);
+																//
+
+        Eigen::Matrix<double,3,1> point,p_3d_transformed_K;
+//		p_3d_transformed_K.x()= p_3d_transformed.x()/p_3d_transformed.w();
+//		p_3d_transformed_K.y()= p_3d_transformed.y()/p_3d_transformed.w();
+//		p_3d_transformed_K.z()= p_3d_transformed.z()/p_3d_transformed.w();
+
+		Eigen::Matrix<double, 3,1> transformedPoint, point_3D;
+		point_3D.x()=p_3d_transformed.x();
+		point_3D.y()=p_3d_transformed.y();
+		point_3D.z()=p_3d_transformed.z();
+		transformedPoint= Rotation*point_3D+Translation;
+
+
+		p_3d_transformed_K.x()= -transformedPoint.x();
+		p_3d_transformed_K.y()= -transformedPoint.y();
+		p_3d_transformed_K.z()= transformedPoint.z();
+
+//		p_3d_transformed_K.x()= -p_3d_transformed.x();
+//		p_3d_transformed_K.y()= -p_3d_transformed.y();
+//		p_3d_transformed_K.z()= p_3d_transformed.z();
+
+
+
+//		transformedPoint= Rotation*p_3d_transformed_K+Translation;
+		point = K*p_3d_transformed_K;
+
+		 pt2d.x()=point.x()/point.z();
+		pt2d.y()=point.y()/point.z();
+
+
+
+
+		// check image boundaries
+		return checkImageBoundaries(pt2d, width, height);
+	}
+
+
 	template<typename T>
 	bool project(T uj, T vj, T iDepth, int width, int height,
 	             const Eigen::Matrix<T, 3, 3>& KRKinv, const Eigen::Matrix<T, 3, 1>& Kt,
@@ -431,8 +538,6 @@ namespace DSONL{
    };
 
 
-
-
 	// show image function
 	void imageInfo(Mat im_,  Eigen::Vector2i& position ){
 
@@ -485,13 +590,6 @@ namespace DSONL{
 		waitKey(0);
 
 	}
-
-
-
-
-
-
-
 
 
 
@@ -896,7 +994,7 @@ namespace DSONL{
 		{
 			for(int y = 0; y < depth.cols; ++y)
 			{
-
+				// map the values into -1 to 1
 				double d_mapped= 2.0 *depth.at<double>(x,y)-1.0;
 				double x_mapped= 2.0* x/ depth.rows -1.0;
 				double y_mapped= 2.0* y/ depth.cols -1.0;
@@ -910,6 +1008,9 @@ namespace DSONL{
 				p_3d.z()=-coeA/(d_mapped+coeB);
 				p_3d.x()=y_mapped*aspect*(-p_3d.z())/f;
 				p_3d.y()=x_mapped*(-p_3d.z())/f;
+
+
+
 
 				double d_x1= 2.0 *depth.at<double>(x,y+1)-1.0;
 				double y_1mapped= 2.0* (y+1)/ 640.0 -1.0;
@@ -965,26 +1066,24 @@ namespace DSONL{
 	T rotationErr(Eigen::Matrix<T, 3,3> rotation_gt, Eigen::Matrix<T, 3,3> rotation_rs){
 
 
-		T compare1= max( acos(  std::min(std::max(rotation_gt.col(0).dot(rotation_rs.col(0)), -1.0), 1.0) ) , acos( std::min(std::max(rotation_gt.col(1).dot(rotation_rs.col(1)), -1.0), 1.0)  ) );
+		T compare1= std::max( acos(  std::min( std::max( rotation_gt.col(0).dot(rotation_rs.col(0)), -1.0), 1.0) ) , acos( std::min(std::max(rotation_gt.col(1).dot(rotation_rs.col(1)), -1.0), 1.0)  ) );
 
-		return max(compare1, acos( std::min(std::max(rotation_gt.col(2).dot(rotation_rs.col(2)), -1.0), 1.0)  ) ) * 180.0/ M_PI;
+
+		return std::max(compare1, acos( std::min(std::max(rotation_gt.col(2).dot(rotation_rs.col(2)), -1.0), 1.0)  ) ) * 180.0/ M_PI;
 
 	}
 	template<typename T>
 	T translationErr(Eigen::Matrix<T, 3,1> translation_gt, Eigen::Matrix<T, 3,1> translation_es){
 		return (translation_gt-translation_es).norm() / translation_gt.norm() ;
 	}
-
-
 	Scalar depthErr( const Mat& depth_gt, const Mat& depth_es ){
 
 		if (depth_es.depth()!=depth_gt.depth()){std::cerr<<"the depth image type are different!"<<endl;}
 		return cv::sum(cv::abs(depth_gt-depth_es)) / cv::sum(depth_gt);
 
 	}
-
 	template<typename T>
-	Eigen::Matrix<T,3,3> rotation_pertabation(const T pertabation_x,const T pertabation_y, const T pertabation_z, const Eigen::Matrix<T,3,3>& Rotation, double& roErr){
+	Eigen::Matrix<T,3,3> rotation_pertabation(const T pertabation_x,const T pertabation_y, const T pertabation_z, const Eigen::Matrix<T,3,3>& Rotation, T & roErr){
 
 		Eigen::Matrix<T,3,3> R;
 
@@ -1006,15 +1105,13 @@ namespace DSONL{
 		Eigen::Matrix<T,3,3> updatedRotation;
 		updatedRotation.setZero();
 		updatedRotation= R*Rotation;
-//		cout<<" ----------------R------------:"<< R<< endl;
-//		cout<<" ----------------Eigen::Matrix<T,3,1>::UnitX()-----------:"<< Eigen::Matrix<T,3,1>::UnitX()<< endl;
-//		cout<<"Show the rotation loss:"<<updatedRotation<< endl;
+
 		roErr=rotationErr(Rotation, updatedRotation);
 
 		return updatedRotation;
 	}
 	template<typename T>
-	Eigen::Matrix<T,3,1> translation_pertabation(const T pertabation_x,const T pertabation_y, const T pertabation_z, const Eigen::Matrix<T,3,1>& translation, double& roErr){
+	Eigen::Matrix<T,3,1> translation_pertabation(const T pertabation_x,const T pertabation_y, const T pertabation_z, const Eigen::Matrix<T,3,1>& translation, T & roErr){
 
 		Eigen::Matrix<T,3,1> updated_translation;
 		updated_translation.setZero();

@@ -212,8 +212,8 @@ namespace DSONL{
 
 		PhotometricCostFunctor(
 				const Eigen::Vector2d &pixelCoor,
-				const Eigen::Matrix3f & K,
-				const Eigen::Matrix3f & Kinv,
+				const Eigen::Matrix4f & M,
+//				const Eigen::Matrix3f & Kinv,
 				const int rows,
 				const int cols,
 				const std::vector<double> &vec_pixel_gray_values,
@@ -225,8 +225,8 @@ namespace DSONL{
 			rows_ = rows;
 			cols_ = cols;
 			pixelCoor_ = pixelCoor;
-			K_ = K.cast<double>();
-			Kinv_=Kinv.cast<double>();
+//			K_ = K.cast<double>();
+//			Kinv_=Kinv.cast<double>();
 
 
 			for (int i = 0; i < 9; ++i) {
@@ -253,9 +253,7 @@ namespace DSONL{
 
 //			Eigen::Map<Eigen::Matrix<T,3,3> const> const Rotation(sRotation);
 			Eigen::Map<Sophus::SO3<T> const> const Rotation(sRotation);
-
 //			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
-
 			Eigen::Map<Eigen::Matrix<T,3,1> const> const Translation(sTranslation);
 
 			T u_, v_;// delta; //intensity_image_ref
@@ -303,23 +301,10 @@ namespace DSONL{
 
 				u_l=pt2d.y()+T(m-1);
 				v_l=pt2d.x()+T(n-1);
-//				u_l=pt.x()+T(m-1);
-//				v_l=pt.y()+T(n-1);
 				get_pixel_gray_val->Evaluate(u_l, v_l, &pixel_gray_val_out);
 				residual[i] =  T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
 			}
-//			for (int i = 0; i < 16; ++i) {
-//
-//				int m = i / 4;
-//				int n = i % 4;
-//
-//				T pixel_gray_val_out, u_l, v_l;
-//
-//				u_l=pt.x()+T(m-2);
-//				v_l=pt.y()+T(n-2);
-//				get_pixel_gray_val->Evaluate(u_l, v_l, &pixel_gray_val_out);
-//				residual[i] =  T(delta_val[i])* T(gray_Image_ref_val[i]) - pixel_gray_val_out;
-//			}
+
 			return true;
 		}
 		Mat deltaMap_;

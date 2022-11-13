@@ -25,118 +25,117 @@ namespace DSONL{
 	using namespace cv;
 	using namespace std;
 
-	void PhotometricBA_old(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
-	                   Sophus::SE3d& pose,
-					   Mat&         depth_ref,
-					   Mat deltaMap,
-					   const double& depth_upper_bound,
-					   const double& depth_lower_bound
-					   )
-					   {
-
-		ceres::Problem problem;
-		double rows_= image.rows, cols_= image.cols;
-
-		deltaMap.convertTo(deltaMap, CV_64FC1);
-
-		cv::Mat flat = image_right.reshape(1, image_right.total() * image_right.channels());
-		std::vector<double> grayImage_right_values = image_right.isContinuous() ? flat : flat.clone();
-		ceres::Grid2D<double> grid2d_grayImage_right(&grayImage_right_values[0],0, rows_, 0, cols_);
-
-
-
-		problem.AddParameterBlock(pose.data(), Sophus::SE3d::num_parameters, new Sophus::test::LocalParameterizationSE3);
-
-		for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
-		{
-			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
-			{
-				problem.AddParameterBlock(&depth_ref.at<double>(u,v), 1);
-				if (!options.optimize_depth) {
-					problem.SetParameterBlockConstant(&depth_ref.at<double>(u,v));
-				}
-
-
-			}
-		}
-
-
-		std::unordered_map<int, int> inliers_filter;
-		//new image
-		inliers_filter.emplace(173,333); //yes
-		inliers_filter.emplace(378,268); //yes
-
-
-		double gray_values[1]{};
-		double *transformation = pose.data();
-
-		double depth_var;
-
-
-		// use pixels,depth and delta to optimize pose and depth itself
-		for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
-		{
-			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
-			{
-				// use the inlier filter
-//				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-//				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-
-
-				gray_values[0] =  image.at<double>(u, v);
-				Eigen::Vector2d pixelCoord((double)v,(double)u);
-				problem.AddResidualBlock(
-						new ceres::AutoDiffCostFunction<GetPixelGrayValue, 1, Sophus::SE3d::num_parameters, 1>(
-								new GetPixelGrayValue(
-								                      pixelCoord,
-								                      K,
-								                      image.rows,
-								                      image.cols,
-								                      grid2d_grayImage_right,
-                                                      image,
-													  deltaMap
-								)
-						),
-						new ceres::HuberLoss(options.huber_parameter),
-						transformation,
-						&depth_ref.at<double>(u,v)
-				);
-				problem.SetParameterLowerBound(&depth_ref.at<double>(u,v), 0, depth_lower_bound);
-				problem.SetParameterUpperBound(&depth_ref.at<double>(u,v), 0, depth_upper_bound);
-
-
-
-			}
-		}
-		// Solve
-		std::cout << "\n Solving ceres directBA ... " << endl;
-		ceres::Solver::Options ceres_options;
-		ceres_options.max_num_iterations = 300;
-
-		ceres_options.linear_solver_type =ceres::SPARSE_SCHUR;
-		ceres_options.num_threads = std::thread::hardware_concurrency();
-		ceres_options.minimizer_progress_to_stdout = true;
-		ceres::Solver::Summary summary;
-
-		Solve(ceres_options, &problem, &summary);
-		switch (options.verbosity_level) {
-			// 0: silent
-			case 1:
-				std::cout << summary.BriefReport() << std::endl;
-				break;
-			case 2:
-				std::cout << summary.FullReport() << std::endl;
-				break;
-		}
-
-
-	}
+//	void PhotometricBA_old(Mat &image, Mat &image_right, const PhotometricBAOptions &options, const Eigen::Matrix3d &K,
+//	                   Sophus::SE3d& pose,
+//					   Mat&         depth_ref,
+//					   Mat deltaMap,
+//					   const double& depth_upper_bound,
+//					   const double& depth_lower_bound
+//					   )
+//					   {
+//
+//		ceres::Problem problem;
+//		double rows_= image.rows, cols_= image.cols;
+//
+//		deltaMap.convertTo(deltaMap, CV_64FC1);
+//
+//		cv::Mat flat = image_right.reshape(1, image_right.total() * image_right.channels());
+//		std::vector<double> grayImage_right_values = image_right.isContinuous() ? flat : flat.clone();
+//		ceres::Grid2D<double> grid2d_grayImage_right(&grayImage_right_values[0],0, rows_, 0, cols_);
+//
+//
+//
+//		problem.AddParameterBlock(pose.data(), Sophus::SE3d::num_parameters, new Sophus::test::LocalParameterizationSE3);
+//
+//		for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
+//		{
+//			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
+//			{
+//				problem.AddParameterBlock(&depth_ref.at<double>(u,v), 1);
+//				if (!options.optimize_depth) {
+//					problem.SetParameterBlockConstant(&depth_ref.at<double>(u,v));
+//				}
+//
+//
+//			}
+//		}
+//
+//
+//		std::unordered_map<int, int> inliers_filter;
+//		//new image
+//		inliers_filter.emplace(173,333); //yes
+//		inliers_filter.emplace(378,268); //yes
+//
+//
+//		double gray_values[1]{};
+//		double *transformation = pose.data();
+//
+//		double depth_var;
+//
+//
+//		// use pixels,depth and delta to optimize pose and depth itself
+//		for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
+//		{
+//			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
+//			{
+//				// use the inlier filter
+////				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+////				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+//
+//
+//				gray_values[0] =  image.at<double>(u, v);
+//				Eigen::Vector2d pixelCoord((double)v,(double)u);
+//				problem.AddResidualBlock(
+//						new ceres::AutoDiffCostFunction<GetPixelGrayValue, 1, Sophus::SE3d::num_parameters, 1>(
+//								new GetPixelGrayValue(
+//								                      pixelCoord,
+//								                      K,
+//								                      image.rows,
+//								                      image.cols,
+//								                      grid2d_grayImage_right,
+//                                                      image,
+//													  deltaMap
+//								)
+//						),
+//						new ceres::HuberLoss(options.huber_parameter),
+//						transformation,
+//						&depth_ref.at<double>(u,v)
+//				);
+//				problem.SetParameterLowerBound(&depth_ref.at<double>(u,v), 0, depth_lower_bound);
+//				problem.SetParameterUpperBound(&depth_ref.at<double>(u,v), 0, depth_upper_bound);
+//
+//
+//
+//			}
+//		}
+//		// Solve
+//		std::cout << "\n Solving ceres directBA ... " << endl;
+//		ceres::Solver::Options ceres_options;
+//		ceres_options.max_num_iterations = 300;
+//
+//		ceres_options.linear_solver_type =ceres::SPARSE_SCHUR;
+//		ceres_options.num_threads = std::thread::hardware_concurrency();
+//		ceres_options.minimizer_progress_to_stdout = true;
+//		ceres::Solver::Summary summary;
+//
+//		Solve(ceres_options, &problem, &summary);
+//		switch (options.verbosity_level) {
+//			// 0: silent
+//			case 1:
+//				std::cout << summary.BriefReport() << std::endl;
+//				break;
+//			case 2:
+//				std::cout << summary.FullReport() << std::endl;
+//				break;
+//		}
+//
+//
+//	}
 
 
 
 void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options,
-				   const Eigen::Matrix3f &K,
-//                   Sophus::SE3d& pose,
+				   const Eigen::Matrix4f& M,
                    Sophus::SO3d& Rotation,
 				   Eigen::Vector3d& Translation,
                    Mat&         depth_ref,
@@ -161,8 +160,8 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	problem.AddParameterBlock(Rotation.data(), Sophus::SO3d::num_parameters);
 	problem.AddParameterBlock(Translation.data(), 3);
 
-	Eigen::Matrix3f Kinv= K.inverse();
-	double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy =K(1, 2);
+//	Eigen::Matrix3f Kinv= K.inverse();
+//	double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy =K(1, 2);
 
 
 
@@ -170,8 +169,17 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 	std::unordered_map<int, int> inliers_filter;
 	//new image
-//	inliers_filter.emplace(319,296); ///(324,280)        baseline_label: control experiment baseline is the smallest
-//	inliers_filter.emplace(367,291); ///(364,307)
+//	inliers_filter.emplace(340, 336); ///(351, 439)        baseline_label: control experiment baseline is the smallest
+	inliers_filter.emplace(365, 241); ///(381, 352)
+
+	//   (340, 336)  B value is: 67  G value is: 110  R value is: 168
+	//   (351, 439)  B value is: 69  G value is: 112  R value is: 171
+
+	//at (365, 241)  B value is: 31  G value is: 57  R value is: 115
+	//at (381, 352)  B value is: 30  G value is: 58  R value is: 114
+
+
+
 
 
 	int counter=0;
@@ -188,20 +196,14 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	}
 
 	cerr<<"show counter for confirmation:"<<counter<<endl;
-
-
-
-
-
-			double intensity_ref;
+	double intensity_ref;
 	double deltaMap_val;
-//	double *transformation = pose.data();
     double * Rotation_=Rotation.data();
 	double * Translation_= Translation.data();
 
 
-	Eigen::Matrix<float,3,3> KRKi = K *Rotation.matrix().cast<float>() * K.inverse();
-	Eigen::Matrix<float,3,1> Kt = K *Translation.cast<float>();
+//	Eigen::Matrix<float,3,3> KRKi = K *Rotation.matrix().cast<float>() * K.inverse();
+//	Eigen::Matrix<float,3,1> Kt = K *Translation.cast<float>();
 
 
 	int step= 50;
@@ -217,8 +219,8 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 //			if (statusMap!=NULL && statusMap[u*image.cols+v]==0 ){ continue;}
 
 			// use the inlier filter
-//				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-//				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 
 			//if(pixelSkip%step!=0){ pixelSkip++;continue; }///----------------------current PhotoBA---------------------------
 			//pixelSkip++;
@@ -227,8 +229,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 			// remove way far points
 			double gray_values[9]{};
 			double delta_values[9]{};
-//			double gray_values[16]{};
-//			double delta_values[16]{};
+
 
 			int k=0;
 
@@ -241,7 +242,6 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 					int colId=v+j;
 					if (colId >0.0 && colId<image.cols && rowId >0.0 && rowId <image.rows ){
 						gray_values[k]= image.at<double>(rowId,colId);
-
 //							cout<<"show gray_values:"<<gray_values[k]<<endl;
 						delta_values[k]=deltaMap.at<double>(rowId,colId);
 					}else{
@@ -253,26 +253,6 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 				}
 			}
 
-//            // size 16
-//			for (int i = -2; i <= 2; i++)
-//			{
-//				for (int j = -2; j <= 2; j++)
-//				{
-//					int rowId=u+i;
-//					int colId=v+j;
-//					if (colId >0.0 && colId<image.cols && rowId >0.0 && rowId <image.rows ){
-//						gray_values[k]= image.at<double>(rowId,colId);
-//
-////							cout<<"show gray_values:"<<gray_values[k]<<endl;
-//						delta_values[k]=deltaMap.at<double>(rowId,colId);
-//					}else{
-//						gray_values[k]=image.at<double>(u, v);
-//						delta_values[k]=deltaMap.at<double>(u, v);
-//					}
-//					k++;
-//
-//				}
-//			}
 
 
 			if (depth_ref.at<double>(u,v)< 0) { continue;}
@@ -291,7 +271,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 //			if(pt.y()< 0.0 && pt.y()>image.cols && pt.x() <0.0 && pt.x()> image.rows ){ continue;}
 			Eigen::Matrix<float, 2, 1> pt2d;
 			float newIDepth;
-			if (!project(float (v),float (u), float(depth_ref.at<double>(u,v)),cols_,rows_,KRKi,Kt,pt2d,newIDepth)){ continue;}
+			if (!project(float (v),float (u), float(depth_ref.at<double>(u,v)),cols_,rows_,M,pt2d, Rotation, Translation)){ continue;}
 
 
 			if (options.use_huber){
@@ -299,8 +279,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SO3d::num_parameters, 3, 1>(
 								new PhotometricCostFunctor(
 										pixelCoord,
-										K,
-										Kinv,
+										M,
 										rows_,
 										cols_,
 										grayImage_right_values,
@@ -308,18 +287,6 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 										delta_values
 								)
 						),
-
-//						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 16, Sophus::SE3d::num_parameters,1>(
-//								new PhotometricCostFunctor(
-//										pixelCoord,
-//										K,
-//										image.rows,
-//										image.cols,
-//										grayImage_right_values,
-//										gray_values,
-//										delta_values
-//								)
-//						),
 						new ceres::HuberLoss(options.huber_parameter),
 						Rotation_,
 						Translation_,
@@ -327,22 +294,10 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 				);
 			} else{
 				problem.AddResidualBlock(
-//						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SE3d::num_parameters,1>(
-//								new PhotometricCostFunctor(
-//										pixelCoord,
-//										K,
-//										image.rows,
-//										image.cols,
-//										grayImage_right_values,
-//										gray_values,
-//										delta_values
-//								)
-//						),
 						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SO3d::num_parameters, 3, 1>(
 								new PhotometricCostFunctor(
 										pixelCoord,
-										K,
-										Kinv,
+										M,
 										rows_,
 										cols_,
 										grayImage_right_values,
@@ -367,7 +322,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 			}
 			if (!options.optimize_depth) {
 				if(   inliers_filter.count(u)!=0 &&inliers_filter[u]==v ){
-//					std::cerr<<"optimized  depth: "<< u<< ","<< v<<endl;
+					std::cerr<<"optimized  depth: "<< u<< ","<< v<<endl;
 					problem.SetParameterBlockVariable(&depth_ref.at<double>(u,v));
 				}else{
 					problem.SetParameterBlockConstant(&depth_ref.at<double>(u,v));

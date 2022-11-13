@@ -1,0 +1,10 @@
+# ninja log v5
+1	965	1667941135	CMakeFiles/shader.dir/FileTools.cpp.o	6a8b77ddae25ed8a
+10	1289	1667941135	CMakeFiles/shader.dir/StringTools.cpp.o	eb87006124d1a65d
+0	1789	1667941135	CMakeFiles/shader.dir/main.cpp.o	dae480621408787a
+2	1821	1667941135	CMakeFiles/shader.dir/Matrix.cpp.o	464604988ca3db15
+5	1889	1667941136	CMakeFiles/shader.dir/Renderer.cpp.o	8f4ff15ce321bb61
+5	2169	1667941136	CMakeFiles/shader.dir/Mesh.cpp.o	a6f4b6558f2cbe5a
+9	2320	1667941136	CMakeFiles/shader.dir/ShaderNode.cpp.o	f8ad4487489155f7
+1	2814	1667941136	CMakeFiles/shader.dir/LoadOBJ.cpp.o	3d5bd0b24c4cc434
+2814	3121	1667941137	shader	b94fe27dd08909e6

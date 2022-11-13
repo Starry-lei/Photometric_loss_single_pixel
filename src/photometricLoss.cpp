@@ -57,8 +57,8 @@ int main(int argc, char **argv){
 	dataLoader= new DSONL::dataLoader();
 	dataLoader->Init();
 
-	Mat image_ref_metallic = dataLoader->image_ref_metallic;
-	Mat image_ref_roughness= dataLoader->image_ref_roughness;
+	double image_ref_metallic = dataLoader->image_ref_metallic;
+	double image_ref_roughness= dataLoader->image_ref_roughness;
 
 	grayImage_ref=dataLoader->grayImage_ref;
 	grayImage_target=dataLoader->grayImage_target;
@@ -66,39 +66,32 @@ int main(int argc, char **argv){
 	grayImage_target.convertTo(grayImage_target, CV_64FC1);
 
 	depth_ref=dataLoader->depth_map_ref;
+	depth_ref.convertTo(depth_ref, CV_64FC1);
 	Mat depth_ref_GT= dataLoader->depth_map_ref;
 	depth_target=dataLoader->depth_map_target;
+	depth_target.convertTo(depth_target, CV_64FC1);
 	image_ref_baseColor= dataLoader->image_ref_baseColor;
 	image_target_baseColor= dataLoader->image_target_baseColor;
 
 
-	// show the depth image with noise
-	//	double min_gt, max_gt;
-	//	cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
-	//	cout<<"\n show original depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
+	 //show the depth image with noise
+		double min_gt, max_gt;
+		cv::minMaxLoc(depth_ref, &min_gt, &max_gt);
+		cout<<"\n show original depth_ref min, max:\n"<<min_gt<<","<<max_gt<<endl;
 
 
-	Eigen::Matrix3f K;
-	K=dataLoader->camera_intrinsics;
+//	Eigen::Matrix3f K;
+//	K=dataLoader->camera_intrinsics;
+
+	Eigen::Matrix4f M;
+	M=dataLoader->M_matrix;
 
 
 
 
-//													showImage(grayImage_ref,"grayImage_ref");
-//													showImage(grayImage_target,"grayImage_target");
+//													imshow("grayImage_ref",grayImage_ref);
+//													imshow("grayImage_target",grayImage_target);
 //													waitKey(0);
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -128,7 +121,7 @@ int main(int argc, char **argv){
 		{
 
 			Eigen::Vector3d normal_new( normal_map_GT.at<cv::Vec3f>(u,v)[2],  -normal_map_GT.at<cv::Vec3f>(u,v)[1], normal_map_GT.at<cv::Vec3f>(u,v)[0]);
-			normal_new= dataLoader->R1.transpose()*normal_new;
+			normal_new= dataLoader->R1.transpose().cast<double>()*normal_new;
 
 			Eigen::Vector3d principal_axis(0, 0, 1);
 			if(normal_new.dot(principal_axis)>0)
@@ -150,13 +143,13 @@ int main(int argc, char **argv){
 	Mat depth_ref_NS;
 	double roErr;
 	Eigen::Matrix3d R_GT(xi_GT.rotationMatrix());
-	Eigen::Matrix3d perturbedRotation=rotation_pertabation(2.0,2.0,2.0,R_GT,roErr); // degree
+	Eigen::Matrix3d perturbedRotation=rotation_pertabation(0.0,0.0,0.0,R_GT,roErr); // degree
 
 	double trErr;
 	Eigen::Vector3d T_GT(xi_GT.translation());
-	Eigen::Vector3d  perturbedTranslation=translation_pertabation(0.05, 0.05, 0.05, T_GT,trErr); // percentage
+	Eigen::Vector3d  perturbedTranslation=translation_pertabation(0.00, 0.0, 0.00, T_GT,trErr); // percentage
 
-	double Mean=0.0,StdDev=1;
+	double Mean=0.0,StdDev=0;
 	float densities[] = {0.03,0.003, 0.05,0.15,0.5,1}; /// number of optimized depths,  current index is 1
 
 
@@ -175,7 +168,7 @@ int main(int argc, char **argv){
 	double depth_lower_bound = 0.0001;  // 0.001
 
 	options.optimize_depth = false;
-	options.useFilterController= true; // control the number of optimized depth
+	options.useFilterController= false; // control the number of optimized depth
 	options.optimize_pose= true;
 	options.use_huber= true;
 	options.lambertianCase= false;
@@ -228,11 +221,14 @@ int main(int argc, char **argv){
 
 //	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev);
 	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev,statusMap);
-//	depth_ref_NS.at<double>(319,296)*=(1.0+ 0.05) ;
-//	depth_ref_NS.at<double>(319,296)*=(1.0+ 0.05) ;
 
-	divide(Scalar(1), depth_ref, depth_ref_gt);
-	divide(Scalar(1), depth_ref_NS, inv_depth_ref);
+
+//	divide(Scalar(1), depth_ref, depth_ref_gt);
+//	divide(Scalar(1), depth_ref_NS, inv_depth_ref);
+	inv_depth_ref=depth_ref_NS.clone();
+	depth_ref_gt=depth_ref.clone();
+
+
 	Mat depth_ref_NS_before=inv_depth_ref.clone();
 	double min_inv, max_inv;
 	cv::minMaxLoc(inv_depth_ref, &min_inv, &max_inv);
@@ -355,7 +351,7 @@ int main(int argc, char **argv){
 //				//				waitKey(0);
 				} else{
 //				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
-                PhotometricBA(image_ref, image_tar, options, KG[i], Rotation,Translation, depthImg_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
+//                PhotometricBA(image_ref, image_tar, options, KG[i], Rotation,Translation, depthImg_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
 //				imshow(depth_ref_name, inv_depth_ref_for_show);
 //				waitKey(0);
 				}
@@ -518,11 +514,11 @@ int main(int argc, char **argv){
 		Eigen::Matrix3f Klvl, Klvl_ignore;
 		lvl_target = lvl;
 		lvl_ref = lvl;
-//			inv_depth_ref;
-//			downscale(grayImage_ref, depth_ref, K, lvl_ref, IRef, DRef, Klvl);
-//			downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
-		downscale(grayImage_ref, inv_depth_ref, K, lvl_ref, IRef, DRef, Klvl);
-		downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
+//		inv_depth_ref;
+//		downscale(grayImage_ref, depth_ref, K, lvl_ref, IRef, DRef, Klvl);
+//		downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
+//		downscale(grayImage_ref, inv_depth_ref, K, lvl_ref, IRef, DRef, Klvl);
+//		downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
 		double min_gt_special, max_gt_special;
 
 		int i=0;
@@ -540,7 +536,7 @@ int main(int argc, char **argv){
 			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
 			Mat inv_depth_ref_for_show= inv_depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
 			string depth_ref_name= "inv_depth_ref"+ to_string(i);
-				imshow(depth_ref_name, inv_depth_ref_for_show);
+			imshow(depth_ref_name, inv_depth_ref_for_show);
 
 
 			if (dataLoader->options_.remove_outlier_manually){
@@ -551,7 +547,7 @@ int main(int argc, char **argv){
 //				//				waitKey(0);
 			} else{
 //				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
-				PhotometricBA(IRef, I, options, Klvl, Rotation,Translation, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
+				PhotometricBA(grayImage_ref, grayImage_target, options, M, Rotation,Translation, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
 
 				imshow(depth_ref_name, inv_depth_ref_for_show);
 				waitKey(0);

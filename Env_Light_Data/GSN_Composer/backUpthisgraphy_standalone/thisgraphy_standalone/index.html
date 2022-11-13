@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='utf-8'>
+    <title>GSN Composer Export</title>
+
+    <script src='./gsn_lib_packed_ver0_8_17.js'></script>
+    <script src='./gsn_graphdata_thisgraphy.js'></script>
+
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      .gsnArea {
+        display: inline-block;
+        position: relative;
+        width: 800px; /*change size here*/
+        height: 450px; /*change size here*/
+        border: 1px solid black;
+      }
+
+      .canvas2D {
+        display: block;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+
+      .canvasGL {
+        display: inline-block;
+        position: absolute;
+      }
+
+      .canvas2DBackground {
+        display: block;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+
+    <script>
+      // one GSN instance for each graph in the project
+      var instance_mygraph; // graph with name "mygraph"
+      var instance_thisgraphy; // graph with name "thisgraphy"
+
+      function gsn_load() {
+        instance_mygraph = gsn.main('myGSNArea_mygraph');
+        instance_mygraph.nodeMgrInterface.loadFromString(gsn_data.graph_mygraph, false);
+        instance_mygraph.ui.update();
+        instance_mygraph.ui.setSelectedTool(0); // -1 = no interaction, 0 = full interaction, 1 = zoom, 2 = pan/zoom
+
+        instance_thisgraphy = gsn.main('myGSNArea_thisgraphy');
+        instance_thisgraphy.nodeMgrInterface.loadFromString(gsn_data.graph_thisgraphy, false);
+        instance_thisgraphy.ui.update();
+        instance_thisgraphy.ui.setSelectedTool(0); // -1 = no interaction, 0 = full interaction, 1 = zoom, 2 = pan/zoom
+
+        gsn_play();
+      }
+      function gsn_play() {
+        instance_mygraph.runMgr.playGraph();
+        instance_thisgraphy.runMgr.playGraph();
+      }
+      function gsn_stop() {
+        instance_mygraph.runMgr.stopGraph();
+        instance_thisgraphy.runMgr.stopGraph();
+      }
+      function gsn_setPublicParameter(event) {
+        var newValue = parseFloat(event.target.value);
+        // The first parameter of setPublicParameterData() is the ID of the node, the second parameter the new value
+        // A valid nodeID must be selected otherwise an error message will be displayed
+        instance_mygraph.runMgr.setPublicParameterData(3, newValue); ;
+        instance_thisgraphy.runMgr.setPublicParameterData(3, newValue); ;
+      }
+    </script>
+  </head>
+  <body onload='gsn_load();'>
+    <!-- Example on how to start and stop the graph -->
+      <button type='button' onClick='gsn_play();'>Play</button><button type='button' onClick='gsn_stop();'>Stop</button> <br>
+    <!-- Example on how to change a public parameter -->
+      <!-- <input type='number' value='0' onInput='gsn_setPublicParameter(event);'></input><br> -->
+    <br>
+    <!-- GSN areas (one for each graph in the project) -->
+    <div id='myGSNArea_mygraph' class='gsnArea'></div>
+    <div id='myGSNArea_thisgraphy' class='gsnArea'></div>
+  	<!-- Including a link to the GSN Composer website, such as the following, would be greatly appreciated but it is not required -->
+ 	<div style='font-size:60%; color:gray;'>Created with <a href='https://www.gsn-lib.org'>GSN Composer</a>, Version 0.8.17</div>
+  </body>
+</html>

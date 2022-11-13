@@ -1,0 +1,3 @@
+1) Install Qt 6.2 (or higher) from https://www.qt.io/download or https://www.qt.io/download-open-source
+2) Unzip the downloaded ZIP file
+3) Open the project "Shader.pro" in "Qt Creator" or run "qmake Shader.pro" from the command line
