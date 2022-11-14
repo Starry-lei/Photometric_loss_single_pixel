@@ -136,7 +136,6 @@ namespace DSONL{
 
 void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &options,
 				   const Eigen::Matrix3f &K,
-//                   Sophus::SE3d& pose,
                    Sophus::SO3d& Rotation,
 				   Eigen::Vector3d& Translation,
                    Mat&         depth_ref,
@@ -170,9 +169,11 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 	std::unordered_map<int, int> inliers_filter;
 	//new image
-//	inliers_filter.emplace(319,296); ///(324,280)        baseline_label: control experiment baseline is the smallest
-//	inliers_filter.emplace(367,291); ///(364,307)
+	inliers_filter.emplace(368, 375); ///(366, 452)        baseline_label: control experiment baseline is the smallest
+//	inliers_filter.emplace(359, 470); ///(371, 413)
 
+//	at (368, 375)  B value is: 57  G value is: 119  R value is: 255
+//	at (366, 452)  B value is: 69  G value is: 132  R value is: 255
 
 	int counter=0;
 	for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
@@ -188,14 +189,8 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 	}
 
 	cerr<<"show counter for confirmation:"<<counter<<endl;
-
-
-
-
-
 			double intensity_ref;
 	double deltaMap_val;
-//	double *transformation = pose.data();
     double * Rotation_=Rotation.data();
 	double * Translation_= Translation.data();
 
@@ -217,8 +212,8 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 //			if (statusMap!=NULL && statusMap[u*image.cols+v]==0 ){ continue;}
 
 			// use the inlier filter
-//				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-//				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 
 			//if(pixelSkip%step!=0){ pixelSkip++;continue; }///----------------------current PhotoBA---------------------------
 			//pixelSkip++;
@@ -227,12 +222,10 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 			// remove way far points
 			double gray_values[9]{};
 			double delta_values[9]{};
-//			double gray_values[16]{};
-//			double delta_values[16]{};
 
 			int k=0;
 
-			// size: 9
+			// residual size: 9
 			for (int i = -1; i <= 1; i++)
 			{
 				for (int j = -1; j <= 1; j++)
@@ -253,29 +246,10 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 				}
 			}
 
-//            // size 16
-//			for (int i = -2; i <= 2; i++)
-//			{
-//				for (int j = -2; j <= 2; j++)
-//				{
-//					int rowId=u+i;
-//					int colId=v+j;
-//					if (colId >0.0 && colId<image.cols && rowId >0.0 && rowId <image.rows ){
-//						gray_values[k]= image.at<double>(rowId,colId);
-//
-////							cout<<"show gray_values:"<<gray_values[k]<<endl;
-//						delta_values[k]=deltaMap.at<double>(rowId,colId);
-//					}else{
-//						gray_values[k]=image.at<double>(u, v);
-//						delta_values[k]=deltaMap.at<double>(u, v);
-//					}
-//					k++;
-//
-//				}
-//			}
 
+			if (depth_ref.at<float>(u,v)< 0) { continue;}
 
-			if (depth_ref.at<double>(u,v)< 0) { continue;}
+			cout<<"show the current depth:"<<depth_ref.at<double>(u,v)<<endl;
 
 			intensity_ref=  image.at<double>(u, v);
 			deltaMap_val=  deltaMap.at<double>(u, v);
@@ -289,10 +263,12 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 //			Eigen::Matrix<double, 3, 1> p1 = pose * p_c1 ;
 //			Eigen::Matrix<double, 2, 1> pt = project(p1,fx, fy,cx, cy);
 //			if(pt.y()< 0.0 && pt.y()>image.cols && pt.x() <0.0 && pt.x()> image.rows ){ continue;}
-			Eigen::Matrix<float, 2, 1> pt2d;
-			float newIDepth;
-			if (!project(float (v),float (u), float(depth_ref.at<double>(u,v)),cols_,rows_,KRKi,Kt,pt2d,newIDepth)){ continue;}
+			Eigen::Matrix<double, 2, 1> pt2d;
+			double newIDepth;
+			cout<<"show parameter before:<<\n"<<Rotation.matrix()<<","<<Translation<<endl;
 
+			if (!project( (double)v,(double)u, depth_ref.at<double>(u,v),cols_,rows_,pt2d,Rotation,Translation)){ continue;}
+//			if (!project(float (v),float (u), float(depth_ref.at<double>(u,v)),cols_,rows_,KRKi,Kt,pt2d,newIDepth)){ continue;}
 
 			if (options.use_huber){
 				problem.AddResidualBlock(

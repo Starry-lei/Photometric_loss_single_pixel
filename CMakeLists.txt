@@ -128,11 +128,11 @@ add_definitions(${PCL_DEFINITIONS})
 #some output:
 message(STATUS "show IT: ${CMAKE_CURRENT_SOURCE_DIR}")
 
-set(dsonl_SOURCE_FILES include/pixelSelector.cpp include/setting.cpp)
+set(dsonl_SOURCE_FILES include/pixelSelector.cpp include/setting.cpp include/PFMReadWrite.h include/PFMReadWrite.cpp)
 
 add_library(dsonl ${dsonl_SOURCE_FILES})
 
-add_executable(photometricLoss src/photometricLoss.cpp ) #src/PCLOpt.cpp
+add_executable(photometricLoss src/photometricLoss.cpp include/PFMReadWrite.h) #src/PCLOpt.cpp
 target_link_libraries(photometricLoss
         Ceres::ceres
         pangolin

@@ -82,6 +82,190 @@ namespace DSONL{
 	// out - pt2d: projected point in new image
 	// out - newIDepth: inverse depth in new image
 	// return: if successfully projected or not due to OOB
+
+	void savePointCloud(Mat depth_map,Sophus::SO3d& Rotation,
+	                    Eigen::Vector3d& Translation){
+		pcl::PCDWriter writer;
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_right (new pcl::PointCloud<pcl::PointXYZ>);
+
+
+		double fov_y= 20;
+		double near= 0.5;
+		double far= 15.0;
+		double aspect= 1.333333;
+		double coeA= 2*far*near/(near-far);
+		double coeB= (far+near)/(near-far);
+		double f= 1.0/(tan(0.5*fov_y* M_PI/180.0)*aspect);
+
+		Eigen::Matrix<double, 4,4> M_new, M_inv;
+		M_new << 1.0/(tan(0.5*fov_y * M_PI/180.0)*aspect), 0, 0, 0,
+				0,  1.0/tan(0.5*fov_y * M_PI/180.0), 0,  0,
+				0,0, (far+near)/(near-far), 2*far*near/(near-far),
+				0,  0,   -1,    0;
+
+
+		M_inv=M_new.inverse();
+
+		// clear up data
+		Eigen::Matrix<double,3,3> K;
+		K<< 1361.1, 0, 320,
+				0, 1361.1, 240,
+				0,   0,  1;
+//		K<< 2058.0, 0, 960,
+//				0, 2058.0, 540,
+//				0,   0,  1;
+
+		for(int x = 0; x < depth_map.rows; ++x)
+		{
+			for(int y = 0; y < depth_map.cols; ++y)
+			{
+
+//				// M matrix transform and project
+//				double d_mapped= 2.0 *1.0/depth_map.at<double>(x,y)-1.0;
+//				double x_mapped= 2.0* y/ depth_map.cols -1.0;
+//				double y_mapped= 2.0* x/ depth_map.rows -1.0;
+//
+//				Eigen::Matrix<double,4,1> p_3d, p_2d;
+//				p_2d.x()=x_mapped;
+//				p_2d.y()=y_mapped;
+//				p_2d.z()=d_mapped;
+//				p_2d.w()=1.0;
+//
+//				Eigen::Matrix<double,4,1> p_3d_transformed;
+//				p_3d=M_inv*p_2d;
+//
+//
+//				Eigen::Matrix<double, 4,1> projectedPoint;
+//////
+				Eigen::Matrix<double,3,1> point,p_3d_transformed_K;
+//////
+//				p_3d_transformed_K.x()= -p_3d.x()/p_3d.w();
+//				p_3d_transformed_K.y()= -p_3d.y()/p_3d.w();
+//				p_3d_transformed_K.z()= -p_3d.z()/p_3d.w();
+
+				double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy =K(1, 2);
+				Eigen::Matrix<double,3,1> p_3d_no_d;
+				p_3d_no_d<< (y-cx)/fx, (x-cy)/fy,(double )1.0;
+				Eigen::Matrix<double, 3,1> p_c1 ;
+				p_c1 <<  p_3d_no_d.x() /depth_map.at<double>(x,y),  p_3d_no_d.y() /depth_map.at<double>(x,y) ,p_3d_no_d.z() /depth_map.at<double>(x,y);
+
+//				Eigen::Matrix<double, 3, 1> p1 = Rotation * p_c1+Translation ;
+//				Eigen::Matrix<double, 3, 1> p1 = p_c1;
+
+//
+//				cloud->push_back(pcl::PointXYZ(p_3d_transformed_K.x(), p_3d_transformed_K.y(), p_3d_transformed_K.z()));
+//				point = (Rotation*p_3d_transformed_K+Translation);
+//				cloud_right->push_back(pcl::PointXYZ(point.x(), point.y(), point.z()));
+
+				cloud->push_back(pcl::PointXYZ(p_c1.x(), p_c1.y(), p_c1.z()));
+				point = (Rotation*p_c1+Translation);
+				cloud_right->push_back(pcl::PointXYZ(point.x(), point.y(), point.z()));
+
+			}
+		}
+
+
+		writer.write("PointCloud_Left_Linear.pcd",*cloud, false);
+//		writer.write("PointCloud_Right.pcd",*cloud_right, false);
+
+
+	};
+
+
+	void projection_M(double uj, double vj,double iDepth,int width, int height,Sophus::SO3d& Rotation,
+	                  Eigen::Vector3d& Translation, Eigen::Matrix<double, 2, 1>& pt2d){
+		double fov_y= 20;
+		double near= 0.5;
+		double far= 15.0;
+		double aspect= 1.333333;
+		double coeA= 2*far*near/(near-far);
+		double coeB= (far+near)/(near-far);
+		double f= 1.0/(tan(0.5*fov_y* M_PI/180.0)*aspect);
+
+		Eigen::Matrix<double, 4,4> M_new;
+		M_new << 1.0/(tan(0.5*fov_y * M_PI/180.0)*aspect), 0, 0, 0,
+				0,  1.0/tan(0.5*fov_y * M_PI/180.0), 0,  0,
+				0,0, (far+near)/(near-far), 2*far*near/(near-far),
+				0,  0,   -1,    0;
+
+		Eigen::Matrix<double,3,3> K;
+		K<< 1361.1, 0, 320,
+				0, 1361.1, 240,
+				0,   0,  1;
+
+
+		// transform and project
+		double d_mapped= 2.0 *1.0/iDepth-1.0;
+		double x_mapped= 2.0* uj/ width -1.0;
+		double y_mapped= 2.0* vj/ height -1.0;
+
+		Eigen::Matrix<double,4,1> p_3d, p_2d;
+		p_2d.x()=x_mapped;
+		p_2d.y()=y_mapped;
+		p_2d.z()=d_mapped;
+		p_2d.w()=1.0;
+
+		p_3d=M_new.inverse()*p_2d;
+
+		Eigen::Matrix<double,3,1> point,p_3d_transformed_K;
+
+		p_3d_transformed_K.x()= -p_3d.x()/p_3d.w();
+		p_3d_transformed_K.y()= -p_3d.y()/p_3d.w();
+		p_3d_transformed_K.z()= -p_3d.z()/p_3d.w();
+
+		point = K*(Rotation*p_3d_transformed_K+Translation);
+		pt2d.x()=point.x()/point.z();
+		pt2d.y()=point.y()/point.z();
+
+
+	}
+	void projection_K(double uj, double vj,double iDepth,Sophus::SO3d& Rotation,
+	                  Eigen::Vector3d& Translation, Eigen::Matrix<double, 2, 1>& pt2d){
+
+		Eigen::Matrix<double,3,3> K;
+		K<< 1361.1, 0, 320,
+				0, 1361.1, 240,
+				0,   0,  1;
+
+		double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy =K(1, 2);
+		Eigen::Matrix<double,3,1> p_3d_no_d;
+		p_3d_no_d<< (uj-cx)/fx, (vj-cy)/fy,(double )1.0;
+		Eigen::Matrix<double, 3,1> p_c1 ;
+		p_c1 <<  p_3d_no_d.x() /iDepth,  p_3d_no_d.y() /iDepth ,p_3d_no_d.z() /iDepth;
+
+		cout<<"show parameter using:<<\n"<<Rotation.matrix()<<","<<Translation<<endl;
+		Eigen::Matrix<double, 3, 1> p1 = Rotation * p_c1+Translation ;
+
+//		Eigen::Matrix<double, 3, 1> p1 = p_c1;
+
+		Eigen::Matrix<double,3,1> p_3d_transformed2,point_K;
+		p_3d_transformed2=p1;
+		point_K = K*p_3d_transformed2;
+
+		pt2d.x()=point_K.x()/point_K.z();
+		pt2d.y()=point_K.y()/point_K.z();
+
+	}
+
+
+	bool project(double uj, double vj, double iDepth, int width, int height,
+	             Eigen::Matrix<double, 2, 1>& pt2d,  Sophus::SO3d& Rotation,
+	             Eigen::Vector3d& Translation)
+	{
+		Eigen::Matrix<double,2,1> point_2d_K;
+
+//		projection_M(uj, vj, iDepth, width,height,Rotation, Translation, point_2d_M);
+		cout<<"show parameter later:<<\n"<<Rotation.matrix()<<","<<Translation<<endl;
+		projection_K(uj, vj, iDepth,Rotation, Translation, point_2d_K);
+//		project(float (v),float (u), float(depth_ref.at<double>(u,v)),cols_,rows_,KRKi,Kt,pt2d,newIDepth);
+
+		// check image boundaries
+		return checkImageBoundaries(pt2d, width, height);
+	}
+
+
+
 	template<typename T>
 	bool project(T uj, T vj, T iDepth, int width, int height,
 	             const Eigen::Matrix<T, 3, 3>& KRKinv, const Eigen::Matrix<T, 3, 1>& Kt,
