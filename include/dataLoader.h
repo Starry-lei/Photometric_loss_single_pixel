@@ -44,6 +44,17 @@ namespace DSONL{
 
 	};
 
+	void signChange(Eigen::Matrix<double,3,3> &R_orig, Eigen::Matrix<double,3,1> &T_orig ){
+		R_orig(0,1)=-R_orig(0,1);
+		R_orig(0,2)=-R_orig(0,2);
+		R_orig(1,0)=-R_orig(1,0);
+		R_orig(2,0)=-R_orig(2,0);
+		T_orig.y()=-T_orig.y();
+		T_orig.z()=-T_orig.z();
+
+
+	}
+
 	class dataLoader{
 
 	public:
@@ -97,30 +108,29 @@ namespace DSONL{
 
 
 				if (options_.baseline==0){
-					image_ref_path = "../data/Env_light/ref/image_refRGB06.png";
-					image_ref_baseColor_path = "../data/Env_light/ref/image_refBasecolor06.png";
-
+					image_ref_path = "../data/Env_light/left/image_leftRGB07.png";
+					image_ref_baseColor_path = "../data/Env_light/left/image_leftbaseColor07.png";
 //					depth_ref_path = "../data/Env_light/ref/image_refNonLinearDepth06.pfm";
-					depth_ref_path = "../data/Env_light/ref/image_refLinearDepth06.pfm";
+					depth_ref_path = "../data/Env_light/left/image_leftLinearDepth07.pfm";
 
 
-					// data/Env_light/ref/image_refNonLinearDepth06.pfm
-
-
-
-					// "../data/Env_light/ref/image_nonLinearDepth.hdr";   "../data/Env_light/tar/image_RealDepth.hdr";
 					image_ref_metallic=  0.21;
 					image_ref_roughness= 0.95;
 
 				}
-				//0.0546    0.0494   -0.6691   -0.7395
-				Eigen::Quaterniond q_1(0.0639,   -0.0610 ,  -0.6874 ,   0.7209); //  cam1  wxyz
-				Eigen::Vector3d t1( -0.527467,  -2.949829, 0.142448);
+				//  0.0889,   -0.0838,    0.6805 ,  -0.7225// 0.6805   -0.7225    0.0889   -0.0838
+				Eigen::Quaterniond q_1(0.6805,   -0.7225 ,   0.0889,   -0.0838); //  cam1  wxyz
+				Eigen::Vector3d t1( 0.770000,  3.080000, -0.19);
+
+//				Eigen::Quaterniond q_1(0.0889,   -0.0838  , -0.6805 ,   0.7225);
+//				Eigen::Vector3d t1( -0.770000,  -3.080000, 0.190000);
+
+
 				R1 = q_1.toRotationMatrix();
 				cout<<"show input R1:\n"<<R1<<endl;
 
 				//normal map GT
-				string normal_GT_path="../data/Env_light/ref/image_refNormal06.png";
+				string normal_GT_path="../data/Env_light/left/image_leftnormal07.png";
 				Mat image_ref = imread(image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 
 //				Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
@@ -144,7 +154,7 @@ namespace DSONL{
 				split(depth_ref,channel);
 				depth_map_ref=channel[0];
 				depth_map_ref.convertTo(depth_map_ref, CV_64FC1);
-//				depth_map_ref.convertTo(depth_map_ref, CV_64FC1, 1.0/255.0);
+
 
 
 				// -------------------------------------------Target image data loader-------------------------
@@ -153,18 +163,47 @@ namespace DSONL{
 				string depth_target_path;
 
 				if (options_.baseline==0){
-					image_target_path ="../data/Env_light/tar/image_tarrefRGB06.png";
-					image_target_baseColor_path = "../data/Env_light/tar/image_tarbasecolor06.png";
-					depth_target_path = "../data/Env_light/tar/image_tarLinearDepth06.exr";
+//					image_target_path ="../data/Env_light/right/image_rightRGB07.png";
+//					depth_target_path = "../data/Env_light/right/image_rightLinearDepth07.pfm";
+//					image_target_path ="../data/Env_light/right0702/image_rightRGB0702.png";
+//					depth_target_path = "../data/Env_light/right0702/image_rightLinearDepth0702.pfm";
+//					image_target_baseColor_path = "../data/Env_light/right/image_rightBasecolor07.png";
+//
 
-//					Eigen::Quaterniond q_2(0.0254 ,   0.0242 ,  -0.6897,   -0.7233); //  cam2  wxyz
-					Eigen::Quaterniond q_2(0.0254 ,  -0.0242 ,  -0.6897 ,   0.7233); //  cam2  wxyz
-					// 0.0254   -0.0242   -0.6897    0.7233
-//					Eigen::Vector3d t2(-0.210174,  2.989237,  0.142448);
-					Eigen::Vector3d t2(-0.210174,  -2.989237,  0.142448);
+					image_target_path ="../data/Env_light/right0703/image_rightRGB0703.png";
+					depth_target_path = "../data/Env_light/right0703/image_rightLinearDepth0703.pfm";
+//					image_target_baseColor_path = "../data/Env_light/right/image_rightBasecolor07.png";
+
+
+
+
+
+					//0.0367,   -0.0355,   -0.6945,    0.7177  // 0.6945,   -0.7177,   -0.0367,    0.0355
+//					Eigen::Quaterniond q_2( 0.6945,   -0.7177,   -0.0367,    0.0355); //  cam2  wxyz
+//					Eigen::Vector3d t2(-0.31000, 3.02,  -0.100);
+
+					Eigen::Quaterniond q_2( 0.7404,   -0.6707 ,  -0.0299,    0.0330); //  cam2  wxyz
+					Eigen::Vector3d t2(-0.2700,3.0200,  0.3000);
+
+
+
+
+
+
+
+
+
+
+
+
 					R2=q_2.toRotationMatrix();
 					R12= R2.transpose() * R1;
+
 					t12= R2.transpose()* (t1-t2);
+					cout<<"show old R12:\n"<<R12<<endl;
+					signChange(R12, t12);
+					cout<<"show new R12:\n"<<R12<<endl;
+
 					q_12= R12;
 
 //					cout<<"show R1:\n"<<R1<<endl;
@@ -175,7 +214,8 @@ namespace DSONL{
 				}
 
 				Mat image_target = imread(image_target_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
-				Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+//				Mat depth_target = imread(depth_target_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+				Mat depth_target= loadPFM(depth_target_path);
 				image_target_baseColor= imread(image_target_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 				image_target_baseColor.convertTo(image_target_baseColor, CV_64FC3, 1.0/255.0);
 				extractChannel(image_target, grayImage_target, channelIdx);

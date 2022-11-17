@@ -84,37 +84,34 @@ namespace DSONL{
 	// return: if successfully projected or not due to OOB
 
 	void savePointCloud(Mat depth_map,Sophus::SO3d& Rotation,
-	                    Eigen::Vector3d& Translation){
+	                    Eigen::Vector3d& Translation, int  pointCloudIdx){
 		pcl::PCDWriter writer;
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_right (new pcl::PointCloud<pcl::PointXYZ>);
 
 
-		double fov_y= 20;
-		double near= 0.5;
-		double far= 15.0;
-		double aspect= 1.333333;
-		double coeA= 2*far*near/(near-far);
-		double coeB= (far+near)/(near-far);
-		double f= 1.0/(tan(0.5*fov_y* M_PI/180.0)*aspect);
+//		double fov_y= 20;
+//		double near= 0.5;
+//		double far= 15.0;
+//		double aspect= 1.333333;
+//		double coeA= 2*far*near/(near-far);
+//		double coeB= (far+near)/(near-far);
+//		double f= 1.0/(tan(0.5*fov_y* M_PI/180.0)*aspect);
 
 		Eigen::Matrix<double, 4,4> M_new, M_inv;
-		M_new << 1.0/(tan(0.5*fov_y * M_PI/180.0)*aspect), 0, 0, 0,
-				0,  1.0/tan(0.5*fov_y * M_PI/180.0), 0,  0,
-				0,0, (far+near)/(near-far), 2*far*near/(near-far),
-				0,  0,   -1,    0;
-
-
-		M_inv=M_new.inverse();
+//		M_new << 1.0/(tan(0.5*fov_y * M_PI/180.0)*aspect), 0, 0, 0,
+//				0,  1.0/tan(0.5*fov_y * M_PI/180.0), 0,  0,
+//				0,0, (far+near)/(near-far), 2*far*near/(near-far),
+//				0,  0,   -1,    0;
+//
+//
+//		M_inv=M_new.inverse();
 
 		// clear up data
 		Eigen::Matrix<double,3,3> K;
 		K<< 1361.1, 0, 320,
 				0, 1361.1, 240,
 				0,   0,  1;
-//		K<< 2058.0, 0, 960,
-//				0, 2058.0, 540,
-//				0,   0,  1;
 
 		for(int x = 0; x < depth_map.rows; ++x)
 		{
@@ -146,7 +143,7 @@ namespace DSONL{
 
 				double fx = K(0, 0), cx = K(0, 2), fy =  K(1, 1), cy =K(1, 2);
 				Eigen::Matrix<double,3,1> p_3d_no_d;
-				p_3d_no_d<< (y-cx)/fx, (x-cy)/fy,(double )1.0;
+				p_3d_no_d<< ((double)y-cx)/fx, ((double)x-cy)/fy,(double)1.0;
 				Eigen::Matrix<double, 3,1> p_c1 ;
 				p_c1 <<  p_3d_no_d.x() /depth_map.at<double>(x,y),  p_3d_no_d.y() /depth_map.at<double>(x,y) ,p_3d_no_d.z() /depth_map.at<double>(x,y);
 
@@ -158,16 +155,29 @@ namespace DSONL{
 //				point = (Rotation*p_3d_transformed_K+Translation);
 //				cloud_right->push_back(pcl::PointXYZ(point.x(), point.y(), point.z()));
 
-				cloud->push_back(pcl::PointXYZ(p_c1.x(), p_c1.y(), p_c1.z()));
-				point = (Rotation*p_c1+Translation);
+//				cloud->push_back(pcl::PointXYZ(p_c1.x(), p_c1.y(), p_c1.z()));
+					if(pointCloudIdx==1){
+						point = (Rotation*p_c1+Translation);
+
+					}else{
+						point=p_c1;
+					}
+
 				cloud_right->push_back(pcl::PointXYZ(point.x(), point.y(), point.z()));
 
 			}
 		}
 
 
-		writer.write("PointCloud_Left_Linear.pcd",*cloud, false);
-//		writer.write("PointCloud_Right.pcd",*cloud_right, false);
+		if(pointCloudIdx==1){
+			writer.write("PointCloud_Transformed__bigBaseline_1.pcd",*cloud_right, false);
+		}
+		else{
+			writer.write("PointCloud_Right_bigBaseline_1.pcd",*cloud_right, false);
+		}
+
+//		writer.write("PointCloud_Left_Linear.pcd",*cloud, false);
+
 
 
 	};

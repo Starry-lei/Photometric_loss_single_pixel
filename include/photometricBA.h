@@ -169,11 +169,22 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 
 	std::unordered_map<int, int> inliers_filter;
 	//new image
-	inliers_filter.emplace(368, 375); ///(366, 452)        baseline_label: control experiment baseline is the smallest
-//	inliers_filter.emplace(359, 470); ///(371, 413)
+//	inliers_filter.emplace(366, 326); ///(352, 562)        baseline_label: control experiment baseline is the smallest
+//	inliers_filter.emplace(436, 127); ///(439, 338)
 
-//	at (368, 375)  B value is: 57  G value is: 119  R value is: 255
-//	at (366, 452)  B value is: 69  G value is: 132  R value is: 255
+	inliers_filter.emplace(148, 66); ///(33, 265)
+
+//	at (366, 326)  B value is: 52  G value is: 111  R value is: 255
+//	at (352, 562)  B value is: 53  G value is: 109  R value is: 255
+
+// correspondence2
+
+//	at (436, 127)  B value is: 97  G value is: 106  R value is: 95
+//	at (439, 338)  B value is: 98  G value is: 109  R value is: 111
+
+// extrem baseline
+//	at (148, 66)  B value is: 53  G value is: 112  R value is: 255
+//	at (33, 265)  B value is: 46  G value is: 105  R value is: 255
 
 	int counter=0;
 	for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
@@ -212,12 +223,13 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 //			if (statusMap!=NULL && statusMap[u*image.cols+v]==0 ){ continue;}
 
 			// use the inlier filter
-				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+			if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+			if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 
 			//if(pixelSkip%step!=0){ pixelSkip++;continue; }///----------------------current PhotoBA---------------------------
 			//pixelSkip++;
 
+//			cout<<"148, 66 depth"<<depth_ref.at<float>(366, 326 )<<endl;
 
 			// remove way far points
 			double gray_values[9]{};
@@ -247,7 +259,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 			}
 
 
-			if (depth_ref.at<float>(u,v)< 0) { continue;}
+			if (depth_ref.at<double>(u,v)< 0) { continue;}
 
 			cout<<"show the current depth:"<<depth_ref.at<double>(u,v)<<endl;
 
@@ -303,17 +315,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 				);
 			} else{
 				problem.AddResidualBlock(
-//						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SE3d::num_parameters,1>(
-//								new PhotometricCostFunctor(
-//										pixelCoord,
-//										K,
-//										image.rows,
-//										image.cols,
-//										grayImage_right_values,
-//										gray_values,
-//										delta_values
-//								)
-//						),
+
 						new ceres::AutoDiffCostFunction<PhotometricCostFunctor, 9, Sophus::SO3d::num_parameters, 3, 1>(
 								new PhotometricCostFunctor(
 										pixelCoord,

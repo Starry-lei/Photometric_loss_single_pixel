@@ -66,8 +66,8 @@ int main(int argc, char **argv){
 	grayImage_target.convertTo(grayImage_target, CV_64FC1);
 
 	depth_ref=dataLoader->depth_map_ref;
-
 	Mat depth_ref_GT= dataLoader->depth_map_ref;
+
 	depth_target=dataLoader->depth_map_target;
 	image_ref_baseColor= dataLoader->image_ref_baseColor;
 	image_target_baseColor= dataLoader->image_target_baseColor;
@@ -229,12 +229,13 @@ int main(int argc, char **argv){
 
 //	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev);
 	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev,statusMap);
-//	depth_ref_NS.at<double>(319,296)*=(1.0+ 0.05) ;
-//	depth_ref_NS.at<double>(319,296)*=(1.0+ 0.05) ;
-
-
 	divide(Scalar(1), depth_ref, depth_ref_gt);
 	divide(Scalar(1), depth_ref_NS, inv_depth_ref);
+	Mat inv_depth_tar;
+	divide(Scalar(1), depth_target,inv_depth_tar );
+	//
+
+
 	Mat depth_ref_NS_before=inv_depth_ref.clone();
 
 
@@ -519,9 +520,11 @@ int main(int argc, char **argv){
 	string depth_ref_name= "inv_depth_ref";
 	imshow(depth_ref_name, inv_depth_ref_for_show);
 
-//	imshow("pfm_depth",inv_depth_ref );
 
-//	savePointCloud(inv_depth_ref,Rotation, Translation);
+//	savePointCloud(inv_depth_ref,Rotation, Translation,1);
+//	savePointCloud(inv_depth_tar,Rotation, Translation,2);
+//	savePointCloud(inv_depth_ref,Rotation, Translation,2);
+
 
 	waitKey(0);
 
