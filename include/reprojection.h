@@ -257,7 +257,7 @@ namespace DSONL{
 //			Eigen::Map<Sophus::SE3<T> const> const Tran(sT);
 
 			Eigen::Map<Eigen::Matrix<T,3,1> const> const Translation(sTranslation);
-
+//			ceres::DotProduct(x,y);
 			T u_, v_;// delta; //intensity_image_ref
 //			intensity_image_ref=(T) gray_Image_ref_val;
 //			delta=(T)delta_val;

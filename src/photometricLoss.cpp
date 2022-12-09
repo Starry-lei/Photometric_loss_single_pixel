@@ -144,9 +144,12 @@ int main(int argc, char **argv){
 		}
 	}
 
+        imshow("normal_map", normal_map);
+        waitKey(0);
 
-//	--------------------------------------------------------------------Data perturbation--------------------------------------------------------------------
-// Add noise to original depth image, depth_ref_NS
+
+        //--------------------------------------------------------------------Data perturbation--------------------------------------------------------------------
+        // Add noise to original depth image, depth_ref_NS
 	Mat inv_depth_ref, depth_ref_gt;
 	Mat depth_ref_NS;
 	double roErr;
