@@ -23,10 +23,15 @@
 #define baseline_s 1;
 
 namespace DSONL{
+
 	using namespace cv;
 	using namespace std;
 
-	Eigen::Matrix<double,3,1> light_source(7.1, -22.9 ,11.0);
+	Eigen::Matrix<double,3,1> light_source(7.1, -22.9 ,11.0); //5.4 -36.9 8.3
+
+//    Eigen::Matrix<double,3,1> light_source(5.4 ,-36.9 ,8.3);
+
+
 	Eigen::Matrix<double,3,1> Camera1(3.8, -16.5 ,26.1);
 	Eigen::Matrix<double,3,1> Camera2(0.3 ,-16.9, 27.7);
 
@@ -36,7 +41,7 @@ namespace DSONL{
 
 	struct dataOptions {
 		/// 0: big baseline, 1: small baseline, 2: other
-		int baseline = 1;
+		int baseline = 0;
 		/// is textured or not
 		bool isTextured = true;
 		/// use gree channel for testing
@@ -89,17 +94,41 @@ namespace DSONL{
 
 			if(options_.isTextured){
 				// RGB image with texture
-				string image_ref_path =            "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";
-				// BaseColor Image with texture
-				string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam1_texture_basecolor.exr";
-				//	// Metallic and Roughness
-				string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
-				// Depth map
-				string depth_ref_path = "../data/depth/cam1_depth.exr";
+//				string image_ref_path =            "../data/rgb/Texture_Image/rt_17_3_40_cam1_texture.exr";//
+//                string image_ref_path =            "../data/expDataset_pointLightSrc/mainMat/rt_17_8_38_cam1_rgb.exr";//data/expDataset_pointLightSrc/mainMat/rt_17_8_38_cam1_rgb.exr
+
+                // diff light
+//                string image_ref_path =            "../data/expDataset_pointLightSrc/diffLight/rt_17_22_32_cam1_rgb_difflight.exr";//data/expDataset_pointLightSrc/mainMat/rt_17_8_38_cam1_rgb.exr
+
+                // diff material
+                string image_ref_path =            "../data/expDataset_pointLightSrc/diffMat/rt_16_49_13_cam1_rgb.exr";//data/expDataset_pointLightSrc/mainMat/rt_17_8_38_cam1_rgb.exr
+
+
+
+                // BaseColor Image with texture
+//				string image_ref_baseColor_path = "../data/rgb/Texture_Image/rt_17_4_52_cam1_texture_basecolor.exr";
+                string image_ref_baseColor_path = "../data/expDataset_pointLightSrc/mainMat/rt_17_11_3_cam1_basecolor.exr";
+
+
+                //	// Metallic and Roughness
+//				string image_ref_MR_path = "../data/rgb/vp1_mr.png"; // store value in rgb channels,  channel b: metallic, channel green: roughness
+                string image_ref_MR_path = "../data/expDataset_pointLightSrc/mainMat/rt_17_12_19_cam1_mr.exr"; // store value in rgb channels,  channel b: metallic, channel green: roughness
+
+
+                // Depth map
+//				string depth_ref_path = "../data/depth/cam1_depth.exr";
+                string depth_ref_path = "../data/expDataset_pointLightSrc/depth_forall/rt_16_59_31_cam1.exr";
+
+
 				//normal map GT
-				string normal_GT_path="../data/rgb/normalMap/rt_23_26_45_cam1_normdir.exr";
+//				string normal_GT_path="../data/rgb/normalMap/rt_23_26_45_cam1_normdir.exr";
+                string normal_GT_path="../data/expDataset_pointLightSrc/normal_forall/rt_16_50_44_cam1_normal.exr";
+
+
+
 
 				Mat image_ref = imread(image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+                cout<<"show depth of image_ref"<<image_ref.depth();
 				Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 				image_ref_baseColor= imread(image_ref_baseColor_path,CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
 				// create a metallic and roughness table for reference image
@@ -110,10 +139,11 @@ namespace DSONL{
 				Mat ref_mr_table[3];
 				split(image_ref_MR,ref_mr_table);// 0: red, 1: green, 2: blue
 				Mat image_ref_metallic_=  ref_mr_table[2];
-				image_ref_metallic_.convertTo(image_ref_metallic, CV_32FC1,1.0 / 255.0);
-
+//				image_ref_metallic_.convertTo(image_ref_metallic, CV_32FC1,1.0 / 255.0);
+                image_ref_metallic_.convertTo(image_ref_metallic, CV_32FC1);
 				Mat image_ref_roughness_= ref_mr_table[1];
-				image_ref_roughness_.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
+//				image_ref_roughness_.convertTo(image_ref_roughness, CV_32FC1,1.0 / 255.0);
+                image_ref_roughness_.convertTo(image_ref_roughness, CV_32FC1);
 
 				int channelIdx= options_.channelIdx;
 				extractChannel(image_ref, grayImage_ref, channelIdx);
@@ -128,18 +158,45 @@ namespace DSONL{
 				string image_target_baseColor;
 				string depth_target_path;
 				string image_target_MR_path;
-				Eigen::Quaterniond q_1(0.009445649,-0.0003128,-0.9994076,-0.0330920); //  cam1  wxyz
-				Eigen::Vector3d t1( 3.8, -16.5, 26.1);
+//				Eigen::Quaterniond q_1(0.009445649,-0.0003128,-0.9994076,-0.0330920); //  cam1  wxyz
+//				Eigen::Vector3d t1( 3.8, -16.5, 26.1);
+
+                Eigen::Quaterniond q_1(0.009445649,-0.0003128,-0.9994076,-0.0330920); //  cam1  wxyz
+                Eigen::Vector3d t1( 3.8, -16.5, 26.1);
+
 				R1=q_1.toRotationMatrix();
-
 				if(options_.baseline==0){
-					 image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
-					 image_target_baseColor = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
-					 depth_target_path = "../data/depth/cam5_depth.exr";
-					 image_target_MR_path = "../data/rgb/vp5_mr.png";
 
-					Eigen::Quaterniond q_2(-0.08078633,-0.0084485,-0.9962677,-0.0292077 ); //  cam5  wxyz
-					Eigen::Vector3d t2(-5.1,-15.2 ,27.5);
+//					 image_target_path = "../data/rgb/Texture_Image/rt_17_3_40_cam5_texture.exr";
+//					 image_target_baseColor = "../data/rgb/Texture_Image/rt_17_4_52_cam5_texture_basecolor.exr";
+//					 depth_target_path = "../data/depth/cam5_depth.exr";
+//					 image_target_MR_path = "../data/rgb/vp5_mr.png";
+//                    image_target_path = "../data/expDataset_pointLightSrc/mainMat/rt_17_8_38_cam6_rgb.exr";
+
+                    // diff light
+//                    image_target_path = "../data/expDataset_pointLightSrc/diffLight/rt_17_22_32_cam6_rgb_difflight.exr";
+
+                    // diff material
+                    image_target_path = "../data/expDataset_pointLightSrc/diffMat/rt_16_49_13_cam6_rgb.exr";
+
+
+
+
+                    image_target_baseColor = "../data/expDataset_pointLightSrc/mainMat/rt_17_11_3_cam6_basecolor.exr";
+                    depth_target_path = "../data/expDataset_pointLightSrc/depth_forall/rt_16_59_31_cam6.exr";
+                    image_target_MR_path = "../data/expDataset_pointLightSrc/mainMat/rt_17_12_19_cam6_mr.exr";
+
+
+//					Eigen::Quaterniond q_2(-0.08078633,-0.0084485,-0.9962677,-0.0292077 ); //  cam5  wxyz
+//					Eigen::Vector3d t2(-5.1,-15.2 ,27.5);
+
+//                    right-handed quat: w:-0.0146847;x:-0.0064972;y:-0.9994298;z:-0.0297027
+//                    right-handed coord: x:0.0000000;y:-16.5000000;z:28.2000000
+
+                    Eigen::Quaterniond q_2(-0.0146847,-0.0064972,-0.9994298,-0.0297027); //  cam5  wxyz
+					Eigen::Vector3d t2(0.0000000,-16.5000000,28.2000000);
+
+
 					R2=q_2.toRotationMatrix();
 					R12= R2.transpose() * R1;
 					t12= R2.transpose()* (t1-t2);
@@ -149,19 +206,30 @@ namespace DSONL{
 
 				}else if (options_.baseline==1){
 
-					 image_target_path = "../data/rgb/small_baseline/rt_11_3_21_cam6_rgb.exr";
-					 image_target_baseColor ="../data/rgb/small_baseline/rt_12_44_34_cam6_rgb.exr";
-					 depth_target_path="../data/rgb/small_baseline/rt_12_44_34_cam6_depth.exr";
-					 image_target_MR_path = "../data/rgb/small_baseline/cam6_mr.png";
+//					 image_target_path = "../data/rgb/small_baseline/rt_11_3_21_cam6_rgb.exr";
+//					 image_target_baseColor ="../data/rgb/small_baseline/rt_12_44_34_cam6_rgb.exr";
+//					 depth_target_path="../data/rgb/small_baseline/rt_12_44_34_cam6_depth.exr";
+//					 image_target_MR_path = "../data/rgb/small_baseline/cam6_mr.png";
+
+
+                    image_target_path = "../data/expDataset_pointLightSrc/mainMat/rt_20_58_26_cam7_rgb.exr";
+                    image_target_baseColor ="../data/expDataset_pointLightSrc/mainMat/rt_21_0_35_cam7_basecolor.exr";
+                    depth_target_path="../data/expDataset_pointLightSrc/depth_forall/rt_16_59_31_cam7.exr";
+                    image_target_MR_path = "../data/expDataset_pointLightSrc/mainMat/rt_21_1_56_cam7_mr.exr";
+
+                     //right-handed coord: x:4.3000000;y:-17.0000000;z:26.6000000
+
+//                    right-handed quat: w:-0.0146847;x:-0.0064972;y:-0.9994298;z:-0.0297027
+//                    right-handed coord: x:4.3000000;y:-17.0000000;z:26.6000000
+
+
 					 Eigen::Quaterniond q_2(-0.0146847,-0.0064972,-0.9994298,-0.0297027 ); //  cam5  wxyz
-					 Eigen::Vector3d t2(0,-16.5,28.2);
+					 Eigen::Vector3d t2(4.300000,-17.0000000,26.600000);
 					 R2=q_2.toRotationMatrix();
 
 					 R12= R2.transpose() * R1;
 					 t12= R2.transpose()* (t1-t2);
 					 q_12= R12;
-
-
 
 				}
 
@@ -173,8 +241,11 @@ namespace DSONL{
 				split(image_target_MR,taget_mr_table);// 0: red, 1: green, 2: blue
 				Mat image_target_metallic=  taget_mr_table[2];
 				Mat image_target_roughness= taget_mr_table[1];
-				image_target_metallic.convertTo(image_target_metallic, CV_32FC1,1.0 / 255.0);
-				image_target_roughness.convertTo(image_target_roughness, CV_32FC1,1.0 / 255.0);
+//				image_target_metallic.convertTo(image_target_metallic, CV_32FC1,1.0 / 255.0);
+//				image_target_roughness.convertTo(image_target_roughness, CV_32FC1,1.0 / 255.0);
+
+                image_target_metallic.convertTo(image_target_metallic, CV_32FC1);
+                image_target_roughness.convertTo(image_target_roughness, CV_32FC1);
 
 				extractChannel(image_target, grayImage_target, channelIdx);
 				// right map depth

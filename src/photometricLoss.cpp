@@ -97,8 +97,8 @@ int main(int argc, char **argv) {
 	R=dataLoader->q_12 .normalized().toRotationMatrix();
 
 	// initialize the pose xi
-//	xi.setRotationMatrix(R);//---------------------------------------------GT pose-----------------------------------------------------------------
-//	xi.translation()=dataLoader->t12;
+	xi.setRotationMatrix(R);//---------------------------------------------GT pose-----------------------------------------------------------------
+	xi.translation()=dataLoader->t12;
 
 	xi_GT.setRotationMatrix(R);
 	xi_GT.translation()=dataLoader->t12;
@@ -135,10 +135,13 @@ int main(int argc, char **argv) {
 		}
 	}
 
+//        imshow("normal_map",normal_map);
+//        cvvWaitKey(0);
 
 	Mat newNormalMap=normal_map;
 	double distanceThres=0.07;
 	float upper=5;
+//    float upper=10;
 	float buttom=0.2;
 	float up_new=upper;
 	float butt_new=buttom;
@@ -163,33 +166,58 @@ int main(int argc, char **argv) {
 			double  max_n_, min_n_;
 			cv::minMaxLoc(deltaMap, &min_n_, &max_n_);
 			cout<<"->>>>>>>>>>>>>>>>>show max and min of estimated deltaMap:"<< max_n_ <<","<<min_n_<<endl;
-
 			Mat mask = cv::Mat(deltaMap != deltaMap);
 			deltaMap.setTo(1.0, mask);
-
 //			imshow("IRef",IRef);
 //			imshow("I_target",I);
-
 //			deltaMap.convertTo(deltaMap, CV_64FC1);
 //			IRef= IRef.mul(deltaMap);
 //			imshow("IRef_new",IRef);
 //			waitKey(0);
 
-			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
+//			PhotometricBA(IRef, I, options, Klvl, xi, DRef,deltaMap);
 			updateDelta(xi,Klvl,image_ref_baseColor,DRef,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
-
 			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
-			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
-			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
+
+            Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
+
+            double  max_n_g, min_n_g;
+            cv::minMaxLoc(deltaMapGT_res, &min_n_g, &max_n_g);
+            cout<<"->>>>>>>>>>>>>>>>>show max and min of deltaMapGT"<< max_n_g <<","<<min_n_g<<endl;
+
+            Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
+
+            imshow("show image_ref_metallic", image_ref_metallic);
+            imshow("show image_ref_roughness", image_ref_roughness);
+
+
+
+
+
+
+
+
+
+
+
+
+            imshow("show grayImage_ref", grayImage_ref);
+            imshow("show grayImage_target", grayImage_target);
+
+
 			imshow("show GT deltaMap", showGTdeltaMap);
 			imshow("show ES deltaMap", showESdeltaMap);
+
 			imwrite("GT_deltaMap.exr",showGTdeltaMap);
 			imwrite("ES_deltaMap.exr",showESdeltaMap);
+
+
 //
 			cout << "\n Show initial pose:\n" << xi_GT.rotationMatrix() << "\n Show translation:\n" << xi_GT.translation()<<endl;
 			cout << "\n Show optimized pose:\n" << xi.rotationMatrix() << "\n Show translation:\n" << xi.translation()<< endl;
 			cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(), xi.rotationMatrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), xi.translation()) <<"(%) "<<endl;
-			waitKey(0);
+
+            waitKey(0);
           i+=1;
 
 		}

@@ -13,7 +13,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/surface/mls.h>
-#include <pcl/visualization/cloud_viewer.h>
+//#include <pcl/visualization/cloud_viewer.h>
 //#include <pcl/surface/mls.h>
 //#include <pcl/surface/mls_omp.h>
 //#include <omp.h>

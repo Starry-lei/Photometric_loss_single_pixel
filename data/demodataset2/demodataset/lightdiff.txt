@@ -1,0 +1,2 @@
+right-handed coord: 5.4 -36.9 8.3
+intensity 5

@@ -44,6 +44,8 @@ namespace DSONL {
 		return  u;
 	}
 	template <class T> T clamp(T x, T min, T max){if (x>max){ return max;}if (x<min){return  min;}return x;}
+	
+	
 	float SchlickFresnel(float i){
 		float x = clamp(1.0-i, 0.0, 1.0);
 		float x2 = x*x;
