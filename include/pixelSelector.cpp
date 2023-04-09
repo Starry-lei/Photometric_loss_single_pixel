@@ -357,6 +357,8 @@ namespace DSONL{
 
 			MinimalImageB3 img(w,h);
 
+
+
 			for(int i=0;i<w*h;i++)
 			{
 				float c = fh->dI[i][0]*0.7; // 像素值
@@ -371,7 +373,7 @@ namespace DSONL{
 				{
 					int i=x+y*w;
 					if(map_out[i] == 1)
-						img.setPixelCirc(x,y,Vec3b(0,255,0));// green
+                        img.setPixelCirc(x,y,Vec3b(0,255,0));// green
 					else if(map_out[i] == 2)
 						img.setPixelCirc(x,y,Vec3b(255,0,0));//red
 					else if(map_out[i] == 4)
@@ -379,7 +381,10 @@ namespace DSONL{
 				}
 			IOWrap::displayImage("Selector Pixels", &img);
 
-//			IOWrap::waitKey(5000);
+			IOWrap::waitKey(5000);
+
+
+//            cv::imwrite("selectedPointMask.png",selectedPointMask);
 		}
 
 		return numHaveSub;

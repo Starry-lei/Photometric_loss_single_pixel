@@ -84,9 +84,9 @@ int main(int argc, char **argv){
 
 
 
-//													showImage(grayImage_ref,"grayImage_ref");
+													showImage(grayImage_ref,"grayImage_ref");
 //													showImage(grayImage_target,"grayImage_target");
-//													waitKey(0);
+													waitKey(0);
 
 
 
@@ -179,7 +179,7 @@ int main(int argc, char **argv){
 	options.optimize_pose= true;
 	options.use_huber= true;
 	options.lambertianCase= false;
-	options.usePixelSelector= false;
+	options.usePixelSelector= true;
 	dataLoader->options_.remove_outlier_manually= false;
 	options.huber_parameter=  0.25*4.0/255.0;   /// 0.25*4/255 :   or 4/255
 
@@ -204,27 +204,24 @@ int main(int argc, char **argv){
 	float* statusMap=NULL;
 	bool*  statusMapB=NULL;
 
-	if(options.useFilterController){
-		Mat grayImage_ref_CV8U;
-		grayImage_ref.convertTo(grayImage_ref_CV8U,CV_8UC1,255.0);
-		newFrame_ref= new FrameHessian();
-		pixelSelector= new PixelSelector(wG[0],hG[0]);
-		color_ref= new float[wG[0]*hG[0]];
-		for (int row = 0; row < hG[0]; ++row) {
-			uchar *pixel_ref=grayImage_ref_CV8U.ptr<uchar>(row);
-			for (int col = 0; col < wG[0]; ++col) {
-				color_ref[row*wG[0]+col]= (float) pixel_ref[col];
-			}
-		}
-		newFrame_ref->makeImages(color_ref); // make image_ref pyramid
-		statusMap= new float[wG[0]*hG[0]];
+//	if(options.useFilterController){
+//		Mat grayImage_ref_CV8U;
+//		grayImage_ref.convertTo(grayImage_ref_CV8U,CV_8UC1,255.0);
+//		newFrame_ref= new FrameHessian();
+//		pixelSelector= new PixelSelector(wG[0],hG[0]);
+//		color_ref= new float[wG[0]*hG[0]];
+//		for (int row = 0; row < hG[0]; ++row) {
+//			uchar *pixel_ref=grayImage_ref_CV8U.ptr<uchar>(row);
+//			for (int col = 0; col < wG[0]; ++col) {
+//				color_ref[row*wG[0]+col]= (float) pixel_ref[col];
+//			}
+//		}
+//		newFrame_ref->makeImages(color_ref); // make image_ref pyramid
+//		statusMap= new float[wG[0]*hG[0]];
+//		int npts= pixelSelector->makeMaps(newFrame_ref, statusMap, densities[0]*wG[0]*hG[0], 1, false, 2);
+//		cerr<<"npts:"<<npts<<endl;
+//	}
 
-
-		int npts= pixelSelector->makeMaps(newFrame_ref, statusMap, densities[1]*wG[0]*hG[0], 1, false, 2);
-		cerr<<"npts:"<<npts<<endl;
-
-
-	}
 
 //	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev);
 	AddGaussianNoise_Opencv(depth_ref,depth_ref_NS,Mean,StdDev,statusMap);
@@ -251,8 +248,8 @@ int main(int argc, char **argv){
 		double min_gray,max_gray;
 		Mat grayImage_ref_CV8U;
 		Mat grayImage_tar_CV8U;
-		grayImage_ref.convertTo(grayImage_ref_CV8U,CV_8UC1,255.0);
-		grayImage_target.convertTo(grayImage_tar_CV8U,CV_8UC1,255.0);
+		grayImage_ref.convertTo(grayImage_ref_CV8U,CV_8UC1);
+		grayImage_target.convertTo(grayImage_tar_CV8U,CV_8UC1);
 
 		newFrame_ref= new FrameHessian();
 		newFrame_tar= new FrameHessian();
@@ -309,7 +306,7 @@ int main(int argc, char **argv){
 //			plotImPyr(newFrame_ref, i, "newFrame_ref");
 //			plotImPyr(newFrame_tar, i, "newFrame_tar");
 //			plotImPyr(depthMap_ref, i, "depthMap_ref");
-			npts[i]= pixelSelector->makeMaps(newFrame_ref, statusMap, densities[i]*wG[0]*hG[0], 1, false, 2);
+			npts[i]= pixelSelector->makeMaps(newFrame_ref, statusMap, densities[1]*wG[0]*hG[0], 1, true, 2);
 			cout<<"\n npts[i]: "<< npts[i]<<"\n densities[i]*wG[0]*hG[0]:"<<densities[i]*wG[0]*hG[0]<<endl;
 			cvvWaitKey(0);
 
@@ -331,8 +328,7 @@ int main(int argc, char **argv){
 			image_tar.convertTo(image_tar, CV_64FC1);
 			depthImg_ref.convertTo(depthImg_ref, CV_64FC1);
 
-
-			while ( idx_EM < 1){
+            while ( idx_EM < 1){
 				double  max_n_, min_n_;
 				cv::minMaxLoc(deltaMap, &min_n_, &max_n_);
 				cout<<"->>>>>>>>>>>>>>>>>show max and min of estimated deltaMap:"<< max_n_ <<","<<min_n_<<endl;
@@ -374,8 +370,8 @@ int main(int argc, char **argv){
 //
 			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
 			cout << "\n Show optimized rotation:\n" << Rotation.matrix()<< "\n Show optimized translation:\n" <<Translation << endl;
-			cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(),  Rotation.matrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), Translation) <<"(%) "
-			     <<"\n Show depth error :"<<depthErr(depth_ref_gt, inv_depth_ref).val[0]<<endl;// !!!!!!!!!!!!!!!!!!!!!!!!
+//			cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(),  Rotation.matrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), Translation) <<"(%) "
+//			     <<"\n Show depth error :"<<depthErr(depth_ref_gt, inv_depth_ref).val[0]<<endl;// !!!!!!!!!!!!!!!!!!!!!!!!
 
 			idx_EM+=1;
 
@@ -383,9 +379,6 @@ int main(int argc, char **argv){
 			}
 			cout<<"\nShow current rotation perturbation error :"<< roErr<< "\nShow current translation perturbation error : "<< trErr<<"\nShow current depth perturbation error :"<< depth_Error<<endl;
 			waitKey(0);
-
-
-
 			// end of for loop
 		}
 
@@ -526,59 +519,59 @@ int main(int argc, char **argv){
 		double min_gt_special, max_gt_special;
 
 		int i=0;
-		while ( i < 1){
-			double  max_n_, min_n_;
-			cv::minMaxLoc(deltaMap, &min_n_, &max_n_);
-			cout<<"->>>>>>>>>>>>>>>>>show max and min of estimated deltaMap:"<< max_n_ <<","<<min_n_<<endl;
-			Mat mask = cv::Mat(deltaMap != deltaMap);
-			deltaMap.setTo(1.0, mask);
-			if (i==1){
-					cout<<"depthErr(depth_ref_gt, inv_depth_ref).val[0]:"<<depthErr(depth_ref_gt, inv_depth_ref).val[0]<<endl;
-					showScaledImage(depth_ref_NS_before,depth_ref_gt,inv_depth_ref);
-			}
-			cv::minMaxLoc(inv_depth_ref, &min_gt_special, &max_gt_special);
-			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
-			Mat inv_depth_ref_for_show= inv_depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
-			string depth_ref_name= "inv_depth_ref"+ to_string(i);
-				imshow(depth_ref_name, inv_depth_ref_for_show);
-
-
-			if (dataLoader->options_.remove_outlier_manually){
-//				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
-//				//				inv_depth_ref.convertTo(inv_depth_ref, CV_32FC1);
-//				//				imwrite("test_inv_depth.exr",inv_depth_ref);
-//				//				showScaledImage(depth_ref_gt, inv_depth_ref);
-//				//				waitKey(0);
-			} else{
-//				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
-				PhotometricBA(IRef, I, options, Klvl, Rotation,Translation, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
-
-				imshow(depth_ref_name, inv_depth_ref_for_show);
-				waitKey(0);
-			}
-
-
-//			updateDelta(xi,Klvl,image_ref_baseColor,depth_ref,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
-
-
-//			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
-//			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
-//			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
-//			imshow("show GT deltaMap", showGTdeltaMap);
-//			imshow("show ES deltaMap", showESdeltaMap);
-//			imwrite("GT_deltaMap.exr",showGTdeltaMap);
-//			imwrite("ES_deltaMap.exr",showESdeltaMap);
+//		while ( i < 1){
+//			double  max_n_, min_n_;
+//			cv::minMaxLoc(deltaMap, &min_n_, &max_n_);
+//			cout<<"->>>>>>>>>>>>>>>>>show max and min of estimated deltaMap:"<< max_n_ <<","<<min_n_<<endl;
+//			Mat mask = cv::Mat(deltaMap != deltaMap);
+//			deltaMap.setTo(1.0, mask);
+//			if (i==1){
+//					cout<<"depthErr(depth_ref_gt, inv_depth_ref).val[0]:"<<depthErr(depth_ref_gt, inv_depth_ref).val[0]<<endl;
+//					showScaledImage(depth_ref_NS_before,depth_ref_gt,inv_depth_ref);
+//			}
+//			cv::minMaxLoc(inv_depth_ref, &min_gt_special, &max_gt_special);
+//			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
+//			Mat inv_depth_ref_for_show= inv_depth_ref*(1.0/(max_gt_special-min_gt_special))+(-min_gt_special*(1.0/(max_gt_special-min_gt_special)));
+//			string depth_ref_name= "inv_depth_ref"+ to_string(i);
+//				imshow(depth_ref_name, inv_depth_ref_for_show);
 //
-			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
-			cout << "\n Show optimized rotation:\n" << Rotation.matrix()<< "\n Show optimized translation:\n" <<Translation << endl;
-			cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(),  Rotation.matrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), Translation) <<"(%) "
-			     <<"\n Show depth error :"<<depthErr(depth_ref_gt, inv_depth_ref).val[0]<<endl;// !!!!!!!!!!!!!!!!!!!!!!!!
-
-			i+=1;
-
-		}
+//
+//			if (dataLoader->options_.remove_outlier_manually){
+////				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound,dataLoader->outlier_mask_big_baseline);
+////				//				inv_depth_ref.convertTo(inv_depth_ref, CV_32FC1);
+////				//				imwrite("test_inv_depth.exr",inv_depth_ref);
+////				//				showScaledImage(depth_ref_gt, inv_depth_ref);
+////				//				waitKey(0);
+//			} else{
+////				PhotometricBA(IRef, I, options, Klvl, xi, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
+//				PhotometricBA(IRef, I, options, Klvl, Rotation,Translation, inv_depth_ref,deltaMap,depth_upper_bound, depth_lower_bound, statusMap, statusMapB);
+//
+//				imshow(depth_ref_name, inv_depth_ref_for_show);
+//				waitKey(0);
+//			}
+//
+//
+////			updateDelta(xi,Klvl,image_ref_baseColor,depth_ref,image_ref_metallic ,image_ref_roughness,light_source, deltaMap,newNormalMap,up_new, butt_new);
+//
+//
+////			Mat deltaMapGT_res= deltaMapGT(grayImage_ref,depth_ref,grayImage_target,depth_target,K,distanceThres,xi_GT, upper, buttom, deltaMap);
+////			Mat showGTdeltaMap=colorMap(deltaMapGT_res, upper, buttom);
+////			Mat showESdeltaMap=colorMap(deltaMap, upper, buttom);
+////			imshow("show GT deltaMap", showGTdeltaMap);
+////			imshow("show ES deltaMap", showESdeltaMap);
+////			imwrite("GT_deltaMap.exr",showGTdeltaMap);
+////			imwrite("ES_deltaMap.exr",showESdeltaMap);
+////
+//			cout<<"\n show depth_ref min, max:\n"<<min_gt_special<<","<<max_gt_special<<endl;
+//			cout << "\n Show optimized rotation:\n" << Rotation.matrix()<< "\n Show optimized translation:\n" <<Translation << endl;
+//			cout << "\n Show Rotational error :"<< rotationErr(xi_GT.rotationMatrix(),  Rotation.matrix()) <<"(degree)."<<"\n Show translational error :" << 100* translationErr(xi_GT.translation(), Translation) <<"(%) "
+//			     <<"\n Show depth error :"<<depthErr(depth_ref_gt, inv_depth_ref).val[0]<<endl;// !!!!!!!!!!!!!!!!!!!!!!!!
+//
+//			i+=1;
+//
+//		}
 		cout<<"\nShow current rotation perturbation error :"<< roErr<< "\nShow current translation perturbation error : "<< trErr<<"\nShow current depth perturbation error :"<< depth_Error<<endl;
-			waitKey(0);
+//			waitKey(0);
 
 	}
 

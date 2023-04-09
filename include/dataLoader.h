@@ -48,7 +48,7 @@ namespace DSONL{
 		/// use gree channel for testing
 		int channelIdx= 1;
 
-		bool lambertian= true;
+		bool lambertian= false;
 
 		bool remove_outlier_manually= true;
 		/// should we calculate 3 channel delta map for loss function now?????????????????
@@ -127,8 +127,13 @@ namespace DSONL{
 					depth_ref_path = "../data/depth/rt_8_0_9_cam1_depth.exr";
 
 				} else if (options_.baseline==4){
-					image_ref_path ="../data/rgb/ControlExperiment/leftCamera/nonlambertian/specular_rt_18_41_46_cam1_rgb.exr";
-					lambertian_image_ref_path= "../data/rgb/ControlExperiment/leftCamera/rt_18_40_2_cam1_rgb.exr";
+//					image_ref_path ="../data/rgb/ControlExperiment/leftCamera/nonlambertian/specular_rt_18_41_46_cam1_rgb.exr";
+                    image_ref_path ="../data/rgb/ControlExperiment/leftCamera/nonlambertian/bgr_10.png";
+
+                    // image_ref_path ="../data/rgb/ControlExperiment/leftCamera/nonlambertian/bgr_10_goalFrame.pfm";
+
+
+                    lambertian_image_ref_path= "../data/rgb/ControlExperiment/leftCamera/rt_18_40_2_cam1_rgb.exr";
 
 					image_ref_baseColor_path="../data/rgb/ControlExperiment/leftCamera/rt_18_41_19_cam1_basecolor.exr";
 					depth_ref_path="../data/rgb/ControlExperiment/leftCamera/rt_17_51_15_cam1_depth.exr";
@@ -146,6 +151,13 @@ namespace DSONL{
 
 
 				Mat image_ref = imread(image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
+
+//                Mat image_ref=
+
+                imshow("image_ref",image_ref);
+                waitKey(0);
+
+
 				Mat lambertian_image_ref = imread(lambertian_image_ref_path, IMREAD_ANYCOLOR | IMREAD_ANYDEPTH);
 
 				Mat depth_ref = imread(depth_ref_path, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
@@ -159,9 +171,9 @@ namespace DSONL{
 
 				Mat ref_mr_table[3];
 
-//				imshow("image_ref",image_ref);
+				imshow("image_ref",image_ref);
 //				imshow("lambertian_image_ref",lambertian_image_ref);
-//				waitKey(0);
+				waitKey(0);
 
 				if (options_.lambertian){
 					image_ref=lambertian_image_ref.clone();

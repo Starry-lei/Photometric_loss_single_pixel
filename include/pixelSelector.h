@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <boost/thread.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include "setting.h"
 #pragma once
 namespace DSONL{

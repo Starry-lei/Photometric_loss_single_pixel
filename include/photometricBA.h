@@ -173,6 +173,9 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 //	inliers_filter.emplace(319,296); ///(324,280)        baseline_label: control experiment baseline is the smallest
 //	inliers_filter.emplace(367,291); ///(364,307)
 
+    Mat selectedPointMask1(image.rows,  image.cols, CV_32FC1, Scalar(0));
+    Mat selectedPointMask2(image.rows,  image.cols, CV_8UC1, Scalar(0));
+    Mat selectedPointMask3(image.rows,  image.cols, CV_8UC1, Scalar(0));
 
 	int counter=0;
 	for (int u = 0; u< image.rows; u++) // colId, cols: 0 to 480
@@ -180,6 +183,9 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 		for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
 		{
 			if (statusMap!=NULL && statusMap[u*image.cols+v]!=0 ){
+                // ================================save the selectedPoint mask here=======================
+                selectedPointMask1.at<float>(u,v)=1;
+
 				inliers_filter.emplace(u,v);
 				counter++;
 
@@ -187,13 +193,15 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 		}
 	}
 
-	cerr<<"show counter for confirmation:"<<counter<<endl;
+    imshow("selectedPointMask1",selectedPointMask1);
+    imwrite("selectedPointMask1.png",selectedPointMask1);
+	std::cerr<<"Show counter for confirmation:"<<counter<<endl;
+    waitKey(0);
 
 
 
 
-
-			double intensity_ref;
+    double intensity_ref;
 	double deltaMap_val;
 //	double *transformation = pose.data();
     double * Rotation_=Rotation.data();

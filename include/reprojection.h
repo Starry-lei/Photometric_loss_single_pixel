@@ -38,7 +38,7 @@ namespace DSONL{
 
 		bool lambertianCase= false;
 
-		bool usePixelSelector= false;
+		bool usePixelSelector= true;
 
 		bool useFilterController= true;
 
