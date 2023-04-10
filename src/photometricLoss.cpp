@@ -164,6 +164,9 @@ int main(int argc, char **argv) {
 	double depth_lower_bound =20;
 
 
+    imshow("grayImage_ref",grayImage_ref);
+    imshow("grayImage_target",grayImage_target);
+    waitKey(0);
 	for (int lvl = 1; lvl >= 1; lvl--)
 	{
 		cout << "\n Show the value of lvl:" << lvl << endl;
@@ -176,7 +179,7 @@ int main(int argc, char **argv) {
 		downscale(grayImage_target, depth_target, K, lvl_target, I, D, Klvl_ignore);
 
 		PhotometricBAOptions options;
-		options.optimize_depth= true;
+		options.optimize_depth= false;
 
         int i=0;
 		Mat depth_ref_show_before= depth_ref*(1.0/(max_gt-min_gt))+(-min_gt*(1.0/(max_gt-min_gt)));
