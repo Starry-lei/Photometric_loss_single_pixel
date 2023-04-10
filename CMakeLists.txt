@@ -80,7 +80,7 @@ include_directories(include)
 # be found before our custom build. For example on macOS a both pangolin and
 # TBB have /usr/local/include as part of their include directories.
 find_package(Ceres 2.0 REQUIRED CONFIG HINTS "${CERES_ROOT}" NO_DEFAULT_PATH)
-
+message(STATUS "show CERES_ROOT: ${CERES_ROOT}")
 # to use link to target "pangolin"
 set(Pangolin_DIR ${PANGOLIN_ROOT})
 find_package(Pangolin REQUIRED CONFIG NO_DEFAULT_PATH)
@@ -122,8 +122,7 @@ add_definitions(${PCL_DEFINITIONS})
 
 
 #some output:
-
-message(STATUS "show IT: ${CMAKE_CURRENT_SOURCE_DIR}")
+#message(STATUS "show IT: ${CMAKE_CURRENT_SOURCE_DIR}")
 
 
 
