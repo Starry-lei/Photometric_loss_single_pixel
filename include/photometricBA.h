@@ -282,7 +282,10 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 		deltaMap.convertTo(deltaMap, CV_64FC1);
 
 
-
+        imshow("imagei",image);
+        imshow("image_righti",image_right);
+        imshow("deltaMapi",deltaMap);
+        waitKey(0);
 
 //		cv::Mat flat_depth_map = img_ref_depth.reshape(1, img_ref_depth.total() * img_ref_depth.channels());
 //		std::vector<double> img_ref_depth_values=img_ref_depth.isContinuous() ? flat_depth_map : flat_depth_map.clone();
@@ -326,8 +329,8 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 			for (int v = 0; v < image.cols; v++) // rowId,  rows: 0 to 640
 			{
 				// use the inlier filter
-//				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
-//				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter.count(u)==0){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
+				if(inliers_filter[u]!=v ){continue;}// ~~~~~~~~~~~~~~Filter~~~~~~~~~~~~~~~~~~~~~~~
 
 //				if(pixelSkip%step!=0){ pixelSkip++;continue; }
 //				pixelSkip++;
@@ -378,7 +381,7 @@ void PhotometricBA(Mat &image, Mat &image_right, const PhotometricBAOptions &opt
 		// Solve
 		std::cout << "\n Solving ceres directBA ... " << endl;
 		ceres::Solver::Options ceres_options;
-		ceres_options.max_num_iterations = 600;
+		ceres_options.max_num_iterations = 300;
 
 		ceres_options.linear_solver_type =ceres::SPARSE_SCHUR;
 		ceres_options.num_threads = std::thread::hardware_concurrency();
